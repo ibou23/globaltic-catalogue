@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #529FD7;
+  --color-brand-secondary: #132034;
+  
+  --color-brand-primary-light: #89c1e9;
+  --color-brand-primary-dark: #3a7cae;
+  
+  --color-brand-secondary-light: #1e3352;
+  --color-brand-secondary-dark: #0a111c;
+  
+  --color-whatsapp: #25D366;
+  --color-whatsapp-hover: #128C7E;
+  
+  --color-background: #F8FAFC; /* Slate 50 - Ultra clean */
+  --color-foreground: #0F172A; /* Slate 900 - Doux mais contrasté */
+  
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
+  
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-jakarta);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+}
+
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), sans-serif;
+}
+
+/* Animations globales et effets premium */
+@layer utilities {
+  .glass-effect {
+    background-color: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  }
+
+  .glass-dark {
+    background-color: rgba(19, 32, 52, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .text-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(to right, var(--color-brand-primary), var(--color-brand-secondary));
+  }
+
+  .mobile-touch-target {
+    min-height: 48px;
+    min-width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .premium-shadow {
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.1);
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-custom {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+.animate-pulse-premium {
+  animation: pulse-custom 2s infinite;
+}
+
+/* Optimisations Mobile & Tactile */
+@media (max-width: 768px) {
+  html {
+    scroll-padding-top: 80px;
+  }
+
+  /* Désactiver les hovers sur mobile pour éviter le double tap */
+  .no-hover-on-mobile {
+    transition: none !important;
+  }
+  
+  /* Amélioration du défilement inertiel */
+  .smooth-scroll-mobile {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Custom scrollbar ultra fine */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-primary);
+}
+
+/* Base mesh gradient simple via CSS */
+.bg-mesh {
+  background-color: #ffffff;
+  background-image: 
+    radial-gradient(at 40% 20%, hsla(205,62%,85%,1) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsla(217,46%,95%,1) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(205,62%,85%,1) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, hsla(217,46%,95%,1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(205,62%,85%,1) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, hsla(217,46%,95%,1) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, hsla(205,62%,85%,1) 0px, transparent 50%);
+}
