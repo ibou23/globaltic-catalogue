@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import {
-  getFallbackRealisations,
-  getFallbackRealisationCategories,
-} from "@/lib/db/fallback";
+  getSafeRealisations,
+  getSafeRealisationCategories,
+} from "@/lib/db/safe-queries";
 import { siteConfig } from "@/lib/config/site";
 import { RealisationsHeader } from "@/components/realisations/RealisationsHeader";
 import { RealisationsGallery } from "@/components/realisations/RealisationsGallery";
@@ -20,9 +20,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RealisationsPage() {
-  const realisations = getFallbackRealisations();
-  const categories = getFallbackRealisationCategories();
+export default async function RealisationsPage() {
+  const realisations = await getSafeRealisations();
+  const categories = await getSafeRealisationCategories();
 
   return (
     <div className="flex flex-col flex-1 bg-slate-50/50 pb-24">

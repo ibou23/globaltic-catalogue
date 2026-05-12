@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
-  getFallbackCategories,
-  getFallbackProducts,
-  getFallbackCategoryBySlug,
-} from "@/lib/db/fallback";
-import { products as rawProducts } from "@/data/products";
+  getSafeCategories,
+  getSafeCategoryBySlug,
+  getSafeProducts,
+  getSafeMinPrices,
+} from "@/lib/db/safe-queries";
 import { siteConfig } from "@/lib/config/site";
 import { CatalogueClient } from "@/components/catalogue/CatalogueClient";
 import { CatalogueHeader } from "@/components/catalogue/CatalogueHeader";
@@ -21,7 +21,7 @@ export async function generateMetadata({
   const slug = categorySlug?.[0];
 
   if (slug) {
-    const category = getFallbackCategoryBySlug(slug);
+    const category = await getSafeCategoryBySlug(slug);
     if (category) {
       return {
         title: `${category.name} | ${siteConfig.name} Imprimerie Dakar`,
@@ -56,8 +56,8 @@ export default async function CataloguePage({ params }: PageProps) {
   const { categorySlug } = await params;
   const slug = categorySlug?.[0];
 
-  const categories = getFallbackCategories();
-  const products = getFallbackProducts();
+  const categories = await getSafeCategories();
+  const products = await getSafeProducts();
 
   let initialCategoryId = "all";
 
@@ -69,11 +69,7 @@ export default async function CataloguePage({ params }: PageProps) {
     initialCategoryId = category.id;
   }
 
-  const minPrices: Record<string, number> = {};
-  for (const product of products) {
-    const rawProduct = rawProducts.find((p) => p.id === product.id);
-    minPrices[product.id] = rawProduct?.quantityTiers[0]?.baseUnitPrice ?? 0;
-  }
+  const minPrices = await getSafeMinPrices(products);
 
   return (
     <div className="flex flex-col flex-1 bg-background pb-24">

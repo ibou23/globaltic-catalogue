@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getFallbackCategories } from "@/lib/db/fallback";
+import { getSafeCategories } from "@/lib/db/safe-queries";
 import { siteConfig, seoDefaults } from "@/lib/config/site";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { CatalogueGrid } from "@/components/sections/CatalogueGrid";
@@ -20,8 +20,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
-  const categories = getFallbackCategories();
+export default async function Home() {
+  const categories = await getSafeCategories();
 
   return (
     <div className="flex flex-col flex-1 bg-background overflow-hidden">
