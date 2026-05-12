@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════
--- GLOBAL TIC PrintTech — Row Level Security Policies
+-- GLOBAL TIC PrintTech — Politiques de sécurité par ligne (RLS)
 -- Migration 002
 -- ═══════════════════════════════════════════════════════════════
 

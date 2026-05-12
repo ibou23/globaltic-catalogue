@@ -1,7 +1,7 @@
 -- ============================================================
--- GLOBAL TIC PrintTech — Seed Data
--- Idempotent: uses ON CONFLICT DO NOTHING on unique constraints
--- Run after migrations 001 and 002
+-- GLOBAL TIC PrintTech — Données initiales (Seed)
+-- Idempotent : utilise ON CONFLICT DO NOTHING sur les contraintes uniques
+-- À exécuter après les migrations 001 et 002
 -- ============================================================
 
 -- ============================================================
