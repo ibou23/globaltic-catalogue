@@ -1,31 +1,60 @@
-import { Product, Format, Paper, Finish } from "@/types/product";
-import { CalculatorState, CalculationResult, PriceDetailLine } from "@/types/calculator";
+"use client";
 
-export function calculatePrice(product: Product, state: CalculatorState): CalculationResult {
+import type {
+  ProductWithOptions,
+  ProductFormat,
+  ProductPaper,
+  ProductFinish,
+  ProductQuantityTier,
+} from "@/lib/types/domain";
+
+export interface CalculatorState {
+  format: ProductFormat | null;
+  paper: ProductPaper | null;
+  quantity: number;
+  selectedFinishes: ProductFinish[];
+}
+
+export interface PriceDetailLine {
+  label: string;
+  amount: number;
+  type: "base" | "finition" | "frais_fixes" | "remise";
+}
+
+export interface CalculationResult {
+  unitPrice: number;
+  totalPrice: number;
+  finishesPrice: number;
+  discount: number;
+  estimatedTurnaroundDays: number;
+  details: PriceDetailLine[];
+}
+
+export function calculatePrice(
+  product: ProductWithOptions,
+  state: CalculatorState
+): CalculationResult {
   const details: PriceDetailLine[] = [];
-  
-  // 1. Trouver le palier de quantité
   const qty = state.quantity;
-  const tier = product.quantityTiers.find(t => qty >= t.min && qty <= t.max) 
-    || product.quantityTiers[0]; // Fallback au premier palier (le plus cher) si en dessous du min
-    
-  let baseUnitPrice = tier ? tier.baseUnitPrice : 0;
 
-  // Règle spécifique Textile : +20% de majoration pour les petites commandes (< 10 unités)
-  if (product.categoryId === "cat-textile" && qty < 10) {
-    baseUnitPrice *= 1.2;
-  }
-  
+  // 1. Trouver le palier de quantité applicable
+  const tier =
+    product.quantityTiers.find(
+      (t) => qty >= t.minQty && (t.maxQty === null || qty <= t.maxQty)
+    ) || product.quantityTiers[0];
+
+  const baseUnitPrice = tier ? tier.baseUnitPrice : 0;
+
   // 2. Multiplicateurs (Format & Papier)
   const formatMultiplier = state.format ? state.format.priceMultiplier : 1;
   const paperMultiplier = state.paper ? state.paper.priceMultiplier : 1;
-  
-  let currentUnitPrice = baseUnitPrice * formatMultiplier * paperMultiplier;
-  
+
+  const currentUnitPrice = baseUnitPrice * formatMultiplier * paperMultiplier;
+
   details.push({
     label: `Impression de base (${qty} ex.)`,
     amount: currentUnitPrice * qty,
-    type: 'base'
+    type: "base",
   });
 
   // 3. Calcul des finitions
@@ -36,34 +65,38 @@ export function calculatePrice(product: Product, state: CalculatorState): Calcul
     const finishTotalUnit = finish.unitPrice * qty;
     finishesPrice += finishTotalUnit;
     fixedCosts += finish.fixedPrice;
-    
+
     details.push({
       label: `Option : ${finish.name}`,
       amount: finishTotalUnit,
-      type: 'finition'
+      type: "finition",
     });
-    
+
     if (finish.fixedPrice > 0) {
       details.push({
         label: `Frais fixes : ${finish.name}`,
         amount: finish.fixedPrice,
-        type: 'frais_fixes'
+        type: "frais_fixes",
       });
     }
   }
 
   // 4. Totaux
-  const totalPrice = (currentUnitPrice * qty) + finishesPrice + fixedCosts;
-  
-  // Délai estimé (+1 jour par finition)
-  const estimatedTurnaroundDays = product.baseTurnaroundDays + state.selectedFinishes.length;
+  const totalPrice = currentUnitPrice * qty + finishesPrice + fixedCosts;
+
+  // Délai estimé (+extraDays par finition sélectionnée)
+  const extraDays = state.selectedFinishes.reduce(
+    (acc, f) => acc + f.extraDays,
+    0
+  );
+  const estimatedTurnaroundDays = product.baseTurnaroundDays + extraDays;
 
   return {
-    unitPrice: totalPrice / qty,
+    unitPrice: qty > 0 ? totalPrice / qty : 0,
     totalPrice: Math.round(totalPrice),
     finishesPrice: finishesPrice + fixedCosts,
-    discount: 0, // À implémenter si besoin de codes promo
+    discount: 0,
     estimatedTurnaroundDays,
-    details
+    details,
   };
 }
