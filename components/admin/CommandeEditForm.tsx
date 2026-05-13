@@ -82,8 +82,9 @@ function buildWhatsAppMessage(order: OrderEnriched, status: OrderStatus): string
     pret: [
       `Bonjour *${client}*,`,
       ``,
-      `Votre commande *${ref}* est prête !`,
-      `Vous pouvez passer la récupérer à notre atelier ou nous confirmer votre mode de livraison.`,
+      `Votre commande *${ref}* est prête à être livrée ✅`,
+      ``,
+      `Notre livreur vous contactera pour organiser la livraison.`,
       ``,
       `*GLOBAL TIC*`,
     ],
