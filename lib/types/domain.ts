@@ -174,7 +174,10 @@ export interface Order {
   deliveryMethod: DeliveryMethod;
   deliveryFee: number;
   estimatedDelivery: string | null;
+  actualDelivery: string | null;
+  deliveryAddress: string | null;
   notes: string | null;
+  internalNotes: string | null;
   createdAt: string;
 }
 

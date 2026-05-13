@@ -1,7 +1,7 @@
 "use server";
 
-import { createOrderSchema } from "@/lib/validators/order";
-import { createOrder, getOrderByQuoteId } from "@/lib/db/orders";
+import { createOrderSchema, updateOrderSchema } from "@/lib/validators/order";
+import { createOrder, updateOrder, getOrderByQuoteId } from "@/lib/db/orders";
 import { getQuoteById } from "@/lib/db/quotes";
 import { generateReference } from "@/lib/services/reference";
 import { err, type Result } from "@/lib/utils/result";
@@ -44,4 +44,16 @@ export async function convertQuoteToOrderAction(
 
   const reference = await generateReference("CMD");
   return createOrder(parsed.data, reference);
+}
+
+export async function updateOrderAction(
+  id: string,
+  formData: unknown
+): Promise<Result<Order>> {
+  if (!id) return err("Identifiant de la commande manquant");
+  const parsed = updateOrderSchema.safeParse(formData);
+  if (!parsed.success) {
+    return err(parsed.error.issues[0]?.message ?? "Données invalides");
+  }
+  return updateOrder(id, parsed.data);
 }

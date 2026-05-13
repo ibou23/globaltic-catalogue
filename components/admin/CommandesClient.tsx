@@ -1,9 +1,11 @@
 "use client";
 
-import { ShoppingCart, MessageCircle } from "lucide-react";
+import { useState } from "react";
+import { ShoppingCart, MessageCircle, Pencil } from "lucide-react";
 import type { OrderEnriched } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
+import { CommandeEditForm } from "@/components/admin/CommandeEditForm";
 
 interface CommandesClientProps {
   orders: OrderEnriched[];
@@ -51,7 +53,13 @@ function buildWhatsAppConfirmation(order: OrderEnriched): string {
 }
 
 export function CommandesClient({ orders }: CommandesClientProps) {
+  const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
+
   return (
+    <>
+      {editingOrder && (
+        <CommandeEditForm order={editingOrder} onClose={() => setEditingOrder(null)} />
+      )}
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-black text-slate-800 font-heading tracking-tight">
@@ -130,13 +138,20 @@ export function CommandesClient({ orders }: CommandesClientProps) {
                         {formatPrice(order.total)}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => setEditingOrder(order)}
+                            title="Modifier la commande"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
                           {order.customer && (
                             <a
                               href={waLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              title="Confirmer la commande sur WhatsApp"
+                              title="Envoyer un message WhatsApp"
                               className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
                             >
                               <MessageCircle className="w-4 h-4" />
@@ -153,5 +168,6 @@ export function CommandesClient({ orders }: CommandesClientProps) {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ok, err, type Result } from "@/lib/utils/result";
 import { mapOrder } from "./mappers";
 import type { Order, OrderEnriched, OrderStatus } from "@/lib/types/domain";
-import type { CreateOrderInput } from "@/lib/validators/order";
+import type { CreateOrderInput, UpdateOrderInput } from "@/lib/validators/order";
 
 export async function getOrders(): Promise<Result<Order[]>> {
   const supabase = await createClient();
@@ -145,6 +145,33 @@ export async function getOrderByQuoteId(
 
   if (error) return err(error.message);
   return ok(data ? mapOrder(data) : null);
+}
+
+export async function updateOrder(
+  id: string,
+  input: UpdateOrderInput
+): Promise<Result<Order>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("orders")
+    .update({
+      status: input.status,
+      payment_status: input.payment_status,
+      paid_amount: input.paid_amount,
+      delivery_method: input.delivery_method,
+      delivery_address: input.delivery_address ?? null,
+      estimated_delivery: input.estimated_delivery ?? null,
+      actual_delivery: input.actual_delivery ?? null,
+      notes: input.notes ?? null,
+      internal_notes: input.internal_notes ?? null,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return err(error.message);
+  return ok(mapOrder(data));
 }
 
 export async function updateOrderStatus(
