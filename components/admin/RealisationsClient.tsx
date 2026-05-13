@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Image as ImageIcon } from "lucide-react";
-import type { Realisation } from "@/lib/types/domain";
+import type { Realisation, Category } from "@/lib/types/domain";
 import { RealisationForm } from "@/components/admin/RealisationForm";
 import { DeleteConfirm } from "@/components/admin/DeleteConfirm";
 import { deleteRealisationAction } from "@/lib/actions/realisations";
@@ -10,9 +10,10 @@ import { useRouter } from "next/navigation";
 
 interface RealisationsClientProps {
   realisations: Realisation[];
+  categories: Category[];
 }
 
-export function RealisationsClient({ realisations }: RealisationsClientProps) {
+export function RealisationsClient({ realisations, categories }: RealisationsClientProps) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Realisation | undefined>(undefined);
@@ -72,7 +73,7 @@ export function RealisationsClient({ realisations }: RealisationsClientProps) {
       </div>
 
       {/* Modals */}
-      {showForm && <RealisationForm realisation={editing} onClose={closeForm} />}
+      {showForm && <RealisationForm realisation={editing} categories={categories} onClose={closeForm} />}
       {deleting && (
         <DeleteConfirm
           title="Supprimer la réalisation"

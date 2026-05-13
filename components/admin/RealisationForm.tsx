@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { X, Loader2, Save } from "lucide-react";
-import type { Realisation } from "@/lib/types/domain";
+import type { Realisation, Category } from "@/lib/types/domain";
 import {
   createRealisationAction,
   updateRealisationAction,
@@ -12,17 +12,18 @@ import { ImageUploadField } from "@/components/admin/ImageUploadField";
 
 interface RealisationFormProps {
   realisation?: Realisation;
+  categories: Category[];
   onClose: () => void;
 }
 
-export function RealisationForm({ realisation, onClose }: RealisationFormProps) {
+export function RealisationForm({ realisation, categories, onClose }: RealisationFormProps) {
   const isEditing = !!realisation;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const [title, setTitle] = useState(realisation?.title ?? "");
-  const [category, setCategory] = useState(realisation?.category ?? "");
+  const [category, setCategory] = useState(realisation?.category ?? (categories.length > 0 ? categories[0].name : ""));
   const [clientName, setClientName] = useState(realisation?.clientName ?? "");
   const [description, setDescription] = useState(realisation?.description ?? "");
   const [imageUrl, setImageUrl] = useState(realisation?.imageUrl ?? "");
@@ -106,14 +107,18 @@ export function RealisationForm({ realisation, onClose }: RealisationFormProps) 
             {/* Category */}
             <div>
               <label className={labelClass}>Catégorie *</label>
-              <input
-                type="text"
+              <select
                 required
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className={inputClass}
-                placeholder="Signalétique"
-              />
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
