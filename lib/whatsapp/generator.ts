@@ -39,23 +39,23 @@ export function generateWhatsAppLink(
     : `${siteConfig.url}/produit/${product.slug}`;
   const delai = `~${result.estimatedTurnaroundDays} jours ouvrés`;
 
+  const prix = formatPrice(result.totalPrice).replace("F CFA", "FCFA");
+
   // Message construit avec \n — encodeURIComponent appliqué une seule fois à la fin
   const lines = [
-    `*NOUVELLE DEMANDE DE DEVIS* 🖨️`,
+    `*NOUVELLE DEMANDE DE DEVIS*`,
     ``,
     `Bonjour l'équipe *GLOBAL TIC*,`,
-    ``,
-    `Je souhaite être accompagné par un conseiller afin de confirmer les détails de ma demande :`,
     ``,
     `*Produit* : ${product.name}`,
     `*Quantité* : ${state.quantity.toLocaleString("fr-SN")} ${unitLabel}`,
     `*Options sélectionnées* : ${options}`,
-    `*Prix estimatif* : ${formatPrice(result.totalPrice)}`,
+    `*Prix estimatif* : ${prix}`,
     `*Délai estimé* : ${delai}`,
     ``,
     `*Lien produit* : ${url}`,
     ``,
-    `Merci de me confirmer la disponibilité, le prix final et les prochaines étapes pour lancer ma commande.`,
+    `Merci de me confirmer la disponibilité et les prochaines étapes pour lancer ma commande.`,
   ];
 
   return `https://wa.me/${siteConfig.whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
