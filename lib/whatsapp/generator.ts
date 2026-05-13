@@ -39,21 +39,21 @@ export function generateWhatsAppLink(
   productUrl?: string
 ): string {
   const nl = "%0A";
-  const reference = generateReference();
   const unitLabel = getUnitLabel(product.unitType, state.quantity);
   const options = buildOptionsLine(state, product);
   const url = productUrl || `/produit/${product.slug}`;
   const delai = `~${result.estimatedTurnaroundDays} jours ouvrés`;
 
-  let text = `NOUVELLE DEMANDE DE PRIX 🖨️${nl}${nl}`;
-  text += `Référence configuration : ${reference}${nl}${nl}`;
-  text += `Produit : ${product.name}${nl}`;
-  text += `Quantité : ${state.quantity} ${unitLabel}${nl}`;
-  text += `Options : ${options}${nl}`;
-  text += `Prix estimatif : ${formatPrice(result.totalPrice)}${nl}`;
-  text += `Délai estimé : ${delai}${nl}${nl}`;
-  text += `Lien produit : ${url}${nl}${nl}`;
-  text += `Bonjour l'équipe GLOBAL TIC, je souhaite confirmer cette configuration avec un conseiller et recevoir les prochaines étapes pour lancer ma commande.`;
+  let text = `*NOUVELLE DEMANDE DE DEVIS* 🖨️${nl}${nl}`;
+  text += `Bonjour l'équipe *GLOBAL TIC*,${nl}${nl}`;
+  text += `Je souhaite être accompagné par un conseiller afin de confirmer les détails de ma demande :${nl}${nl}`;
+  text += `*Produit* : ${product.name}${nl}`;
+  text += `*Quantité* : ${state.quantity.toLocaleString("fr-SN")} ${unitLabel}${nl}`;
+  text += `*Options sélectionnées* : ${options}${nl}`;
+  text += `*Prix estimatif* : ${formatPrice(result.totalPrice)} FCFA${nl}`;
+  text += `*Délai estimé* : ${delai}${nl}${nl}`;
+  text += `*Lien produit* : ${url}${nl}${nl}`;
+  text += `Merci de me confirmer la disponibilité, le prix final et les prochaines étapes pour lancer ma commande.`;
 
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
 }
