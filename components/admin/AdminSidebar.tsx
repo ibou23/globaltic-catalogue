@@ -1,0 +1,135 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils/cn";
+import {
+  LayoutDashboard,
+  Package,
+  FolderOpen,
+  FileText,
+  ShoppingCart,
+  Users,
+  Image,
+  Settings,
+  LogOut,
+  Printer,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { useState } from "react";
+import { signOutAction } from "@/lib/actions/auth";
+
+const navItems = [
+  {
+    label: "Vue d'ensemble",
+    href: "/admin",
+    icon: LayoutDashboard,
+    exact: true,
+  },
+  { label: "Produits", href: "/admin/produits", icon: Package },
+  { label: "Catégories", href: "/admin/categories", icon: FolderOpen },
+  { label: "Devis", href: "/admin/devis", icon: FileText },
+  { label: "Commandes", href: "/admin/commandes", icon: ShoppingCart },
+  { label: "Clients", href: "/admin/clients", icon: Users },
+  { label: "Réalisations", href: "/admin/realisations", icon: Image },
+  { label: "Paramètres", href: "/admin/parametres", icon: Settings },
+];
+
+export function AdminSidebar() {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+
+  const isActive = (href: string, exact?: boolean) => {
+    if (exact) return pathname === href;
+    return pathname.startsWith(href);
+  };
+
+  return (
+    <aside
+      className={cn(
+        "h-screen sticky top-0 flex flex-col bg-brand-secondary text-white transition-all duration-300 z-40",
+        collapsed ? "w-[72px]" : "w-[260px]"
+      )}
+    >
+      {/* Logo */}
+      <div className={cn(
+        "flex items-center gap-3 px-5 h-[72px] border-b border-white/10",
+        collapsed && "justify-center px-0"
+      )}>
+        <div className="w-9 h-9 rounded-xl bg-brand-primary flex items-center justify-center shrink-0">
+          <Printer className="w-5 h-5 text-white" />
+        </div>
+        {!collapsed && (
+          <div className="overflow-hidden">
+            <h1 className="text-sm font-black tracking-tight leading-none">GLOBAL TIC</h1>
+            <p className="text-[10px] font-medium text-white/50 uppercase tracking-widest mt-0.5">PrintTech Admin</p>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+        {navItems.map((item) => {
+          const active = isActive(item.href, item.exact);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={collapsed ? item.label : undefined}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group",
+                active
+                  ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/30"
+                  : "text-white/60 hover:text-white hover:bg-white/8",
+                collapsed && "justify-center px-0"
+              )}
+            >
+              <item.icon
+                className={cn(
+                  "w-5 h-5 shrink-0 transition-transform duration-200",
+                  !active && "group-hover:scale-110"
+                )}
+              />
+              {!collapsed && <span>{item.label}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-white/10 p-3 space-y-1">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/40 hover:text-white/70 hover:bg-white/5 transition-all w-full",
+            collapsed && "justify-center px-0"
+          )}
+        >
+          {collapsed ? (
+            <ChevronRight className="w-5 h-5 shrink-0" />
+          ) : (
+            <>
+              <ChevronLeft className="w-5 h-5 shrink-0" />
+              <span>Réduire</span>
+            </>
+          )}
+        </button>
+
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all w-full",
+              collapsed && "justify-center px-0"
+            )}
+            title={collapsed ? "Déconnexion" : undefined}
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            {!collapsed && <span>Déconnexion</span>}
+          </button>
+        </form>
+      </div>
+    </aside>
+  );
+}

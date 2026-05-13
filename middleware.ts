@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
@@ -27,26 +27,24 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Vérifier la session
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   // Protection des routes /admin
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    // Si l'utilisateur n'est pas connecté et n'est pas sur la page de login
-    if (!user && !request.nextUrl.pathname.startsWith('/admin/login')) {
+    if (!user) {
       const url = request.nextUrl.clone()
-      url.pathname = '/admin/login'
+      url.pathname = '/login'
       return NextResponse.redirect(url)
     }
+  }
 
-    // Si l'utilisateur est déjà connecté et tente d'accéder à la page de login
-    if (user && request.nextUrl.pathname.startsWith('/admin/login')) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/admin'
-      return NextResponse.redirect(url)
-    }
+  // Si connecté et sur /login, rediriger vers /admin
+  if (user && request.nextUrl.pathname === '/login') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin'
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse
@@ -54,13 +52,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, etc)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
