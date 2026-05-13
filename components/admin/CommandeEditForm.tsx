@@ -55,10 +55,13 @@ function buildWhatsAppMessage(order: OrderEnriched, status: OrderStatus): string
     confirmee: [
       `Bonjour *${client}*,`,
       ``,
-      `Votre commande *${ref}* a bien été confirmée.`,
-      `Notre équipe va vous contacter pour le BAT (Bon À Tirer) avant le lancement en production.`,
+      `Votre acompte pour la commande *${ref}* a bien été reçu.`,
       ``,
-      `Merci pour votre confiance — *GLOBAL TIC*`,
+      `Votre commande est maintenant confirmée ✅`,
+      ``,
+      `Nous restons disponibles sur WhatsApp pour toute précision et nous vous tiendrons au courant pour la livraison.`,
+      ``,
+      `Merci pour votre confiance. — *GLOBAL TIC*`,
     ],
     bat_en_cours: [
       `Bonjour *${client}*,`,
