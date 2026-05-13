@@ -272,14 +272,20 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
               </div>
             </div>
           </div>
+
+          {/* Espaceur mobile : compense la hauteur du bloc résumé sticky */}
+          <div className="h-56 sm:hidden" aria-hidden="true" />
         </div>
 
         {/* Récapitulatif & CTA */}
         <div className="sticky bottom-0 z-50 bg-[#132034] text-white p-5 sm:p-8 rounded-t-3xl sm:rounded-none sm:rounded-b-xl border-t border-white/10 shadow-[0_-20px_40px_-15px_rgba(0,0,0,0.4)] sm:shadow-none safe-bottom">
           <div className="hidden sm:block mb-6 pb-6 border-b border-brand-secondary-light/50 space-y-3">
-            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-1">
               Résumé de votre configuration
             </h3>
+            <p className="text-base font-semibold text-sky-300 mb-4">
+              {product.name}
+            </p>
 
             <div className="flex justify-between items-center text-sm">
               <span className="text-slate-400">Quantité</span>
