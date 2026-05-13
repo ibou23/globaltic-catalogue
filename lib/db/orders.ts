@@ -153,12 +153,20 @@ export async function updateOrder(
 ): Promise<Result<Order>> {
   const supabase = await createClient();
 
+  const previousResult = await getOrderById(id);
+  const previousPaidAmount = previousResult.data?.paidAmount ?? 0;
+  const hadPayment = previousPaidAmount === 0 && input.paid_amount > 0;
+
   const { data, error } = await supabase
     .from("orders")
     .update({
       status: input.status,
       payment_status: input.payment_status,
       paid_amount: input.paid_amount,
+      payment_method: input.payment_method ?? null,
+      payment_reference: input.payment_reference ?? null,
+      payment_note: input.payment_note ?? null,
+      last_payment_at: hadPayment ? new Date().toISOString() : undefined,
       delivery_method: input.delivery_method,
       delivery_address: input.delivery_address ?? null,
       estimated_delivery: input.estimated_delivery ?? null,

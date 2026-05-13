@@ -171,6 +171,10 @@ export interface Order {
   total: number;
   paidAmount: number;
   paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod | null;
+  paymentReference: string | null;
+  paymentNote: string | null;
+  lastPaymentAt: string | null;
   deliveryMethod: DeliveryMethod;
   deliveryFee: number;
   estimatedDelivery: string | null;

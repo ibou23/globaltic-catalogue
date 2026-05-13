@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { X, Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateOrderAction } from "@/lib/actions/orders";
-import type { OrderEnriched } from "@/lib/types/domain";
+import type { OrderEnriched, PaymentMethod } from "@/lib/types/domain";
 
 interface CommandeEditFormProps {
   order: OrderEnriched;
@@ -36,6 +36,14 @@ const PAYMENT_OPTIONS = [
   { value: "rembourse", label: "Remboursé" },
 ] as const;
 
+const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  { value: "wave",         label: "Wave" },
+  { value: "orange_money", label: "Orange Money" },
+  { value: "especes",      label: "Espèces" },
+  { value: "virement",     label: "Virement bancaire" },
+  { value: "cheque",       label: "Chèque" },
+];
+
 const DELIVERY_OPTIONS = [
   { value: "retrait",            label: "Retrait en boutique" },
   { value: "livraison_dakar",    label: "Livraison Dakar" },
@@ -43,6 +51,13 @@ const DELIVERY_OPTIONS = [
 ] as const;
 
 type OrderStatus = typeof STATUS_OPTIONS[number]["value"];
+type PaymentStatus = typeof PAYMENT_OPTIONS[number]["value"];
+
+function derivePaymentStatus(paid: number, total: number): PaymentStatus {
+  if (paid <= 0) return "non_paye";
+  if (paid >= total) return "paye";
+  return "acompte";
+}
 
 // Messages WhatsApp préremplis selon le statut
 function buildWhatsAppMessage(order: OrderEnriched, status: OrderStatus): string | null {
@@ -117,8 +132,11 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const [status, setStatus] = useState<OrderStatus>(order.status as OrderStatus);
-  const [paymentStatus, setPaymentStatus] = useState(order.paymentStatus);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(order.paymentStatus as PaymentStatus);
   const [paidAmount, setPaidAmount] = useState(String(order.paidAmount));
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(order.paymentMethod ?? "");
+  const [paymentReference, setPaymentReference] = useState(order.paymentReference ?? "");
+  const [paymentNote, setPaymentNote] = useState(order.paymentNote ?? "");
   const [deliveryMethod, setDeliveryMethod] = useState(order.deliveryMethod);
   const [deliveryAddress, setDeliveryAddress] = useState(order.deliveryAddress ?? "");
   const [estimatedDelivery, setEstimatedDelivery] = useState(order.estimatedDelivery ?? "");
@@ -126,13 +144,23 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
   const [notes, setNotes] = useState(order.notes ?? "");
   const [internalNotes, setInternalNotes] = useState(order.internalNotes ?? "");
 
+  const paid = parseInt(paidAmount, 10) || 0;
+  const balance = order.total - paid;
+
+  // Auto-dériver le statut paiement quand le montant change (sauf si remboursé)
+  useEffect(() => {
+    if (paymentStatus !== "rembourse") {
+      setPaymentStatus(derivePaymentStatus(paid, order.total));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paid, order.total]);
+
   const waLink = buildWhatsAppMessage(order, status);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    const paid = parseInt(paidAmount, 10);
     if (isNaN(paid) || paid < 0) return setError("Le montant payé est invalide.");
 
     startTransition(async () => {
@@ -140,6 +168,9 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
         status,
         payment_status: paymentStatus,
         paid_amount: paid,
+        payment_method: paymentMethod || null,
+        payment_reference: paymentReference.trim() || null,
+        payment_note: paymentNote.trim() || null,
         delivery_method: deliveryMethod,
         delivery_address: deliveryAddress.trim() || null,
         estimated_delivery: estimatedDelivery || null,
@@ -173,57 +204,26 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Statut & paiement */}
+
+          {/* Statut commande */}
           <div>
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Statut</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Statut commande</label>
-                <select
-                  className={inputClass}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as OrderStatus)}
-                >
-                  {STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Statut paiement</label>
-                <select
-                  className={inputClass}
-                  value={paymentStatus}
-                  onChange={(e) => setPaymentStatus(e.target.value as typeof paymentStatus)}
-                >
-                  {PAYMENT_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Montant payé (FCFA)</label>
-                <input
-                  className={inputClass}
-                  type="number"
-                  min="0"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
-                />
-              </div>
-              <div className="flex items-end">
-                <div className="w-full bg-slate-50 rounded-xl px-4 py-2.5 text-sm">
-                  <p className="text-xs text-slate-400 mb-0.5">Total commande</p>
-                  <p className="font-black text-slate-800">
-                    {order.total.toLocaleString("fr-SN")} FCFA
-                  </p>
-                </div>
-              </div>
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Statut commande</h3>
+            <div>
+              <label className={labelClass}>Statut</label>
+              <select
+                className={inputClass}
+                value={status}
+                onChange={(e) => setStatus(e.target.value as OrderStatus)}
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
 
             {/* Bouton WhatsApp contextuel */}
             {waLink && order.customer && (
-              <div className="mt-4 bg-green-50 border border-green-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <div className="mt-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                 <p className="text-xs text-green-700 font-medium">
                   Message WhatsApp disponible pour ce statut
                 </p>
@@ -237,6 +237,93 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
                 </a>
               </div>
             )}
+          </div>
+
+          {/* Paiement */}
+          <div>
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Paiement</h3>
+
+            {/* Récapitulatif financier */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="bg-slate-50 rounded-xl px-4 py-3">
+                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Total</p>
+                <p className="font-black text-slate-800 text-sm tabular-nums">
+                  {order.total.toLocaleString("fr-SN")} <span className="text-xs font-medium">FCFA</span>
+                </p>
+              </div>
+              <div className="bg-blue-50 rounded-xl px-4 py-3">
+                <p className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider mb-1">Payé</p>
+                <p className="font-black text-blue-700 text-sm tabular-nums">
+                  {paid.toLocaleString("fr-SN")} <span className="text-xs font-medium">FCFA</span>
+                </p>
+              </div>
+              <div className={`rounded-xl px-4 py-3 ${balance > 0 ? "bg-amber-50" : "bg-emerald-50"}`}>
+                <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${balance > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                  Solde restant
+                </p>
+                <p className={`font-black text-sm tabular-nums ${balance > 0 ? "text-amber-700" : "text-emerald-700"}`}>
+                  {Math.max(0, balance).toLocaleString("fr-SN")} <span className="text-xs font-medium">FCFA</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Montant payé (FCFA)</label>
+                <input
+                  className={inputClass}
+                  type="number"
+                  min="0"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Statut paiement</label>
+                <select
+                  className={inputClass}
+                  value={paymentStatus}
+                  onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
+                >
+                  {PAYMENT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Mode de paiement</label>
+                <select
+                  className={inputClass}
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod | "")}
+                >
+                  <option value="">— Non renseigné</option>
+                  {PAYMENT_METHOD_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Référence de transaction</label>
+                <input
+                  className={inputClass}
+                  type="text"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder="Ex: WV-2025-XXXX"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Note paiement</label>
+                <input
+                  className={inputClass}
+                  type="text"
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  placeholder="Ex: Acompte 50% reçu le …"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Livraison */}

@@ -31,6 +31,14 @@ const PAYMENT_LABELS: Record<string, { label: string; color: string }> = {
   rembourse: { label: "Remboursé",  color: "bg-slate-100 text-slate-600" },
 };
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  wave:         "Wave",
+  orange_money: "Orange Money",
+  especes:      "Espèces",
+  virement:     "Virement",
+  cheque:       "Chèque",
+};
+
 function buildWhatsAppConfirmation(order: OrderEnriched): string {
   const client = order.customer?.contactName ?? "client";
   const lines = [
@@ -79,8 +87,8 @@ export function CommandesClient({ orders }: CommandesClientProps) {
                 <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Client</th>
                 <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</th>
                 <th className="text-center px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Statut</th>
-                <th className="text-center px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Paiement</th>
                 <th className="text-right px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Montant</th>
+                <th className="text-right px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Paiement</th>
                 <th className="text-center px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -99,6 +107,7 @@ export function CommandesClient({ orders }: CommandesClientProps) {
                 orders.map((order) => {
                   const status = STATUS_LABELS[order.status] ?? { label: order.status, color: "bg-slate-100 text-slate-600" };
                   const payment = PAYMENT_LABELS[order.paymentStatus] ?? { label: order.paymentStatus, color: "bg-slate-100 text-slate-600" };
+                  const balance = order.total - order.paidAmount;
                   const waLink = buildWhatsAppConfirmation(order);
                   return (
                     <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
@@ -129,13 +138,28 @@ export function CommandesClient({ orders }: CommandesClientProps) {
                           {status.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 text-right">
+                        <p className="font-black text-slate-700 tabular-nums">{formatPrice(order.total)}</p>
+                        {balance > 0 && order.paymentStatus !== "rembourse" && (
+                          <p className="text-[10px] text-amber-600 font-semibold mt-0.5 tabular-nums">
+                            Solde : {balance.toLocaleString("fr-SN")} FCFA
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
                         <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${payment.color}`}>
                           {payment.label}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-right font-black text-slate-700 tabular-nums">
-                        {formatPrice(order.total)}
+                        {order.paymentMethod && (
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            {PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}
+                          </p>
+                        )}
+                        {order.lastPaymentAt && (
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            {formatDateShort(order.lastPaymentAt)}
+                          </p>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
