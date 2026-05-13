@@ -8,6 +8,7 @@ import {
   updateProductAction,
 } from "@/lib/actions/products";
 import { useRouter } from "next/navigation";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 
 interface ProductFormProps {
   product?: Product;
@@ -35,7 +36,9 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? (categories[0]?.id ?? ""));
   const [shortDescription, setShortDescription] = useState(product?.shortDescription ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
-  const [imageUrls, setImageUrls] = useState(product?.imageUrls?.join("\n") ?? "");
+  const existingImages = product?.imageUrls ?? [];
+  const [mainImage, setMainImage] = useState(existingImages[0] ?? "");
+  const [otherImages, setOtherImages] = useState(existingImages.slice(1).join("\n") ?? "");
   const [baseTurnaroundDays, setBaseTurnaroundDays] = useState(product?.baseTurnaroundDays ?? 3);
   const [minOrderQuantity, setMinOrderQuantity] = useState(product?.minOrderQuantity ?? 1);
   const [unitType, setUnitType] = useState(product?.unitType ?? "piece");
@@ -54,10 +57,12 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
     e.preventDefault();
     setError(null);
 
-    const parsedImageUrls = imageUrls
+    const parsedOtherImages = otherImages
       .split("\n")
       .map((u) => u.trim())
       .filter(Boolean);
+    
+    const parsedImageUrls = [mainImage, ...parsedOtherImages].filter(Boolean);
 
     const parsedTags = tags
       .split(",")
@@ -165,9 +170,18 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
           </div>
 
           {/* Images */}
-          <div>
-            <label className={labelClass}>URLs des images (une par ligne)</label>
-            <textarea value={imageUrls} onChange={(e) => setImageUrls(e.target.value)} rows={2} className={`${inputClass} resize-none font-mono text-xs`} placeholder={"/images/products/exemple.jpg\n/images/products/exemple2.jpg"} />
+          <div className="space-y-4">
+            <ImageUploadField
+              value={mainImage}
+              onChange={setMainImage}
+              folder="products"
+              slug={slug}
+              label="Image principale"
+            />
+            <div>
+              <label className={labelClass}>Autres images (URLs, une par ligne)</label>
+              <textarea value={otherImages} onChange={(e) => setOtherImages(e.target.value)} rows={2} className={`${inputClass} resize-none font-mono text-xs`} placeholder={"/images/products/exemple2.jpg"} />
+            </div>
           </div>
 
           {/* Délai, Qté min, Ordre */}

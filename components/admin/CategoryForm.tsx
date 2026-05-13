@@ -8,6 +8,7 @@ import {
   updateCategoryAction,
 } from "@/lib/actions/categories";
 import { useRouter } from "next/navigation";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 
 interface CategoryFormProps {
   category?: Category;
@@ -131,17 +132,13 @@ export function CategoryForm({ category, onClose }: CategoryFormProps) {
             />
           </div>
 
-          {/* Image URL */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Image URL</label>
-            <input
-              type="text"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-brand-primary/50 focus:ring-1 focus:ring-brand-primary/30 transition-all"
-              placeholder="/images/products/exemple.jpg"
-            />
-          </div>
+          {/* Image Upload */}
+          <ImageUploadField
+            value={imageUrl}
+            onChange={setImageUrl}
+            folder="categories"
+            slug={slug}
+          />
 
           {/* Icon + Order row */}
           <div className="grid grid-cols-2 gap-4">
