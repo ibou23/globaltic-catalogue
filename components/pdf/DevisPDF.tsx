@@ -350,7 +350,7 @@ export function DevisPDF({
   const hasDiscount = quote.discountPercent > 0;
   const validUntil = quote.validUntil
     ? formatDate(quote.validUntil)
-    : addDays(quote.createdAt, 7);
+    : addDays(quote.createdAt, 30);
 
   return (
     <Document
@@ -493,11 +493,9 @@ export function DevisPDF({
           <Text style={s.conditionsTitle}>Conditions générales</Text>
           <View style={s.conditionsList}>
             {[
-              "Les prix indiqués sont des estimations basées sur les informations fournies et peuvent être révisés après validation du fichier.",
-              "La production ne démarrera qu'après validation du Bon À Tirer (BAT) par le client.",
-              "Les délais indiqués sont estimatifs et courent à partir de la validation du BAT.",
-              "Les modalités de paiement seront confirmées lors de la validation de la commande.",
-              `Ce devis est valable jusqu'au ${validUntil}.`,
+              "Les délais de production sont donnés à titre indicatif et commencent à courir après validation définitive de la commande.",
+              "Les modalités de paiement sont les suivantes : 50 % d'acompte à la validation de la commande, le solde restant étant payable à la livraison.",
+              `Ce devis est valable 30 jours à compter de sa date d'émission, soit jusqu'au ${validUntil}.`,
             ].map((cond, i) => (
               <Text key={i} style={s.conditionItem}>
                 • {cond}
