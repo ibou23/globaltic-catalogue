@@ -11,7 +11,7 @@ function generateReference(): string {
 }
 
 function getUnitLabel(unitType: string, quantity: number): string {
-  if (unitType === "m2") return "m²";
+  if (unitType === "m2") return "mètre carré (m²)";
   if (unitType === "piece") return quantity > 1 ? "unités" : "unité";
   return "exemplaires";
 }

@@ -22,8 +22,8 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
   const whatsappLink = generateWhatsAppLink(product, state, result, productUrl);
 
   const isM2 = product.unitType === "m2";
-  const unitLabel = isM2 ? "m²" : "exemplaires";
-  const unitLabelSingular = isM2 ? "m²" : "unité";
+  const unitLabel = isM2 ? "mètre carré (m²)" : "exemplaires";
+  const unitLabelSingular = isM2 ? "mètre carré (m²)" : "unité";
 
   React.useEffect(() => {
     trackEvent(AnalyticsEvents.PRODUCT_VIEW, {

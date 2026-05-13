@@ -152,7 +152,7 @@ export function CatalogueClient({
                           <div className="font-black text-brand-secondary">
                             {formatPrice(indicativePrice)}
                             <span className="text-xs font-normal text-slate-400">
-                              /{isM2 ? "m²" : "Unité"}
+                              /{isM2 ? "mètre carré (m²)" : "Unité"}
                             </span>
                           </div>
                         </div>

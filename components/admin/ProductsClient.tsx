@@ -98,7 +98,7 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4"><span className="text-xs font-semibold text-slate-500">{categoryMap.get(product.categoryId) ?? "—"}</span></td>
-                  <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-slate-100 text-[10px] font-bold text-slate-500 uppercase">{product.unitType}</span></td>
+                  <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-slate-100 text-[10px] font-bold text-slate-500 uppercase">{product.unitType === "m2" ? "mètre carré (m²)" : product.unitType}</span></td>
                   <td className="px-6 py-4 text-center">
                     <span className={`inline-block w-2 h-2 rounded-full ${product.isPopular ? "bg-amber-400" : "bg-slate-200"}`} />
                   </td>

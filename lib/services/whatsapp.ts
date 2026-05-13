@@ -19,8 +19,8 @@ export function buildQuoteWhatsAppUrl(input: QuoteMessageInput): string {
   const nl = "%0A";
   const isM2 =
     product.unitType === "m2" || product.tags.includes("m2");
-  const unitLabel = isM2 ? "m²" : "unité";
-  const qtyLabel = isM2 ? "m²" : "exemplaires";
+  const unitLabel = isM2 ? "mètre carré (m²)" : "unité";
+  const qtyLabel = isM2 ? "mètre carré (m²)" : "exemplaires";
 
   let text = `*DEMANDE DE DEVIS* ${nl}${nl}`;
   text += `*Produit :* ${product.name}${nl}`;

@@ -153,7 +153,7 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
                 if (val === "piece" || val === "m2" || val === "lot") setUnitType(val);
               }} className={inputClass}>
                 <option value="piece">Pièce</option>
-                <option value="m2">m²</option>
+                <option value="m2">mètre carré (m²)</option>
                 <option value="lot">Lot</option>
               </select>
             </div>
