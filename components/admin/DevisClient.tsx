@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, FileText, MessageCircle } from "lucide-react";
+import { Plus, FileText, MessageCircle, Download } from "lucide-react";
 import type { QuoteEnriched } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { DevisForm } from "@/components/admin/DevisForm";
@@ -132,18 +132,29 @@ export function DevisClient({ quotes }: DevisClientProps) {
                         <td className="px-6 py-4 text-right font-black text-slate-700 tabular-nums">
                           {formatPrice(quote.total)}
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          {quote.customer && (
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
                             <a
-                              href={waLink}
+                              href={`/api/admin/devis/${quote.id}/pdf`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              title="Répondre sur WhatsApp"
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
+                              title="Télécharger le devis PDF"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
                             >
-                              <MessageCircle className="w-4 h-4" />
+                              <Download className="w-4 h-4" />
                             </a>
-                          )}
+                            {quote.customer && (
+                              <a
+                                href={waLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Répondre sur WhatsApp"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
