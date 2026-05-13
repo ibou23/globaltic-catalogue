@@ -129,22 +129,22 @@ const s = StyleSheet.create({
   tableRow: {
     flexDirection: "row",
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: GRAY_BORDER,
   },
   tableRowAlt: {
     flexDirection: "row",
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: GRAY_BORDER,
     backgroundColor: GRAY_LIGHT,
   },
   colProduct: { flex: 4 },
-  colQty: { flex: 1.2, textAlign: "right" },
-  colUnit: { flex: 1.5, textAlign: "right" },
-  colTotal: { flex: 1.5, textAlign: "right" },
+  colQty: { flex: 1.2, textAlign: "right", paddingLeft: 4 },
+  colUnit: { flex: 1.8, textAlign: "right", paddingLeft: 8 },
+  colTotal: { flex: 1.8, textAlign: "right", paddingLeft: 8 },
   thText: {
     fontSize: 7,
     fontFamily: "Helvetica-Bold",
@@ -294,8 +294,24 @@ const s = StyleSheet.create({
   },
 });
 
+// toLocaleString("fr-SN") uses U+202F (narrow no-break space) as thousands separator,
+// which react-pdf's built-in Helvetica renders as "/". Use plain ASCII space instead.
+function formatNumber(n: number): string {
+  return Math.round(n)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
 function formatAmount(n: number): string {
-  return n.toLocaleString("fr-SN") + " FCFA";
+  return formatNumber(n) + " FCFA";
+}
+
+function formatWhatsapp(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("221") && digits.length === 12) {
+    return `+221 ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8, 10)} ${digits.slice(10, 12)}`;
+  }
+  return digits.startsWith("+") ? phone : `+${digits}`;
 }
 
 function formatDate(iso: string): string {
@@ -399,7 +415,7 @@ export function DevisPDF({
                   <Text style={s.metaCardLineGray}>{customerCompany}</Text>
                 )}
                 {customerWhatsapp && (
-                  <Text style={s.metaCardLineGray}>WhatsApp : {customerWhatsapp}</Text>
+                  <Text style={s.metaCardLineGray}>WhatsApp : {formatWhatsapp(customerWhatsapp)}</Text>
                 )}
               </>
             ) : (
@@ -430,7 +446,7 @@ export function DevisPDF({
                 ) : null}
               </View>
               <Text style={[s.tdText, s.colQty]}>
-                {item.quantity.toLocaleString("fr-SN")}
+                {formatNumber(item.quantity)}
               </Text>
               <Text style={[s.tdText, s.colUnit]}>
                 {formatAmount(item.unitPrice)}
@@ -452,7 +468,7 @@ export function DevisPDF({
             <View style={s.totalRow}>
               <Text style={s.totalLabel}>Remise ({quote.discountPercent}%)</Text>
               <Text style={[s.totalValue, { color: "#16A34A" }]}>
-                − {formatAmount(quote.discountAmount)}
+                -{" "}{formatAmount(quote.discountAmount)}
               </Text>
             </View>
           )}
