@@ -59,6 +59,72 @@ function derivePaymentStatus(paid: number, total: number): PaymentStatus {
   return "acompte";
 }
 
+// Message WhatsApp de confirmation de paiement
+function buildWhatsAppPaymentMessage(
+  order: OrderEnriched,
+  paid: number,
+  paymentStatus: PaymentStatus
+): string | null {
+  const whatsapp = order.customer?.whatsapp?.replace(/[^0-9]/g, "");
+  if (!whatsapp) return null;
+  if (paymentStatus !== "acompte" && paymentStatus !== "paye") return null;
+
+  const client = order.customer?.contactName ?? "client";
+  const ref = order.reference;
+  const total = order.total.toLocaleString("fr-SN");
+  const paidFmt = paid.toLocaleString("fr-SN");
+
+  let lines: string[];
+
+  if (paymentStatus === "acompte") {
+    // Cas 1 — acompte reçu
+    const balance = (order.total - paid).toLocaleString("fr-SN");
+    lines = [
+      `Bonjour *${client}*,`,
+      ``,
+      `Nous vous confirmons la réception de votre acompte de *${paidFmt} FCFA* pour la commande *${ref}*.`,
+      ``,
+      `Montant total : *${total} FCFA*`,
+      `Solde restant : *${balance} FCFA*`,
+      ``,
+      `Votre commande est maintenant confirmée ✅`,
+      ``,
+      `Nous restons disponibles sur WhatsApp pour toute précision.`,
+      ``,
+      `*GLOBAL TIC*`,
+    ];
+  } else if (order.paymentStatus === "acompte") {
+    // Cas 3 — solde reçu (la commande était en acompte)
+    const solde = (order.total - order.paidAmount).toLocaleString("fr-SN");
+    lines = [
+      `Bonjour *${client}*,`,
+      ``,
+      `Nous vous confirmons la réception du solde de *${solde} FCFA* pour la commande *${ref}*.`,
+      ``,
+      `Votre commande est maintenant entièrement réglée ✅`,
+      ``,
+      `Merci pour votre confiance.`,
+      ``,
+      `*GLOBAL TIC*`,
+    ];
+  } else {
+    // Cas 2 — paiement complet d'emblée
+    lines = [
+      `Bonjour *${client}*,`,
+      ``,
+      `Nous vous confirmons la réception du paiement complet de *${paidFmt} FCFA* pour la commande *${ref}*.`,
+      ``,
+      `Votre commande est entièrement réglée ✅`,
+      ``,
+      `Nous restons disponibles sur WhatsApp pour toute précision.`,
+      ``,
+      `*GLOBAL TIC*`,
+    ];
+  }
+
+  return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
+}
+
 // Messages WhatsApp préremplis selon le statut
 function buildWhatsAppMessage(order: OrderEnriched, status: OrderStatus): string | null {
   const client = order.customer?.contactName ?? "client";
@@ -156,6 +222,7 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
   }, [paid, order.total]);
 
   const waLink = buildWhatsAppMessage(order, status);
+  const waPaymentLink = buildWhatsAppPaymentMessage(order, paid, paymentStatus);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -324,6 +391,27 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
                 />
               </div>
             </div>
+
+            {/* Confirmation paiement WhatsApp */}
+            {waPaymentLink && order.customer && (
+              <div className="mt-4 bg-green-50 border border-green-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-green-700 font-medium">
+                  {paymentStatus === "acompte"
+                    ? "Confirmer la réception de l'acompte par WhatsApp"
+                    : order.paymentStatus === "acompte"
+                    ? "Confirmer la réception du solde par WhatsApp"
+                    : "Confirmer le paiement complet par WhatsApp"}
+                </p>
+                <a
+                  href={waPaymentLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 px-3 py-1.5 rounded-lg bg-green-500 text-white text-xs font-bold hover:bg-green-600 transition-colors"
+                >
+                  Envoyer
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Livraison */}
