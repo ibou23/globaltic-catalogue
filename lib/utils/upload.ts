@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export async function uploadImage(
   file: File,
-  folder: "products" | "categories",
+  folder: "products" | "categories" | "realisations",
   slug: string
 ): Promise<{ url?: string; error?: string }> {
   const supabase = createClient();

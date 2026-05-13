@@ -182,3 +182,15 @@ export interface PriceCalculation {
   turnaroundDays: number;
   quantity: number;
 }
+
+export interface Realisation {
+  id: string;
+  title: string;
+  category: string;
+  clientName: string | null;
+  description: string | null;
+  imageUrl: string;
+  isFeatured: boolean;
+  displayOrder: number;
+  createdAt: string;
+}

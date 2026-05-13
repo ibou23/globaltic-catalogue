@@ -7,7 +7,7 @@ import { uploadImage } from "@/lib/utils/upload";
 interface ImageUploadFieldProps {
   value: string;
   onChange: (url: string) => void;
-  folder: "products" | "categories";
+  folder: "products" | "categories" | "realisations";
   slug: string;
   label?: string;
 }
