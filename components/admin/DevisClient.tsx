@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, FileText, MessageCircle, Download } from "lucide-react";
+import { Plus, FileText, MessageCircle, Download, Pencil } from "lucide-react";
 import type { QuoteEnriched } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { DevisForm } from "@/components/admin/DevisForm";
+import { DevisEditForm } from "@/components/admin/DevisEditForm";
 import { siteConfig } from "@/lib/config/site";
 
 interface DevisClientProps {
@@ -42,10 +43,14 @@ function buildWhatsAppReply(quote: QuoteEnriched): string {
 
 export function DevisClient({ quotes }: DevisClientProps) {
   const [showForm, setShowForm] = useState(false);
+  const [editingQuote, setEditingQuote] = useState<QuoteEnriched | null>(null);
 
   return (
     <>
       {showForm && <DevisForm onClose={() => setShowForm(false)} />}
+      {editingQuote && (
+        <DevisEditForm quote={editingQuote} onClose={() => setEditingQuote(null)} />
+      )}
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -134,6 +139,13 @@ export function DevisClient({ quotes }: DevisClientProps) {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setEditingQuote(quote)}
+                              title="Modifier le devis"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
                             <a
                               href={`/api/admin/devis/${quote.id}/pdf`}
                               target="_blank"

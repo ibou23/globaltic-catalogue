@@ -155,6 +155,7 @@ export function mapQuote(row: Record<string, unknown>): Quote {
     isUrgent: row.is_urgent as boolean,
     validUntil: (row.valid_until as string) ?? null,
     notes: (row.notes as string) ?? null,
+    internalNotes: (row.internal_notes as string) ?? null,
     createdAt: row.created_at as string,
   };
 }

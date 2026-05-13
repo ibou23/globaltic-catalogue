@@ -24,6 +24,16 @@ export const updateQuoteStatusSchema = z.object({
   status: z.enum(["brouillon", "envoye", "accepte", "refuse", "expire"]),
 });
 
+export const updateQuoteSchema = z.object({
+  status: z.enum(["brouillon", "envoye", "accepte", "refuse", "expire"]),
+  items: z.array(quoteItemSchema).min(1),
+  is_urgent: z.boolean().default(false),
+  discount_percent: z.number().min(0).max(100).default(0),
+  notes: z.string().max(2000).nullable().optional(),
+  internal_notes: z.string().max(2000).nullable().optional(),
+});
+
 export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
 export type QuoteItemInput = z.infer<typeof quoteItemSchema>;
 export type UpdateQuoteStatusInput = z.infer<typeof updateQuoteStatusSchema>;
+export type UpdateQuoteInput = z.infer<typeof updateQuoteSchema>;

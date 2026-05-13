@@ -131,6 +131,7 @@ export interface Quote {
   isUrgent: boolean;
   validUntil: string | null;
   notes: string | null;
+  internalNotes: string | null;
   createdAt: string;
 }
 
@@ -152,10 +153,12 @@ export interface QuoteEnriched extends Quote {
     companyName: string | null;
   } | null;
   firstItem: {
+    id: string;
     productName: string;
     quantity: number;
     unitPrice: number;
     totalPrice: number;
+    configSnapshot: Record<string, unknown>;
   } | null;
 }
 

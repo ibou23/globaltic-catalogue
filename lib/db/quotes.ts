@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ok, err, type Result } from "@/lib/utils/result";
 import { mapQuote, mapQuoteItem } from "./mappers";
 import type { Quote, QuoteItem, QuoteEnriched, QuoteStatus } from "@/lib/types/domain";
-import type { CreateQuoteInput } from "@/lib/validators/quote";
+import type { CreateQuoteInput, UpdateQuoteInput } from "@/lib/validators/quote";
 
 export async function getQuotes(): Promise<Result<Quote[]>> {
   const supabase = await createClient();
@@ -21,7 +21,7 @@ export async function getQuotesEnriched(): Promise<Result<QuoteEnriched[]>> {
 
   const { data, error } = await supabase
     .from("quotes")
-    .select("*, customers(contact_name, whatsapp, company_name), quote_items(product_name, quantity, unit_price, total_price)")
+    .select("*, customers(contact_name, whatsapp, company_name), quote_items(id, product_name, quantity, unit_price, total_price, config_snapshot)")
     .order("created_at", { ascending: false });
 
   if (error) return err(error.message);
@@ -44,10 +44,12 @@ export async function getQuotesEnriched(): Promise<Result<QuoteEnriched[]>> {
         : null,
       firstItem: itemsRaw[0]
         ? {
+            id: itemsRaw[0].id as string,
             productName: itemsRaw[0].product_name as string,
             quantity: itemsRaw[0].quantity as number,
             unitPrice: itemsRaw[0].unit_price as number,
             totalPrice: itemsRaw[0].total_price as number,
+            configSnapshot: (itemsRaw[0].config_snapshot as Record<string, unknown>) ?? {},
           }
         : null,
     };
@@ -139,6 +141,62 @@ export async function createQuote(
 
   const itemsToInsert = input.items.map((item) => ({
     quote_id: quoteData.id,
+    product_id: item.product_id ?? null,
+    product_name: item.product_name,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    total_price: item.total_price,
+    config_snapshot: item.config_snapshot,
+    notes: item.notes ?? null,
+  }));
+
+  const { error: itemsError } = await supabase
+    .from("quote_items")
+    .insert(itemsToInsert);
+
+  if (itemsError) return err(itemsError.message);
+
+  return ok(mapQuote(quoteData));
+}
+
+export async function updateQuote(
+  id: string,
+  input: UpdateQuoteInput
+): Promise<Result<Quote>> {
+  const supabase = await createClient();
+
+  const subtotal = input.items.reduce((sum, item) => sum + item.total_price, 0);
+  const discountAmount = Math.round(subtotal * (input.discount_percent / 100));
+  const total = subtotal - discountAmount;
+
+  const { data: quoteData, error: quoteError } = await supabase
+    .from("quotes")
+    .update({
+      status: input.status,
+      subtotal,
+      discount_percent: input.discount_percent,
+      discount_amount: discountAmount,
+      total,
+      is_urgent: input.is_urgent,
+      notes: input.notes ?? null,
+      internal_notes: input.internal_notes ?? null,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (quoteError) return err(quoteError.message);
+
+  // Supprimer les anciennes lignes et réinsérer
+  const { error: deleteError } = await supabase
+    .from("quote_items")
+    .delete()
+    .eq("quote_id", id);
+
+  if (deleteError) return err(deleteError.message);
+
+  const itemsToInsert = input.items.map((item) => ({
+    quote_id: id,
     product_id: item.product_id ?? null,
     product_name: item.product_name,
     quantity: item.quantity,

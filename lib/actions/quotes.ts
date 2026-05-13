@@ -1,7 +1,7 @@
 "use server";
 
-import { createQuoteSchema, updateQuoteStatusSchema } from "@/lib/validators/quote";
-import { createQuote, updateQuoteStatus } from "@/lib/db/quotes";
+import { createQuoteSchema, updateQuoteStatusSchema, updateQuoteSchema } from "@/lib/validators/quote";
+import { createQuote, updateQuote, updateQuoteStatus } from "@/lib/db/quotes";
 import { generateReference } from "@/lib/services/reference";
 import { ok, err, type Result } from "@/lib/utils/result";
 import type { Quote } from "@/lib/types/domain";
@@ -16,6 +16,18 @@ export async function createQuoteAction(
 
   const reference = await generateReference("DEV");
   return createQuote(parsed.data, reference);
+}
+
+export async function updateQuoteAction(
+  id: string,
+  formData: unknown
+): Promise<Result<Quote>> {
+  if (!id) return err("Identifiant du devis manquant");
+  const parsed = updateQuoteSchema.safeParse(formData);
+  if (!parsed.success) {
+    return err(parsed.error.issues[0]?.message ?? "Données invalides");
+  }
+  return updateQuote(id, parsed.data);
 }
 
 export async function updateQuoteStatusAction(
