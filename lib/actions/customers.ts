@@ -36,3 +36,18 @@ export async function updateCustomerAction(
 
   return updateCustomer(id, parsed.data);
 }
+
+// Crée le client s'il n'existe pas encore, sinon retourne l'existant
+export async function findOrCreateCustomerAction(
+  formData: unknown
+): Promise<Result<Customer>> {
+  const parsed = customerSchema.safeParse(formData);
+  if (!parsed.success) {
+    return err(parsed.error.issues[0]?.message ?? "Données invalides");
+  }
+
+  const existing = await getCustomerByWhatsapp(parsed.data.whatsapp);
+  if (existing.data) return ok(existing.data);
+
+  return createCustomer(parsed.data);
+}

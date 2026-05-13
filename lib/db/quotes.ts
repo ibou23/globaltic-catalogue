@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ok, err, type Result } from "@/lib/utils/result";
 import { mapQuote, mapQuoteItem } from "./mappers";
-import type { Quote, QuoteItem, QuoteStatus } from "@/lib/types/domain";
+import type { Quote, QuoteItem, QuoteEnriched, QuoteStatus } from "@/lib/types/domain";
 import type { CreateQuoteInput } from "@/lib/validators/quote";
 
 export async function getQuotes(): Promise<Result<Quote[]>> {
@@ -14,6 +14,46 @@ export async function getQuotes(): Promise<Result<Quote[]>> {
 
   if (error) return err(error.message);
   return ok(data.map(mapQuote));
+}
+
+export async function getQuotesEnriched(): Promise<Result<QuoteEnriched[]>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("*, customers(contact_name, whatsapp, company_name), quote_items(product_name, quantity, unit_price, total_price)")
+    .order("created_at", { ascending: false });
+
+  if (error) return err(error.message);
+
+  const quotes: QuoteEnriched[] = (data as Record<string, unknown>[]).map((row) => {
+    const quote = mapQuote(row);
+    const customerRaw = row.customers as Record<string, unknown> | null;
+    const itemsRaw = Array.isArray(row.quote_items)
+      ? (row.quote_items as Record<string, unknown>[])
+      : [];
+
+    return {
+      ...quote,
+      customer: customerRaw
+        ? {
+            contactName: customerRaw.contact_name as string,
+            whatsapp: customerRaw.whatsapp as string,
+            companyName: (customerRaw.company_name as string) ?? null,
+          }
+        : null,
+      firstItem: itemsRaw[0]
+        ? {
+            productName: itemsRaw[0].product_name as string,
+            quantity: itemsRaw[0].quantity as number,
+            unitPrice: itemsRaw[0].unit_price as number,
+            totalPrice: itemsRaw[0].total_price as number,
+          }
+        : null,
+    };
+  });
+
+  return ok(quotes);
 }
 
 export async function getQuotesByStatus(

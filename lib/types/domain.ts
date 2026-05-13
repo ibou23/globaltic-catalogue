@@ -145,6 +145,20 @@ export interface QuoteItem {
   configSnapshot: Record<string, unknown>;
 }
 
+export interface QuoteEnriched extends Quote {
+  customer: {
+    contactName: string;
+    whatsapp: string;
+    companyName: string | null;
+  } | null;
+  firstItem: {
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  } | null;
+}
+
 export interface Order {
   id: string;
   reference: string;
