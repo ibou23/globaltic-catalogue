@@ -39,7 +39,8 @@ export function generateWhatsAppLink(
     : `${siteConfig.url}/produit/${product.slug}`;
   const delai = `~${result.estimatedTurnaroundDays} jours ouvrés`;
 
-  const prix = formatPrice(result.totalPrice).replace("F CFA", "FCFA");
+  const prixUnitaire = formatPrice(result.unitPrice).replace("F CFA", "FCFA");
+  const prixTotal = formatPrice(result.totalPrice).replace("F CFA", "FCFA");
 
   // Message construit avec \n — encodeURIComponent appliqué une seule fois à la fin
   const lines = [
@@ -50,7 +51,8 @@ export function generateWhatsAppLink(
     `*Produit* : ${product.name}`,
     `*Quantité* : ${state.quantity.toLocaleString("fr-SN")} ${unitLabel}`,
     `*Options sélectionnées* : ${options}`,
-    `*Prix estimatif* : ${prix}`,
+    `*Prix unitaire estimatif* : ${prixUnitaire}`,
+    `*Prix total estimatif* : ${prixTotal}`,
     `*Délai estimé* : ${delai}`,
     ``,
     `*Lien produit* : ${url}`,
