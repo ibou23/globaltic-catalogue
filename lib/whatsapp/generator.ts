@@ -1,14 +1,7 @@
 import type { ProductWithOptions } from "@/lib/types/domain";
 import type { CalculatorState, CalculationResult } from "@/lib/calculator/engine";
 import { formatPrice } from "@/lib/utils";
-
-const WHATSAPP_NUMBER = "221776190419";
-
-function generateReference(): string {
-  const timestamp = Date.now().toString(36).toUpperCase().slice(-4);
-  const random = Math.random().toString(36).toUpperCase().slice(2, 5);
-  return `GT-${timestamp}${random}`;
-}
+import { siteConfig } from "@/lib/config/site";
 
 function getUnitLabel(unitType: string, quantity: number): string {
   if (unitType === "m2") return "mètre carré (m²)";
@@ -38,22 +31,32 @@ export function generateWhatsAppLink(
   result: CalculationResult,
   productUrl?: string
 ): string {
-  const nl = "%0A";
   const unitLabel = getUnitLabel(product.unitType, state.quantity);
   const options = buildOptionsLine(state, product);
-  const url = productUrl || `/produit/${product.slug}`;
+  // URL absolue : priorité à l'URL passée en paramètre (window.location.href côté client)
+  const url = productUrl?.startsWith("http")
+    ? productUrl
+    : `${siteConfig.url}/produit/${product.slug}`;
   const delai = `~${result.estimatedTurnaroundDays} jours ouvrés`;
 
-  let text = `*NOUVELLE DEMANDE DE DEVIS* 🖨️${nl}${nl}`;
-  text += `Bonjour l'équipe *GLOBAL TIC*,${nl}${nl}`;
-  text += `Je souhaite être accompagné par un conseiller afin de confirmer les détails de ma demande :${nl}${nl}`;
-  text += `*Produit* : ${product.name}${nl}`;
-  text += `*Quantité* : ${state.quantity.toLocaleString("fr-SN")} ${unitLabel}${nl}`;
-  text += `*Options sélectionnées* : ${options}${nl}`;
-  text += `*Prix estimatif* : ${formatPrice(result.totalPrice)} FCFA${nl}`;
-  text += `*Délai estimé* : ${delai}${nl}${nl}`;
-  text += `*Lien produit* : ${url}${nl}${nl}`;
-  text += `Merci de me confirmer la disponibilité, le prix final et les prochaines étapes pour lancer ma commande.`;
+  // Message construit avec \n — encodeURIComponent appliqué une seule fois à la fin
+  const lines = [
+    `*NOUVELLE DEMANDE DE DEVIS* 🖨️`,
+    ``,
+    `Bonjour l'équipe *GLOBAL TIC*,`,
+    ``,
+    `Je souhaite être accompagné par un conseiller afin de confirmer les détails de ma demande :`,
+    ``,
+    `*Produit* : ${product.name}`,
+    `*Quantité* : ${state.quantity.toLocaleString("fr-SN")} ${unitLabel}`,
+    `*Options sélectionnées* : ${options}`,
+    `*Prix estimatif* : ${formatPrice(result.totalPrice)}`,
+    `*Délai estimé* : ${delai}`,
+    ``,
+    `*Lien produit* : ${url}`,
+    ``,
+    `Merci de me confirmer la disponibilité, le prix final et les prochaines étapes pour lancer ma commande.`,
+  ];
 
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${siteConfig.whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
