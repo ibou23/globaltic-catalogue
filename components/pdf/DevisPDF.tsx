@@ -308,10 +308,16 @@ function formatAmount(n: number): string {
 
 function formatWhatsapp(phone: string): string {
   const digits = phone.replace(/\D/g, "");
+  // 12 chiffres avec indicatif 221 : 221XXXXXXXXX → +221 XX XXX XX XX
   if (digits.startsWith("221") && digits.length === 12) {
     return `+221 ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8, 10)} ${digits.slice(10, 12)}`;
   }
-  return digits.startsWith("+") ? phone : `+${digits}`;
+  // 9 chiffres locaux sénégalais sans indicatif : XXXXXXXXX → +221 XX XXX XX XX
+  if (digits.length === 9) {
+    return `+221 ${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 7)} ${digits.slice(7, 9)}`;
+  }
+  // Fallback : conserver le numéro original s'il est déjà formaté, sinon préfixer +
+  return phone.startsWith("+") ? phone : `+${digits}`;
 }
 
 function formatDate(iso: string): string {
