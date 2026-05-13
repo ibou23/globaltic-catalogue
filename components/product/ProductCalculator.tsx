@@ -372,12 +372,7 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
                   }
                 >
                   <MessageCircle className="mr-2 h-6 w-6" />
-                  <span className="hidden sm:inline">
-                    Valider cette configuration sur WhatsApp
-                  </span>
-                  <span className="sm:hidden text-lg">
-                    Valider sur WhatsApp
-                  </span>
+                  Valider sur WhatsApp
                 </a>
               </Button>
               <p className="text-[10px] text-gray-400 text-center mt-3 uppercase tracking-wider max-w-[200px] leading-tight">
