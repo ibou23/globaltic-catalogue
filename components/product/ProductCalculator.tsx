@@ -18,7 +18,8 @@ interface ProductCalculatorProps {
 
 export function ProductCalculator({ product }: ProductCalculatorProps) {
   const { state, result, actions } = useCalculator(product);
-  const whatsappLink = generateWhatsAppLink(product, state, result);
+  const productUrl = typeof window !== "undefined" ? window.location.href : `/produit/${product.slug}`;
+  const whatsappLink = generateWhatsAppLink(product, state, result, productUrl);
 
   const isM2 = product.unitType === "m2";
   const unitLabel = isM2 ? "m²" : "exemplaires";
@@ -372,10 +373,10 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
                 >
                   <MessageCircle className="mr-2 h-6 w-6" />
                   <span className="hidden sm:inline">
-                    Commander sur WhatsApp
+                    Valider cette configuration sur WhatsApp
                   </span>
                   <span className="sm:hidden text-lg">
-                    Commander sur WhatsApp
+                    Valider sur WhatsApp
                   </span>
                 </a>
               </Button>
