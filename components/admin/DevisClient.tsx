@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, FileText, MessageCircle, Download, Pencil } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Plus, FileText, MessageCircle, Download, Pencil, ShoppingCart, Loader2 } from "lucide-react";
 import type { QuoteEnriched } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { DevisForm } from "@/components/admin/DevisForm";
 import { DevisEditForm } from "@/components/admin/DevisEditForm";
+import { convertQuoteToOrderAction } from "@/lib/actions/orders";
 import { siteConfig } from "@/lib/config/site";
+import { useRouter } from "next/navigation";
 
 interface DevisClientProps {
   quotes: QuoteEnriched[];
@@ -42,14 +44,38 @@ function buildWhatsAppReply(quote: QuoteEnriched): string {
 }
 
 export function DevisClient({ quotes }: DevisClientProps) {
+  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editingQuote, setEditingQuote] = useState<QuoteEnriched | null>(null);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [convertError, setConvertError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleConvert(quoteId: string) {
+    setConvertingId(quoteId);
+    setConvertError(null);
+    startTransition(async () => {
+      const result = await convertQuoteToOrderAction(quoteId);
+      if (!result.data) {
+        setConvertError(result.error ?? "Erreur lors de la conversion");
+      } else {
+        router.refresh();
+      }
+      setConvertingId(null);
+    });
+  }
 
   return (
     <>
       {showForm && <DevisForm onClose={() => setShowForm(false)} />}
       {editingQuote && (
         <DevisEditForm quote={editingQuote} onClose={() => setEditingQuote(null)} />
+      )}
+
+      {convertError && (
+        <div className="bg-red-50 border border-red-100 text-red-700 text-sm font-semibold px-4 py-3 rounded-xl">
+          {convertError}
+        </div>
       )}
 
       <div className="space-y-6">
@@ -139,6 +165,20 @@ export function DevisClient({ quotes }: DevisClientProps) {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
+                            {quote.status === "accepte" && (
+                              <button
+                                onClick={() => handleConvert(quote.id)}
+                                disabled={isPending && convertingId === quote.id}
+                                title="Convertir en commande"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 transition-colors disabled:opacity-50"
+                              >
+                                {isPending && convertingId === quote.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <ShoppingCart className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
                             <button
                               onClick={() => setEditingQuote(quote)}
                               title="Modifier le devis"

@@ -186,6 +186,7 @@ export function mapOrder(row: Record<string, unknown>): Order {
     deliveryMethod: row.delivery_method as Order["deliveryMethod"],
     deliveryFee: row.delivery_fee as number,
     estimatedDelivery: (row.estimated_delivery as string) ?? null,
+    notes: (row.notes as string) ?? null,
     createdAt: row.created_at as string,
   };
 }

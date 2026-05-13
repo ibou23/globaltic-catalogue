@@ -174,7 +174,16 @@ export interface Order {
   deliveryMethod: DeliveryMethod;
   deliveryFee: number;
   estimatedDelivery: string | null;
+  notes: string | null;
   createdAt: string;
+}
+
+export interface OrderEnriched extends Order {
+  customer: {
+    contactName: string;
+    whatsapp: string;
+    companyName: string | null;
+  } | null;
 }
 
 export interface AdminProfile {
