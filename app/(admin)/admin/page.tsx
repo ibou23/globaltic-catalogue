@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getDashboardStats } from "@/lib/db/stats";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { StatCard } from "@/components/admin/StatCard";
@@ -18,8 +19,10 @@ import {
   Zap,
   Image,
   FolderOpen,
+  ArrowRight,
 } from "lucide-react";
 import type { AdminRole } from "@/lib/types/domain";
+import { canAccessModule } from "@/lib/auth/permissions";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   brouillon:        { label: "Brouillon",         color: "bg-slate-100 text-slate-600" },
@@ -61,10 +64,24 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+interface SectionHeaderProps {
+  title: string;
+  href?: string;
+}
+
+function SectionHeader({ title, href }: SectionHeaderProps) {
   return (
-    <div className="px-6 py-4 border-b border-slate-100">
+    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
       <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{title}</h3>
+      {href && (
+        <Link
+          href={href}
+          className="flex items-center gap-1 text-[10px] font-bold text-brand-primary/70 hover:text-brand-primary transition-colors"
+        >
+          Voir tout
+          <ArrowRight className="w-3 h-3" />
+        </Link>
+      )}
     </div>
   );
 }
@@ -106,6 +123,23 @@ export default async function AdminOverviewPage() {
   const stats = statsResult.data!;
   const showFinance = canSeeFinance(role);
 
+  // Liens uniquement si le rôle a accès au module cible
+  const href = {
+    commandes:     canAccessModule(role, "commandes")  ? "/admin/commandes"  : undefined,
+    devis:         canAccessModule(role, "devis")       ? "/admin/devis"      : undefined,
+    clients:       canAccessModule(role, "clients")     ? "/admin/clients"    : undefined,
+    produits:      canAccessModule(role, "produits")    ? "/admin/produits"   : undefined,
+    categories:    canAccessModule(role, "categories")  ? "/admin/categories" : undefined,
+    realisations:  canAccessModule(role, "realisations")? "/admin/realisations": undefined,
+    // Liens avec futurs paramètres de filtre (prêts pour une phase filtres)
+    devisAcceptes: canAccessModule(role, "devis")       ? "/admin/devis?status=accepte"           : undefined,
+    commandesBat:  canAccessModule(role, "commandes")   ? "/admin/commandes?status=bat_en_cours"   : undefined,
+    production:    canAccessModule(role, "commandes")   ? "/admin/commandes?status=en_production"  : undefined,
+    pret:          canAccessModule(role, "commandes")   ? "/admin/commandes?status=pret"           : undefined,
+    encaisse:      canAccessModule(role, "commandes")   ? "/admin/commandes?payment=paid"          : undefined,
+    solde:         canAccessModule(role, "commandes")   ? "/admin/commandes?payment=remaining"     : undefined,
+  };
+
   const greetingByRole: Record<AdminRole, string> = {
     patron:        "Vue complète de l'activité GLOBAL TIC PrintTech",
     admin:         "Vue complète de l'activité GLOBAL TIC PrintTech",
@@ -139,24 +173,28 @@ export default async function AdminOverviewPage() {
                 value={formatPrice(stats.caDevisAcceptes)}
                 icon={TrendingUp}
                 color="green"
+                href={href.devisAcceptes}
               />
               <StatCard
                 label="CA commandes"
                 value={formatPrice(stats.caCommandes)}
                 icon={ShoppingCart}
                 color="blue"
+                href={href.commandes}
               />
               <StatCard
                 label="Montant encaissé"
                 value={formatPrice(stats.montantEncaisse)}
                 icon={Wallet}
                 color="purple"
+                href={href.encaisse}
               />
               <StatCard
                 label="Solde à encaisser"
                 value={formatPrice(stats.soldeRestant)}
                 icon={Clock}
                 color="amber"
+                href={href.solde}
               />
             </div>
           </div>
@@ -165,12 +203,12 @@ export default async function AdminOverviewPage() {
           <div>
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Activité</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              <StatCard label="Produits"         value={stats.totalProducts}    icon={Package}    color="blue" />
-              <StatCard label="Catégories"        value={stats.totalCategories}  icon={FolderOpen} color="purple" />
-              <StatCard label="Devis"             value={stats.totalQuotes}      icon={FileText}   color="amber" />
-              <StatCard label="Commandes"         value={stats.totalOrders}      icon={ShoppingCart} color="green" />
-              <StatCard label="Clients"           value={stats.totalCustomers}   icon={Users}      color="cyan" />
-              <StatCard label="Réalisations"      value={stats.totalRealisations} icon={Image}     color="rose" />
+              <StatCard label="Produits"    value={stats.totalProducts}     icon={Package}      color="blue"   href={href.produits} />
+              <StatCard label="Catégories"  value={stats.totalCategories}   icon={FolderOpen}   color="purple" href={href.categories} />
+              <StatCard label="Devis"       value={stats.totalQuotes}       icon={FileText}     color="amber"  href={href.devis} />
+              <StatCard label="Commandes"   value={stats.totalOrders}       icon={ShoppingCart} color="green"  href={href.commandes} />
+              <StatCard label="Clients"     value={stats.totalCustomers}    icon={Users}        color="cyan"   href={href.clients} />
+              <StatCard label="Réalisations" value={stats.totalRealisations} icon={Image}       color="rose"   href={href.realisations} />
             </div>
           </div>
 
@@ -178,10 +216,10 @@ export default async function AdminOverviewPage() {
           <div>
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Statut des commandes</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <StatCard label="En cours"          value={stats.activeOrders}      icon={Activity}       color="blue" />
-              <StatCard label="BAT"               value={stats.ordersBat}         icon={Zap}            color="purple" />
-              <StatCard label="En production"     value={stats.ordersInProduction} icon={Printer}       color="amber" />
-              <StatCard label="Prêtes / Livraison" value={stats.ordersPret}       icon={Truck}          color="green" />
+              <StatCard label="En cours"          value={stats.activeOrders}       icon={Activity} color="blue"   href={href.commandes} />
+              <StatCard label="BAT"               value={stats.ordersBat}          icon={Zap}      color="purple" href={href.commandesBat} />
+              <StatCard label="En production"     value={stats.ordersInProduction} icon={Printer}  color="amber"  href={href.production} />
+              <StatCard label="Prêtes / Livraison" value={stats.ordersPret}        icon={Truck}    color="green"  href={href.pret} />
             </div>
           </div>
         </>
@@ -191,15 +229,15 @@ export default async function AdminOverviewPage() {
       {role === "commercial" && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total devis"        value={stats.totalQuotes}      icon={FileText}   color="amber" />
-            <StatCard label="Devis en attente"   value={stats.pendingQuotes}    icon={Clock}      color="rose" />
-            <StatCard label="Devis acceptés"     value={stats.acceptedQuotes}   icon={CheckCircle2} color="green" />
-            <StatCard label="Clients"            value={stats.totalCustomers}   icon={Users}      color="cyan" />
+            <StatCard label="Total devis"      value={stats.totalQuotes}    icon={FileText}    color="amber" href={href.devis} />
+            <StatCard label="Devis en attente" value={stats.pendingQuotes}  icon={Clock}       color="rose"  href={href.devis} />
+            <StatCard label="Devis acceptés"   value={stats.acceptedQuotes} icon={CheckCircle2} color="green" href={href.devisAcceptes} />
+            <StatCard label="Clients"          value={stats.totalCustomers} icon={Users}       color="cyan"  href={href.clients} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard label="CA devis acceptés"  value={formatPrice(stats.caDevisAcceptes)} icon={TrendingUp} color="green" />
-            <StatCard label="Montant encaissé"   value={formatPrice(stats.montantEncaisse)} icon={Wallet}     color="blue" />
-            <StatCard label="Solde à encaisser"  value={formatPrice(stats.soldeRestant)}    icon={Clock}      color="amber" />
+            <StatCard label="CA devis acceptés" value={formatPrice(stats.caDevisAcceptes)} icon={TrendingUp} color="green"  href={href.devisAcceptes} />
+            <StatCard label="Montant encaissé"  value={formatPrice(stats.montantEncaisse)} icon={Wallet}     color="blue"   href={href.encaisse} />
+            <StatCard label="Solde à encaisser" value={formatPrice(stats.soldeRestant)}    icon={Clock}      color="amber"  href={href.solde} />
           </div>
         </>
       )}
@@ -207,35 +245,50 @@ export default async function AdminOverviewPage() {
       {/* ── VUE PRODUCTION ── */}
       {role === "production" && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard label="Commandes actives"   value={stats.activeOrders}       icon={Activity}  color="blue" />
-          <StatCard label="BAT en cours"        value={stats.ordersBat}          icon={Zap}       color="purple" />
-          <StatCard label="En production"       value={stats.ordersInProduction} icon={Printer}   color="amber" />
-          <StatCard label="Prêtes / Livraison"  value={stats.ordersPret}         icon={Truck}     color="green" />
+          <StatCard label="Commandes actives"  value={stats.activeOrders}       icon={Activity} color="blue"   href={href.commandes} />
+          <StatCard label="BAT en cours"       value={stats.ordersBat}          icon={Zap}      color="purple" href={href.commandesBat} />
+          <StatCard label="En production"      value={stats.ordersInProduction} icon={Printer}  color="amber"  href={href.production} />
+          <StatCard label="Prêtes / Livraison" value={stats.ordersPret}         icon={Truck}    color="green"  href={href.pret} />
         </div>
       )}
 
       {/* ── VUE INFOGRAPHISTE ── */}
       {role === "infographiste" && (
         <div className="grid grid-cols-2 gap-4">
-          <StatCard label="BAT en cours / validés" value={stats.ordersBat}      icon={Zap}       color="purple" />
-          <StatCard label="Commandes actives"      value={stats.activeOrders}   icon={Activity}  color="blue" />
+          <StatCard label="BAT en cours / validés" value={stats.ordersBat}    icon={Zap}      color="purple" href={href.commandesBat} />
+          <StatCard label="Commandes actives"      value={stats.activeOrders} icon={Activity} color="blue"   href={href.commandes} />
         </div>
       )}
 
-      {/* ── COMMANDES URGENTES ── visible production + patron/admin */}
+      {/* ── COMMANDES URGENTES ── */}
       {(role === "patron" || role === "admin" || role === "production") && stats.urgentOrders.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-amber-200 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600" />
-            <h3 className="text-[11px] font-black text-amber-700 uppercase tracking-widest">
-              Commandes à traiter
-            </h3>
+          <div className="px-6 py-4 border-b border-amber-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+              <h3 className="text-[11px] font-black text-amber-700 uppercase tracking-widest">
+                Commandes à traiter
+              </h3>
+            </div>
+            {href.commandes && (
+              <Link
+                href={`${href.commandes}?filter=a_traiter`}
+                className="flex items-center gap-1 text-[10px] font-bold text-amber-600/80 hover:text-amber-700 transition-colors"
+              >
+                Voir tout
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            )}
           </div>
           <div className="divide-y divide-amber-100">
             {stats.urgentOrders.map((order) => (
-              <div key={order.id} className="px-6 py-3.5 flex items-center justify-between">
+              <Link
+                key={order.id}
+                href="/admin/commandes"
+                className="px-6 py-3.5 flex items-center justify-between hover:bg-amber-100/50 transition-colors group"
+              >
                 <div>
-                  <p className="text-sm font-bold text-slate-700">{order.reference}</p>
+                  <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{order.reference}</p>
                   <p className="text-[11px] text-slate-400 mt-0.5">{formatDateShort(order.createdAt)}</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -246,7 +299,7 @@ export default async function AdminOverviewPage() {
                     </span>
                   )}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -255,17 +308,21 @@ export default async function AdminOverviewPage() {
       {/* ── LISTES RÉCENTES ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Dernières commandes — tous les rôles sauf infographiste */}
+        {/* Dernières commandes */}
         {role !== "infographiste" && (
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-            <SectionHeader title="Dernières commandes" />
+            <SectionHeader title="Dernières commandes" href={href.commandes} />
             <div className="divide-y divide-slate-50">
               {stats.recentOrders.length === 0 ? (
                 <EmptyRow icon={ShoppingCart} label="Aucune commande" />
               ) : stats.recentOrders.map((order) => (
-                <div key={order.id} className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                <Link
+                  key={order.id}
+                  href="/admin/commandes"
+                  className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                >
                   <div>
-                    <p className="text-sm font-bold text-slate-700">{order.reference}</p>
+                    <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{order.reference}</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">{formatDateShort(order.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -281,23 +338,27 @@ export default async function AdminOverviewPage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
         )}
 
-        {/* Derniers devis — patron/admin/commercial */}
+        {/* Derniers devis */}
         {(role === "patron" || role === "admin" || role === "commercial") && (
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-            <SectionHeader title="Derniers devis" />
+            <SectionHeader title="Derniers devis" href={href.devis} />
             <div className="divide-y divide-slate-50">
               {stats.recentQuotes.length === 0 ? (
                 <EmptyRow icon={FileText} label="Aucun devis" />
               ) : stats.recentQuotes.map((quote) => (
-                <div key={quote.id} className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                <Link
+                  key={quote.id}
+                  href="/admin/devis"
+                  className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                >
                   <div>
-                    <p className="text-sm font-bold text-slate-700">{quote.reference}</p>
+                    <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{quote.reference}</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">{formatDateShort(quote.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -306,22 +367,26 @@ export default async function AdminOverviewPage() {
                       {formatPrice(quote.total)}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
         )}
 
-        {/* Derniers clients — patron/admin/commercial */}
+        {/* Nouveaux clients */}
         {(role === "patron" || role === "admin" || role === "commercial") && (
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-            <SectionHeader title="Nouveaux clients" />
+            <SectionHeader title="Nouveaux clients" href={href.clients} />
             <div className="divide-y divide-slate-50">
               {stats.recentCustomers.length === 0 ? (
                 <EmptyRow icon={Users} label="Aucun client" />
               ) : stats.recentCustomers.map((c) => (
-                <div key={c.id} className="px-6 py-3.5 hover:bg-slate-50/50 transition-colors">
-                  <p className="text-sm font-bold text-slate-700">{c.contactName}</p>
+                <Link
+                  key={c.id}
+                  href="/admin/clients"
+                  className="px-6 py-3.5 hover:bg-slate-50 transition-colors group block"
+                >
+                  <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{c.contactName}</p>
                   {c.companyName && (
                     <p className="text-[11px] text-slate-400">{c.companyName}</p>
                   )}
@@ -329,13 +394,13 @@ export default async function AdminOverviewPage() {
                     <p className="text-[11px] text-slate-400">{c.whatsapp}</p>
                     <p className="text-[11px] text-slate-400">{formatDateShort(c.createdAt)}</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
         )}
 
-        {/* Activité récente — patron/admin */}
+        {/* Activité récente */}
         {(role === "patron" || role === "admin") && (
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
             <SectionHeader title="Activité récente" />
@@ -372,20 +437,24 @@ export default async function AdminOverviewPage() {
         {/* Vue infographiste : commandes BAT */}
         {role === "infographiste" && (
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-            <SectionHeader title="Commandes BAT à traiter" />
+            <SectionHeader title="Commandes BAT à traiter" href={href.commandes} />
             <div className="divide-y divide-slate-50">
               {stats.urgentOrders.filter(o => ["bat_en_cours", "bat_valide", "confirmee"].includes(o.status)).length === 0 ? (
                 <EmptyRow icon={Zap} label="Aucun BAT en attente" />
               ) : stats.urgentOrders
                   .filter(o => ["bat_en_cours", "bat_valide", "confirmee"].includes(o.status))
                   .map((order) => (
-                <div key={order.id} className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                <Link
+                  key={order.id}
+                  href="/admin/commandes"
+                  className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                >
                   <div>
-                    <p className="text-sm font-bold text-slate-700">{order.reference}</p>
+                    <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{order.reference}</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">{formatDateShort(order.createdAt)}</p>
                   </div>
                   <StatusBadge status={order.status} />
-                </div>
+                </Link>
               ))}
             </div>
           </div>
