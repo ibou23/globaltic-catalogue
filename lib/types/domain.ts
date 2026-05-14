@@ -18,7 +18,7 @@ export type OrderStatus =
 export type PaymentStatus = "non_paye" | "acompte" | "paye" | "rembourse";
 export type PaymentMethod = "wave" | "orange_money" | "especes" | "virement" | "cheque";
 export type DeliveryMethod = "retrait" | "livraison_dakar" | "livraison_region";
-export type FileType = "bat_client" | "bat_valide" | "maquette" | "bon_livraison" | "facture";
+export type FileType = "fichier_client" | "maquette" | "bat_client" | "bat_valide" | "bon_livraison" | "facture" | "recu" | "autre";
 export type FileStatus = "en_attente" | "valide" | "refuse";
 export type AdminRole = "patron" | "admin" | "commercial" | "production" | "infographiste";
 export type NotificationChannel = "whatsapp" | "email" | "in_app";
@@ -191,6 +191,17 @@ export interface OrderEnriched extends Order {
     whatsapp: string;
     companyName: string | null;
   } | null;
+}
+
+export interface OrderFile {
+  id: string;
+  orderId: string;
+  fileType: FileType;
+  fileUrl: string;
+  fileName: string | null;
+  uploadedBy: string | null;
+  status: FileStatus;
+  createdAt: string;
 }
 
 export interface AdminProfile {

@@ -10,6 +10,7 @@ import type {
   Quote,
   QuoteItem,
   Order,
+  OrderFile,
   AdminProfile,
 } from "@/lib/types/domain";
 
@@ -194,6 +195,19 @@ export function mapOrder(row: Record<string, unknown>): Order {
     deliveryAddress: (row.delivery_address as string) ?? null,
     notes: (row.notes as string) ?? null,
     internalNotes: (row.internal_notes as string) ?? null,
+    createdAt: row.created_at as string,
+  };
+}
+
+export function mapOrderFile(row: Record<string, unknown>): OrderFile {
+  return {
+    id: row.id as string,
+    orderId: row.order_id as string,
+    fileType: row.file_type as OrderFile["fileType"],
+    fileUrl: row.file_url as string,
+    fileName: (row.file_name as string) ?? null,
+    uploadedBy: (row.uploaded_by as string) ?? null,
+    status: row.status as OrderFile["status"],
     createdAt: row.created_at as string,
   };
 }

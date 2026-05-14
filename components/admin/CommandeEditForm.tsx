@@ -4,7 +4,9 @@ import { useState, useTransition, useEffect } from "react";
 import { X, Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateOrderAction } from "@/lib/actions/orders";
-import type { OrderEnriched, PaymentMethod } from "@/lib/types/domain";
+import { getOrderFilesAction } from "@/lib/actions/order-files";
+import type { OrderEnriched, OrderFile, PaymentMethod } from "@/lib/types/domain";
+import { OrderFilesSection } from "@/components/admin/OrderFilesSection";
 
 interface CommandeEditFormProps {
   order: OrderEnriched;
@@ -223,6 +225,13 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
 
   const waLink = buildWhatsAppMessage(order, status);
   const waPaymentLink = buildWhatsAppPaymentMessage(order, paid, paymentStatus);
+
+  const [orderFiles, setOrderFiles] = useState<OrderFile[]>([]);
+  useEffect(() => {
+    getOrderFilesAction(order.id).then((r) => {
+      if (r.data) setOrderFiles(r.data);
+    });
+  }, [order.id]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -486,6 +495,9 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
               </div>
             </div>
           </div>
+
+          {/* Fichiers de production */}
+          <OrderFilesSection orderId={order.id} initialFiles={orderFiles} />
 
           {error && (
             <p className="text-sm font-semibold text-red-600 bg-red-50 px-4 py-3 rounded-xl">

@@ -1,0 +1,75 @@
+"use server";
+
+import {
+  getOrderFiles,
+  uploadOrderFile,
+  deleteOrderFile,
+  updateOrderFileStatus,
+  getSignedUrl,
+} from "@/lib/db/order-files";
+import { getCurrentAdmin } from "@/lib/db/admin";
+import { getOrderById } from "@/lib/db/orders";
+import { err, type Result } from "@/lib/utils/result";
+import type { OrderFile, FileType, FileStatus } from "@/lib/types/domain";
+
+const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
+
+export async function getOrderFilesAction(
+  orderId: string
+): Promise<Result<OrderFile[]>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+  return getOrderFiles(orderId);
+}
+
+export async function uploadOrderFileAction(
+  orderId: string,
+  fileType: FileType,
+  formData: FormData
+): Promise<Result<OrderFile>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+
+  const orderResult = await getOrderById(orderId);
+  if (!orderResult.data) return err("Commande introuvable");
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) return err("Fichier manquant");
+  if (!ALLOWED_TYPES.includes(file.type)) return err("Type de fichier non autorisé (PDF, PNG, JPG, WEBP uniquement)");
+  if (file.size > MAX_SIZE) return err("Fichier trop volumineux (max 20 Mo)");
+  if (file.size === 0) return err("Le fichier est vide");
+
+  return uploadOrderFile(
+    orderId,
+    orderResult.data.reference,
+    file,
+    fileType,
+    admin.data.userId
+  );
+}
+
+export async function deleteOrderFileAction(
+  fileId: string
+): Promise<Result<true>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+  return deleteOrderFile(fileId);
+}
+
+export async function updateOrderFileStatusAction(
+  fileId: string,
+  status: FileStatus
+): Promise<Result<OrderFile>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+  return updateOrderFileStatus(fileId, status);
+}
+
+export async function getSignedUrlAction(
+  storagePath: string
+): Promise<Result<string>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+  return getSignedUrl(storagePath);
+}
