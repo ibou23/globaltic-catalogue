@@ -1,6 +1,6 @@
 import type { AdminProfile } from "@/lib/types/domain";
-import { Search } from "lucide-react";
 import { NotificationBell } from "@/components/admin/NotificationBell";
+import { GlobalSearch } from "@/components/admin/GlobalSearch";
 
 interface AdminTopbarProps {
   admin: AdminProfile;
@@ -41,9 +41,7 @@ export function AdminTopbar({ admin, title, description, unreadCount }: AdminTop
         {/* Right — Actions + User */}
         <div className="flex items-center gap-3">
           {/* Search */}
-          <button className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all">
-            <Search className="w-4 h-4" />
-          </button>
+          <GlobalSearch role={admin.role} />
 
           {/* Notifications */}
           <NotificationBell initialUnread={unreadCount} isPatron={admin.role === "patron"} />
