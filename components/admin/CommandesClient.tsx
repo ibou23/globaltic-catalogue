@@ -7,10 +7,19 @@ import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
 import { canPerform } from "@/lib/auth/permissions";
 import { CommandeEditForm } from "@/components/admin/CommandeEditForm";
+import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
+
+interface ActiveFilter {
+  label: string;
+  count: number;
+  resetHref: string;
+}
 
 interface CommandesClientProps {
   orders: OrderEnriched[];
   role: AdminRole;
+  totalCount?: number;
+  activeFilter?: ActiveFilter;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -62,7 +71,7 @@ function buildWhatsAppConfirmation(order: OrderEnriched): string {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function CommandesClient({ orders, role }: CommandesClientProps) {
+export function CommandesClient({ orders, role, totalCount, activeFilter }: CommandesClientProps) {
   const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
   const canEdit = canPerform(role, "commande:edit_status");
   const canReceipt = canPerform(role, "receipt:generate");
@@ -78,9 +87,19 @@ export function CommandesClient({ orders, role }: CommandesClientProps) {
             Gestion des commandes
           </h2>
           <p className="text-sm text-slate-400 font-medium mt-1">
-            {orders.length} commande{orders.length > 1 ? "s" : ""} au total
+            {activeFilter
+              ? `${orders.length} résultat${orders.length > 1 ? "s" : ""} sur ${totalCount ?? orders.length} commandes`
+              : `${orders.length} commande${orders.length > 1 ? "s" : ""} au total`}
           </p>
         </div>
+
+        {activeFilter && (
+          <ActiveFilterBadge
+            label={activeFilter.label}
+            count={activeFilter.count}
+            resetHref={activeFilter.resetHref}
+          />
+        )}
 
         {orders.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-100 px-6 py-12 text-center">

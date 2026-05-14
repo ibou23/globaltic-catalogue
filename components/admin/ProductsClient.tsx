@@ -5,16 +5,25 @@ import { Package, Plus, Pencil, Trash2, Search, Tag } from "lucide-react";
 import type { Product, Category } from "@/lib/types/domain";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { DeleteConfirm } from "@/components/admin/DeleteConfirm";
+import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
 import { deleteProductAction } from "@/lib/actions/products";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+interface ActiveFilter {
+  label: string;
+  count: number;
+  resetHref: string;
+}
+
 interface ProductsClientProps {
   products: Product[];
   categories: Category[];
+  totalCount?: number;
+  activeFilter?: ActiveFilter;
 }
 
-export function ProductsClient({ products, categories }: ProductsClientProps) {
+export function ProductsClient({ products, categories, totalCount, activeFilter }: ProductsClientProps) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | undefined>(undefined);
@@ -23,6 +32,7 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
 
   const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 
+  // Le filtrage URL est fait côté serveur ; ici on filtre uniquement par la recherche locale
   const filtered = search
     ? products.filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -46,13 +56,25 @@ export function ProductsClient({ products, categories }: ProductsClientProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-black text-slate-800 font-heading tracking-tight">Gestion des produits</h2>
-          <p className="text-sm text-slate-400 font-medium mt-1">{products.length} produit{products.length > 1 ? "s" : ""} au catalogue</p>
+          <p className="text-sm text-slate-400 font-medium mt-1">
+            {activeFilter
+              ? `${products.length} résultat${products.length > 1 ? "s" : ""} sur ${totalCount ?? products.length} produits`
+              : `${products.length} produit${products.length > 1 ? "s" : ""} au catalogue`}
+          </p>
         </div>
         <button onClick={openCreate} className="h-10 px-4 sm:px-5 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-primary-dark hover:shadow-lg hover:shadow-brand-primary/25 transition-all shrink-0">
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Ajouter</span>
         </button>
       </div>
+
+      {activeFilter && (
+        <ActiveFilterBadge
+          label={activeFilter.label}
+          count={activeFilter.count}
+          resetHref={activeFilter.resetHref}
+        />
+      )}
 
       {/* Search */}
       <div className="relative">

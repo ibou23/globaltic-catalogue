@@ -6,12 +6,21 @@ import type { QuoteEnriched } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { DevisForm } from "@/components/admin/DevisForm";
 import { DevisEditForm } from "@/components/admin/DevisEditForm";
+import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
 import { convertQuoteToOrderAction } from "@/lib/actions/orders";
 import { siteConfig } from "@/lib/config/site";
 import { useRouter } from "next/navigation";
 
+interface ActiveFilter {
+  label: string;
+  count: number;
+  resetHref: string;
+}
+
 interface DevisClientProps {
   quotes: QuoteEnriched[];
+  totalCount?: number;
+  activeFilter?: ActiveFilter;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -43,7 +52,7 @@ function buildWhatsAppReply(quote: QuoteEnriched): string {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function DevisClient({ quotes }: DevisClientProps) {
+export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientProps) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editingQuote, setEditingQuote] = useState<QuoteEnriched | null>(null);
@@ -85,7 +94,9 @@ export function DevisClient({ quotes }: DevisClientProps) {
               Gestion des devis
             </h2>
             <p className="text-sm text-slate-400 font-medium mt-1">
-              {quotes.length} devis au total
+              {activeFilter
+                ? `${quotes.length} résultat${quotes.length > 1 ? "s" : ""} sur ${totalCount ?? quotes.length} devis`
+                : `${quotes.length} devis au total`}
             </p>
           </div>
           <button
@@ -97,6 +108,14 @@ export function DevisClient({ quotes }: DevisClientProps) {
             <span className="sm:hidden">Créer</span>
           </button>
         </div>
+
+        {activeFilter && (
+          <ActiveFilterBadge
+            label={activeFilter.label}
+            count={activeFilter.count}
+            resetHref={activeFilter.resetHref}
+          />
+        )}
 
         {quotes.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-100 px-6 py-12 text-center">

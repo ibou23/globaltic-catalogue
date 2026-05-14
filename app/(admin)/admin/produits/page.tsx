@@ -5,7 +5,13 @@ import { canAccessModule } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { ProductsClient } from "@/components/admin/ProductsClient";
 
-export default async function AdminProductsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; popular?: string; category?: string }>;
+}) {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
@@ -13,13 +19,51 @@ export default async function AdminProductsPage() {
     return <AccessDenied />;
   }
 
+  const params = await searchParams;
+
   const [productsResult, categoriesResult] = await Promise.all([
     getAllProducts(),
     getAllCategories(),
   ]);
 
-  const products = productsResult.data ?? [];
+  const allProducts = productsResult.data ?? [];
   const categories = categoriesResult.data ?? [];
 
-  return <ProductsClient products={products} categories={categories} />;
+  let products = allProducts;
+  const labelParts: string[] = [];
+
+  if (params.status === "active") {
+    products = products.filter((p) => p.isActive);
+    labelParts.push("Actifs");
+  } else if (params.status === "inactive") {
+    products = products.filter((p) => !p.isActive);
+    labelParts.push("Inactifs");
+  }
+
+  if (params.popular === "true") {
+    products = products.filter((p) => p.isPopular);
+    labelParts.push("Populaires");
+  }
+
+  if (params.category) {
+    const cat = categories.find((c) => c.slug === params.category);
+    if (cat) {
+      products = products.filter((p) => p.categoryId === cat.id);
+      labelParts.push(cat.name);
+    }
+  }
+
+  const activeFilter =
+    labelParts.length > 0
+      ? { label: labelParts.join(" · "), count: products.length, resetHref: "/admin/produits" }
+      : undefined;
+
+  return (
+    <ProductsClient
+      products={products}
+      categories={categories}
+      totalCount={allProducts.length}
+      activeFilter={activeFilter}
+    />
+  );
 }
