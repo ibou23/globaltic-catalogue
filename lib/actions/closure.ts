@@ -3,10 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAdmin, getAdminProfiles } from "@/lib/db/admin";
 import { createAdminNotifications } from "@/lib/db/notifications";
+import { logOrderEvent } from "@/lib/db/activity-log";
 import { requireRole } from "@/lib/auth/permissions";
 import { mapOrder } from "@/lib/db/mappers";
 import { ok, err, type Result } from "@/lib/utils/result";
-import type { Order, ClosureStatus, SatisfactionLevel } from "@/lib/types/domain";
+import type { Order, ClosureStatus } from "@/lib/types/domain";
 import { z } from "zod";
 
 const closureSchema = z.object({
@@ -63,18 +64,13 @@ export async function saveClosureAction(
     satisfait:    "clôturée (client satisfait)",
     reclamation:  "réclamation enregistrée",
   };
-  await supabase.from("order_logs").insert({
-    order_id:   orderId,
-    admin_id:   admin?.userId ?? null,
-    event_type: `closure_${input.closure_status}`,
-    message:    `Commande ${orderRef} — ${eventLabels[input.closure_status as ClosureStatus]}`,
-    metadata:   {
-      closure_status:    input.closure_status,
-      satisfaction:      input.satisfaction ?? null,
-      has_complaint:     !!input.complaint,
-      has_comment:       !!input.customer_comment,
-    },
-  }).maybeSingle();
+  await logOrderEvent(admin?.userId ?? null, orderId, `closure_${input.closure_status}`, {
+    reference:      orderRef,
+    vers:           eventLabels[input.closure_status as ClosureStatus],
+    satisfaction:   input.satisfaction ?? null,
+    has_complaint:  !!input.complaint,
+    has_comment:    !!input.customer_comment,
+  });
 
   // Notifications
   const profilesResult = await getAdminProfiles();
