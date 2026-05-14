@@ -75,3 +75,54 @@ export async function logAdminEvent(
   });
   // Non bloquant
 }
+
+export async function logMaintenanceEvent(
+  actorId: string | null,
+  action: string,
+  entityType: string,
+  entityId: string | null,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  const supabase = await createClient();
+
+  await supabase.from("activity_log").insert({
+    user_id: actorId ?? null,
+    action,
+    entity_type: entityType,
+    entity_id: entityId ?? null,
+    metadata: { ...metadata, _maintenance: true },
+  });
+  // Non bloquant
+}
+
+export async function deleteReadNotifications(recipientId: string): Promise<Result<number>> {
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from("notifications")
+    .delete({ count: "exact" })
+    .eq("recipient_id", recipientId)
+    .eq("is_read", true);
+
+  if (error) return err(error.message);
+  return ok(count ?? 0);
+}
+
+export async function getMaintenanceStats(): Promise<Result<{
+  readNotifications: number;
+  orphanQuotes: number;
+}>> {
+  const supabase = await createClient();
+
+  const [notifResult, quotesResult] = await Promise.all([
+    supabase.from("notifications").select("id", { count: "exact", head: true }).eq("is_read", true),
+    supabase.from("quotes").select("id", { count: "exact", head: true }),
+  ]);
+
+  if (notifResult.error) return err(notifResult.error.message);
+
+  return ok({
+    readNotifications: notifResult.count ?? 0,
+    orphanQuotes: quotesResult.count ?? 0,
+  });
+}

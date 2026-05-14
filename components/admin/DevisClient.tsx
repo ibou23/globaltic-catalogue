@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, FileText, MessageCircle, Download, Pencil, ShoppingCart, Loader2 } from "lucide-react";
+import { Plus, FileText, MessageCircle, Download, Pencil, ShoppingCart, Loader2, Trash2 } from "lucide-react";
 import type { QuoteEnriched, QuoteStatus } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { DevisForm } from "@/components/admin/DevisForm";
 import { DevisEditForm } from "@/components/admin/DevisEditForm";
 import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
 import { QuickStatusSelect } from "@/components/admin/QuickStatusSelect";
+import { ConfirmWithWord } from "@/components/admin/ConfirmWithWord";
 import { updateQuoteStatusAction } from "@/lib/actions/quotes";
 import { convertQuoteToOrderAction } from "@/lib/actions/orders";
+import { deleteQuoteAction } from "@/lib/actions/maintenance";
 import { siteConfig } from "@/lib/config/site";
 import { useRouter } from "next/navigation";
 
@@ -23,6 +25,7 @@ interface DevisClientProps {
   quotes: QuoteEnriched[];
   totalCount?: number;
   activeFilter?: ActiveFilter;
+  canDelete?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -54,10 +57,11 @@ function buildWhatsAppReply(quote: QuoteEnriched): string {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientProps) {
+export function DevisClient({ quotes, totalCount, activeFilter, canDelete }: DevisClientProps) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editingQuote, setEditingQuote] = useState<QuoteEnriched | null>(null);
+  const [deletingQuote, setDeletingQuote] = useState<QuoteEnriched | null>(null);
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [convertError, setConvertError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -86,11 +90,27 @@ export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientPro
     });
   }
 
+  async function handleDeleteQuote(confirmation: string) {
+    if (!deletingQuote) return { error: "Aucun devis sélectionné" };
+    const result = await deleteQuoteAction({ quoteId: deletingQuote.id, confirmation });
+    if (!result.error) router.refresh();
+    return { error: result.error };
+  }
+
   return (
     <>
       {showForm && <DevisForm onClose={() => setShowForm(false)} />}
       {editingQuote && (
         <DevisEditForm quote={editingQuote} onClose={() => setEditingQuote(null)} />
+      )}
+      {deletingQuote && (
+        <ConfirmWithWord
+          title="Supprimer le devis"
+          description={`Supprimer définitivement le devis ${deletingQuote.reference} et toutes ses lignes.`}
+          warning="Cette action est irréversible. Si ce devis a une commande associée, la suppression sera bloquée."
+          onConfirm={handleDeleteQuote}
+          onClose={() => setDeletingQuote(null)}
+        />
       )}
 
       {convertError && (
@@ -218,6 +238,15 @@ export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientPro
                           <MessageCircle className="w-4 h-4" />
                         </a>
                       )}
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeletingQuote(quote)}
+                          className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors shrink-0"
+                          title="Supprimer le devis (patron)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -327,6 +356,15 @@ export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientPro
                                 >
                                   <MessageCircle className="w-4 h-4" />
                                 </a>
+                              )}
+                              {canDelete && (
+                                <button
+                                  onClick={() => setDeletingQuote(quote)}
+                                  title="Supprimer le devis (patron)"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               )}
                             </div>
                           </td>

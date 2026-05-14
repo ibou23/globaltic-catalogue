@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard } from "lucide-react";
+import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2 } from "lucide-react";
 import type { OrderEnriched, AdminRole, OrderStatus } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
 import { canPerform } from "@/lib/auth/permissions";
 import { updateOrderAction } from "@/lib/actions/orders";
+import { deleteOrderAction } from "@/lib/actions/maintenance";
 import { CommandeEditForm } from "@/components/admin/CommandeEditForm";
 import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
 import { QuickStatusSelect } from "@/components/admin/QuickStatusSelect";
 import { QuickPaymentModal } from "@/components/admin/QuickPaymentModal";
+import { ConfirmWithWord } from "@/components/admin/ConfirmWithWord";
 import { useRouter } from "next/navigation";
 
 interface ActiveFilter {
@@ -24,6 +26,7 @@ interface CommandesClientProps {
   role: AdminRole;
   totalCount?: number;
   activeFilter?: ActiveFilter;
+  canDelete?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -67,10 +70,11 @@ function buildWhatsAppMessage(order: OrderEnriched): string {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function CommandesClient({ orders, role, totalCount, activeFilter }: CommandesClientProps) {
+export function CommandesClient({ orders, role, totalCount, activeFilter, canDelete }: CommandesClientProps) {
   const router = useRouter();
   const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
   const [payingOrder, setPayingOrder] = useState<OrderEnriched | null>(null);
+  const [deletingOrder, setDeletingOrder] = useState<OrderEnriched | null>(null);
   const [isPending, startTransition] = useTransition();
   const canEdit = canPerform(role, "commande:edit_status");
   const canPay = canPerform(role, "commande:edit_payment");
@@ -99,6 +103,13 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
     });
   }
 
+  async function handleDeleteOrder(confirmation: string) {
+    if (!deletingOrder) return { error: "Aucune commande sélectionnée" };
+    const result = await deleteOrderAction({ orderId: deletingOrder.id, confirmation });
+    if (!result.error) router.refresh();
+    return { error: result.error };
+  }
+
   return (
     <>
       {editingOrder && (
@@ -106,6 +117,15 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
       )}
       {payingOrder && (
         <QuickPaymentModal order={payingOrder} onClose={() => { setPayingOrder(null); router.refresh(); }} />
+      )}
+      {deletingOrder && (
+        <ConfirmWithWord
+          title="Supprimer la commande"
+          description={`Supprimer définitivement la commande ${deletingOrder.reference}, ses fichiers et son historique de paiement.`}
+          warning="Tous les fichiers Storage liés seront aussi supprimés. Cette action est irréversible."
+          onConfirm={handleDeleteOrder}
+          onClose={() => setDeletingOrder(null)}
+        />
       )}
       <div className="space-y-4 sm:space-y-6">
         <div>
@@ -223,6 +243,15 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
                         >
                           <MessageCircle className="w-4 h-4" />
                         </a>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeletingOrder(order)}
+                          className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors shrink-0"
+                          title="Supprimer la commande (patron)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       )}
                     </div>
                   </div>
@@ -352,6 +381,15 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
                                 >
                                   <MessageCircle className="w-4 h-4" />
                                 </a>
+                              )}
+                              {canDelete && (
+                                <button
+                                  onClick={() => setDeletingOrder(order)}
+                                  title="Supprimer la commande (patron)"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               )}
                             </div>
                           </td>

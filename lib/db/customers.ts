@@ -95,3 +95,27 @@ export async function searchCustomers(
   if (error) return err(error.message);
   return ok(data.map(mapCustomer));
 }
+
+export async function getCustomerLinkedCount(
+  id: string
+): Promise<{ quotes: number; orders: number }> {
+  const supabase = await createClient();
+
+  const [quotesResult, ordersResult] = await Promise.all([
+    supabase.from("quotes").select("id", { count: "exact", head: true }).eq("customer_id", id),
+    supabase.from("orders").select("id", { count: "exact", head: true }).eq("customer_id", id),
+  ]);
+
+  return {
+    quotes: quotesResult.count ?? 0,
+    orders: ordersResult.count ?? 0,
+  };
+}
+
+export async function deleteCustomer(id: string): Promise<Result<null>> {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("customers").delete().eq("id", id);
+  if (error) return err(error.message);
+  return ok(null);
+}

@@ -1,6 +1,6 @@
 import { getQuotesEnriched } from "@/lib/db/quotes";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule } from "@/lib/auth/permissions";
+import { canAccessModule, canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { DevisClient } from "@/components/admin/DevisClient";
 import type { QuoteStatus } from "@/lib/types/domain";
@@ -55,5 +55,12 @@ export default async function AdminDevisPage({
       ? { label: filterLabel, count: quotes.length, resetHref: "/admin/devis" }
       : undefined;
 
-  return <DevisClient quotes={quotes} totalCount={allQuotes.length} activeFilter={activeFilter} />;
+  return (
+    <DevisClient
+      quotes={quotes}
+      totalCount={allQuotes.length}
+      activeFilter={activeFilter}
+      canDelete={canPerform(admin.role, "devis:force_delete")}
+    />
+  );
 }

@@ -215,6 +215,15 @@ export async function updateQuote(
   return ok(mapQuote(quoteData));
 }
 
+export async function deleteQuote(id: string): Promise<Result<null>> {
+  const supabase = await createClient();
+
+  // quote_items supprimés en CASCADE par la FK
+  const { error } = await supabase.from("quotes").delete().eq("id", id);
+  if (error) return err(error.message);
+  return ok(null);
+}
+
 export async function updateQuoteStatus(
   id: string,
   status: QuoteStatus

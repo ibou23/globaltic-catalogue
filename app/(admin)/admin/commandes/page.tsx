@@ -1,6 +1,6 @@
 import { getOrdersEnriched } from "@/lib/db/orders";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule } from "@/lib/auth/permissions";
+import { canAccessModule, canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { CommandesClient } from "@/components/admin/CommandesClient";
 import type { OrderStatus } from "@/lib/types/domain";
@@ -83,6 +83,7 @@ export default async function AdminCommandesPage({
       role={admin.role}
       totalCount={allOrders.length}
       activeFilter={activeFilter}
+      canDelete={canPerform(admin.role, "commande:force_delete")}
     />
   );
 }

@@ -228,6 +228,27 @@ export async function updateOrderStatus(
   return ok(mapOrder(data));
 }
 
+export async function deleteOrder(id: string): Promise<Result<null>> {
+  const supabase = await createClient();
+
+  // Récupérer les chemins Storage avant suppression
+  const { data: files } = await supabase
+    .from("order_files")
+    .select("file_url")
+    .eq("order_id", id);
+
+  const { error } = await supabase.from("orders").delete().eq("id", id);
+  if (error) return err(error.message);
+
+  // Nettoyer Storage (non bloquant)
+  if (files && files.length > 0) {
+    const paths = (files as { file_url: string }[]).map((f) => f.file_url);
+    await supabase.storage.from("order-files").remove(paths);
+  }
+
+  return ok(null);
+}
+
 export async function getActiveOrders(): Promise<Result<Order[]>> {
   const supabase = await createClient();
 

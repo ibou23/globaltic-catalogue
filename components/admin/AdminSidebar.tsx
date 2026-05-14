@@ -19,6 +19,7 @@ import {
   UserCog,
   Upload,
   HelpCircle,
+  Wrench,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -46,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Imports CSV",    href: "/admin/imports",      icon: Upload,                       module: "imports" },
   { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
   { label: "Aide",           href: "/admin/aide",         icon: HelpCircle,                   module: "aide" },
+  { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                        module: "maintenance" },
 ];
 
 interface AdminSidebarProps {
