@@ -319,3 +319,31 @@ export interface Realisation {
   displayOrder: number;
   createdAt: string;
 }
+
+// ─── Contrôle qualité ─────────────────────────────────────────────────────────
+
+export type QCStatus = "non_verifie" | "en_cours" | "valide" | "a_corriger";
+
+export type QCChecklistKey =
+  | "produit_conforme"
+  | "quantite_verifiee"
+  | "couleurs_impression"
+  | "finitions_verifiees"
+  | "bat_respecte"
+  | "emballage_verifie"
+  | "bon_livraison_prepare"
+  | "paiement_verifie";
+
+export type QCChecklist = Partial<Record<QCChecklistKey, boolean>>;
+
+export interface QualityCheck {
+  id:          string;
+  orderId:     string;
+  status:      QCStatus;
+  checklist:   QCChecklist;
+  notes:       string | null;
+  validatedBy: string | null;
+  validatedAt: string | null;
+  createdAt:   string;
+  updatedAt:   string;
+}

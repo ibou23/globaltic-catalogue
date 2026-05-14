@@ -96,6 +96,9 @@ const EVENT_TARGET_ROLES: Record<string, AdminRole[]> = {
   commande_prete:          ["patron", "admin", "commercial"],
   en_livraison:            ["patron", "admin", "commercial"],
   tache_assignee:          ["patron", "admin", "commercial", "production", "infographiste"],
+  qc_demarre:              ["patron", "admin", "production"],
+  qc_valide:               ["patron", "admin", "commercial"],
+  qc_correction:           ["patron", "admin", "production"],
 };
 
 export async function createAdminNotifications(params: {

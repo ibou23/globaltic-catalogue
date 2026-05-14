@@ -2,6 +2,7 @@ import { getCurrentAdmin } from "@/lib/db/admin";
 import { canAccessModule, canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { getOrdersEnriched } from "@/lib/db/orders";
+import { getQualityChecksByOrderIds } from "@/lib/db/quality-checks";
 import { PlanningClient } from "@/components/admin/PlanningClient";
 
 export const dynamic = "force-dynamic";
@@ -28,19 +29,22 @@ export default async function AdminPlanningPage() {
   const result = await getOrdersEnriched();
   const allOrders = result.data ?? [];
 
-  // Filtrer uniquement les commandes actives de production (pas livrées/annulées)
   const orders = allOrders.filter((o) => PLANNING_STATUSES.includes(o.status));
+
+  const orderIds = orders.map((o) => o.id);
+  const qcResult = await getQualityChecksByOrderIds(orderIds);
+  const qcMap    = qcResult.data ?? new Map();
+
+  const canSeeFinance =
+    admin.role === "patron" || admin.role === "admin" || admin.role === "commercial";
 
   return (
     <PlanningClient
       orders={orders}
+      qcMap={qcMap}
       role={admin.role}
       canEditStatus={canPerform(admin.role, "commande:edit_status")}
-      canSeeFinance={
-        admin.role === "patron" ||
-        admin.role === "admin" ||
-        admin.role === "commercial"
-      }
+      canSeeFinance={canSeeFinance}
     />
   );
 }

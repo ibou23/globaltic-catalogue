@@ -1,5 +1,6 @@
 import { getOrdersEnriched } from "@/lib/db/orders";
 import { getInvoicesByOrderIds } from "@/lib/db/invoices";
+import { getQualityChecksByOrderIds } from "@/lib/db/quality-checks";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { canAccessModule, canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
@@ -49,10 +50,13 @@ export default async function AdminCommandesPage({
   const result = await getOrdersEnriched();
   const allOrders = result.data ?? [];
 
-  // Charger les factures existantes pour afficher l'indicateur dans l'UI
   const orderIds = allOrders.map((o) => o.id);
-  const invoicesResult = await getInvoicesByOrderIds(orderIds);
+  const [invoicesResult, qcResult] = await Promise.all([
+    getInvoicesByOrderIds(orderIds),
+    getQualityChecksByOrderIds(orderIds),
+  ]);
   const invoicesMap = invoicesResult.data ?? new Map();
+  const qcMap       = qcResult.data       ?? new Map();
 
   let orders = allOrders;
   let filterLabel = "";
@@ -83,16 +87,21 @@ export default async function AdminCommandesPage({
       ? { label: filterLabel, count: orders.length, resetHref: "/admin/commandes" }
       : undefined;
 
+  const canSeeFinance =
+    admin.role === "patron" || admin.role === "admin" || admin.role === "commercial";
+
   return (
     <CommandesClient
       orders={orders}
       invoicesMap={invoicesMap}
+      qcMap={qcMap}
       role={admin.role}
       totalCount={allOrders.length}
       activeFilter={activeFilter}
       canDelete={canPerform(admin.role, "commande:force_delete")}
       canFacture={canPerform(admin.role, "facture:generate")}
       canBL={canPerform(admin.role, "bl:generate")}
+      canSeeFinance={canSeeFinance}
     />
   );
 }

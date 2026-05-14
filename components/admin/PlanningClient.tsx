@@ -17,11 +17,13 @@ import {
   ChevronDown,
   ChevronRight,
   Activity,
+  Shield,
 } from "lucide-react";
-import type { OrderEnriched, AdminRole, OrderStatus } from "@/lib/types/domain";
+import type { OrderEnriched, AdminRole, OrderStatus, QualityCheck } from "@/lib/types/domain";
 import { formatDateShort } from "@/lib/utils/format";
 import { quickUpdateOrderStatusAction } from "@/lib/actions/orders";
 import { siteConfig } from "@/lib/config/site";
+import { QualityCheckModal, QCBadge } from "@/components/admin/QualityCheckModal";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -29,43 +31,46 @@ const STATUS_CONFIG: Record<string, {
   label: string;
   color: string;
   icon: React.ElementType;
-  priority: number; // ordre d'affichage dans la vue groupée
+  priority: number;
 }> = {
-  confirmee:        { label: "Confirmée",        color: "bg-blue-100 text-blue-700",      icon: CheckCircle2, priority: 1 },
-  bat_en_cours:     { label: "BAT en cours",      color: "bg-purple-100 text-purple-700",  icon: Zap,          priority: 2 },
-  bat_valide:       { label: "BAT validé",        color: "bg-indigo-100 text-indigo-700",  icon: Zap,          priority: 3 },
-  en_production:    { label: "En production",     color: "bg-amber-100 text-amber-700",    icon: Printer,      priority: 4 },
-  controle_qualite: { label: "Contrôle qualité",  color: "bg-cyan-100 text-cyan-700",      icon: Activity,     priority: 5 },
-  pret:             { label: "Prête",             color: "bg-emerald-100 text-emerald-700",icon: Package,      priority: 6 },
-  en_livraison:     { label: "En livraison",      color: "bg-teal-100 text-teal-700",      icon: Truck,        priority: 7 },
+  confirmee:        { label: "Confirmée",        color: "bg-blue-100 text-blue-700",       icon: CheckCircle2, priority: 1 },
+  bat_en_cours:     { label: "BAT en cours",      color: "bg-purple-100 text-purple-700",   icon: Zap,          priority: 2 },
+  bat_valide:       { label: "BAT validé",        color: "bg-indigo-100 text-indigo-700",   icon: Zap,          priority: 3 },
+  en_production:    { label: "En production",     color: "bg-amber-100 text-amber-700",     icon: Printer,      priority: 4 },
+  controle_qualite: { label: "Contrôle qualité",  color: "bg-cyan-100 text-cyan-700",       icon: Activity,     priority: 5 },
+  pret:             { label: "Prête",             color: "bg-emerald-100 text-emerald-700", icon: Package,      priority: 6 },
+  en_livraison:     { label: "En livraison",      color: "bg-teal-100 text-teal-700",       icon: Truck,        priority: 7 },
 };
 
 // Transitions rapides autorisées depuis chaque statut
 const QUICK_TRANSITIONS: Partial<Record<OrderStatus, { status: OrderStatus; label: string; color: string }[]>> = {
   confirmee:        [
-    { status: "bat_en_cours",  label: "→ BAT",          color: "bg-purple-100 text-purple-700 hover:bg-purple-200" },
+    { status: "bat_en_cours",     label: "→ BAT",          color: "bg-purple-100 text-purple-700 hover:bg-purple-200" },
   ],
   bat_en_cours:     [
-    { status: "bat_valide",    label: "→ BAT validé",   color: "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" },
+    { status: "bat_valide",       label: "→ BAT validé",   color: "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" },
   ],
   bat_valide:       [
-    { status: "en_production", label: "→ Production",   color: "bg-amber-100 text-amber-700 hover:bg-amber-200" },
+    { status: "en_production",    label: "→ Production",   color: "bg-amber-100 text-amber-700 hover:bg-amber-200" },
   ],
   en_production:    [
-    { status: "controle_qualite", label: "→ Contrôle", color: "bg-cyan-100 text-cyan-700 hover:bg-cyan-200" },
-    { status: "pret",          label: "→ Prête",        color: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" },
+    { status: "controle_qualite", label: "→ Contrôle",     color: "bg-cyan-100 text-cyan-700 hover:bg-cyan-200" },
+    { status: "pret",             label: "→ Prête",        color: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" },
   ],
   controle_qualite: [
-    { status: "pret",          label: "→ Prête",        color: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" },
+    { status: "pret",             label: "→ Prête",        color: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" },
   ],
   pret:             [
-    { status: "en_livraison",  label: "→ Livraison",    color: "bg-teal-100 text-teal-700 hover:bg-teal-200" },
-    { status: "livre",         label: "→ Livré",        color: "bg-green-100 text-green-700 hover:bg-green-200" },
+    { status: "en_livraison",     label: "→ Livraison",    color: "bg-teal-100 text-teal-700 hover:bg-teal-200" },
+    { status: "livre",            label: "→ Livré",        color: "bg-green-100 text-green-700 hover:bg-green-200" },
   ],
   en_livraison:     [
-    { status: "livre",         label: "→ Livré",        color: "bg-green-100 text-green-700 hover:bg-green-200" },
+    { status: "livre",            label: "→ Livré",        color: "bg-green-100 text-green-700 hover:bg-green-200" },
   ],
 };
+
+// Statuts qui nécessitent un avertissement QC si non validé
+const QC_WARN_STATUSES: OrderStatus[] = ["pret", "en_livraison", "livre"];
 
 type FilterKey =
   | "tout"
@@ -124,26 +129,33 @@ function buildWaMessage(order: OrderEnriched): string {
 
 interface PlanningClientProps {
   orders:        OrderEnriched[];
+  qcMap:         Map<string, QualityCheck>;
   role:          AdminRole;
   canEditStatus: boolean;
   canSeeFinance: boolean;
 }
 
-// ─── Composant ────────────────────────────────────────────────────────────────
+// ─── Composant principal ──────────────────────────────────────────────────────
 
-export function PlanningClient({ orders, canEditStatus, canSeeFinance }: PlanningClientProps) {
+export function PlanningClient({ orders, qcMap, canEditStatus, canSeeFinance, role }: PlanningClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [filter, setFilter]   = useState<FilterKey>("tout");
-  const [view,   setView]     = useState<ViewMode>("priorite");
+  const [filter, setFilter]     = useState<FilterKey>("tout");
+  const [view,   setView]       = useState<ViewMode>("priorite");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [qcOrder, setQcOrder]   = useState<OrderEnriched | null>(null);
+  const [pendingTransition, setPendingTransition] = useState<{ order: OrderEnriched; status: OrderStatus } | null>(null);
 
   // Stats rapides
-  const nbLate      = orders.filter(isLate).length;
-  const nbToday     = orders.filter(isToday).length;
-  const nbBat       = orders.filter((o) => o.status === "bat_en_cours" || o.status === "bat_valide").length;
-  const nbPret      = orders.filter((o) => o.status === "pret").length;
-  const nbProduction= orders.filter((o) => o.status === "en_production" || o.status === "controle_qualite").length;
+  const nbLate       = orders.filter(isLate).length;
+  const nbToday      = orders.filter(isToday).length;
+  const nbBat        = orders.filter((o) => o.status === "bat_en_cours" || o.status === "bat_valide").length;
+  const nbPret       = orders.filter((o) => o.status === "pret").length;
+  const nbProduction = orders.filter((o) => o.status === "en_production" || o.status === "controle_qualite").length;
+  const nbQcPending  = orders.filter((o) => {
+    const qc = qcMap.get(o.id);
+    return ["controle_qualite", "en_production"].includes(o.status) && (!qc || qc.status !== "valide");
+  }).length;
 
   // Filtrage
   const filtered = useMemo(() => {
@@ -160,17 +172,14 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
     }
   }, [orders, filter]);
 
-  // Vue priorité : retards en premier, puis par date estimée, puis par date de création
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
       const aLate = isLate(a) ? 0 : 1;
       const bLate = isLate(b) ? 0 : 1;
       if (aLate !== bLate) return aLate - bLate;
-      // Priorité statut : bat_valide > en_production > bat_en_cours > pret > ...
       const aPriority = STATUS_CONFIG[a.status]?.priority ?? 99;
       const bPriority = STATUS_CONFIG[b.status]?.priority ?? 99;
       if (aPriority !== bPriority) return aPriority - bPriority;
-      // Date estimée la plus proche en premier
       if (a.estimatedDelivery && b.estimatedDelivery) {
         return a.estimatedDelivery.localeCompare(b.estimatedDelivery);
       }
@@ -180,7 +189,6 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
     });
   }, [filtered]);
 
-  // Vue par statut : groupement
   const byStatus = useMemo(() => {
     const groups = new Map<string, OrderEnriched[]>();
     const statusOrder = Object.entries(STATUS_CONFIG)
@@ -191,14 +199,26 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
       const grp = groups.get(o.status);
       if (grp) grp.push(o);
     }
-    // Supprimer les groupes vides
     for (const [k, v] of groups) {
       if (v.length === 0) groups.delete(k);
     }
     return groups;
   }, [filtered]);
 
-  function handleStatusChange(order: OrderEnriched, status: OrderStatus) {
+  function requestStatusChange(order: OrderEnriched, status: OrderStatus) {
+    // Avertissement QC si passage vers "Prête" sans contrôle validé
+    if (QC_WARN_STATUSES.includes(status)) {
+      const qc = qcMap.get(order.id);
+      if (!qc || qc.status !== "valide") {
+        setPendingTransition({ order, status });
+        return;
+      }
+    }
+    doStatusChange(order, status);
+  }
+
+  function doStatusChange(order: OrderEnriched, status: OrderStatus) {
+    setPendingTransition(null);
     startTransition(async () => {
       await quickUpdateOrderStatusAction(order.id, status);
       router.refresh();
@@ -225,8 +245,75 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
     { key: "livraison",     label: "Livraison" },
   ];
 
+  const sharedCardProps = {
+    canEditStatus,
+    canSeeFinance,
+    isPending,
+    qcMap,
+    role,
+    onStatusChange: requestStatusChange,
+    onOpenQC: (o: OrderEnriched) => setQcOrder(o),
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
+
+      {/* Modal contrôle qualité */}
+      {qcOrder && (
+        <QualityCheckModal
+          order={qcOrder}
+          qc={qcMap.get(qcOrder.id) ?? null}
+          role={role}
+          canSeeFinance={canSeeFinance}
+          onClose={() => { setQcOrder(null); router.refresh(); }}
+        />
+      )}
+
+      {/* Modale d'avertissement QC */}
+      {pendingTransition && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setPendingTransition(null)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-black text-slate-800">Contrôle qualité non validé</h3>
+                <p className="text-xs text-slate-400 mt-0.5">{pendingTransition.order.reference}</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600">
+              Le contrôle qualité de cette commande n&apos;a pas encore été validé. Il est recommandé de compléter la vérification avant de la marquer comme <strong>Prête</strong>.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const o = pendingTransition.order;
+                  setPendingTransition(null);
+                  setQcOrder(o);
+                }}
+                className="flex-1 h-10 rounded-xl bg-cyan-100 text-cyan-700 text-sm font-bold hover:bg-cyan-200 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Shield className="w-4 h-4" /> Contrôler maintenant
+              </button>
+              <button
+                onClick={() => doStatusChange(pendingTransition.order, pendingTransition.status)}
+                disabled={isPending}
+                className="flex-1 h-10 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold hover:bg-slate-200 transition-colors disabled:opacity-40"
+              >
+                Ignorer et continuer
+              </button>
+            </div>
+            <button
+              onClick={() => setPendingTransition(null)}
+              className="w-full h-8 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* En-tête */}
       <div className="flex items-start justify-between gap-4">
@@ -239,7 +326,6 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
             {filter !== "tout" ? ` · filtre actif` : " en cours"}
           </p>
         </div>
-        {/* Toggle vue */}
         <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 shrink-0">
           <button
             onClick={() => setView("priorite")}
@@ -303,6 +389,24 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
         </div>
       )}
 
+      {/* Alerte QC en attente */}
+      {nbQcPending > 0 && (
+        <div className="bg-cyan-50 border border-cyan-200 rounded-2xl px-5 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Shield className="w-5 h-5 text-cyan-500 shrink-0" />
+            <p className="text-sm font-bold text-cyan-700">
+              {nbQcPending} commande{nbQcPending > 1 ? "s" : ""} en production sans contrôle qualité validé
+            </p>
+          </div>
+          <button
+            onClick={() => setFilter("en_production")}
+            className="shrink-0 text-xs font-bold text-cyan-600 hover:text-cyan-700 underline underline-offset-2"
+          >
+            Voir
+          </button>
+        </div>
+      )}
+
       {/* Filtres */}
       <div className="flex flex-wrap gap-2">
         {filterTabs.map((tab) => (
@@ -345,30 +449,14 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
       {/* ── VUE PRIORITÉ ──────────────────────────────────────────────────── */}
       {view === "priorite" && filtered.length > 0 && (
         <>
-          {/* Mobile */}
           <div className="sm:hidden space-y-3">
             {sorted.map((order) => (
-              <PlanningCard
-                key={order.id}
-                order={order}
-                canEditStatus={canEditStatus}
-                canSeeFinance={canSeeFinance}
-                isPending={isPending}
-                onStatusChange={handleStatusChange}
-              />
+              <PlanningCard key={order.id} order={order} {...sharedCardProps} />
             ))}
           </div>
-
-          {/* Desktop */}
           <div className="hidden sm:block bg-white rounded-2xl border border-slate-100 overflow-hidden">
             <div className="overflow-x-auto">
-              <PlanningTable
-                orders={sorted}
-                canEditStatus={canEditStatus}
-                canSeeFinance={canSeeFinance}
-                isPending={isPending}
-                onStatusChange={handleStatusChange}
-              />
+              <PlanningTable orders={sorted} {...sharedCardProps} />
             </div>
           </div>
         </>
@@ -384,7 +472,6 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
             const StatusIcon = cfg.icon;
             return (
               <div key={status} className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-                {/* Group header */}
                 <button
                   onClick={() => toggleGroup(status)}
                   className="w-full flex items-center justify-between px-5 py-3.5 border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
@@ -401,6 +488,14 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
                         {grpOrders.filter(isLate).length} en retard
                       </span>
                     )}
+                    {grpOrders.some((o) => {
+                      const qc = qcMap.get(o.id);
+                      return !qc || qc.status === "non_verifie";
+                    }) && ["en_production", "controle_qualite"].includes(status) && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded">
+                        <Shield className="w-3 h-3" /> QC à faire
+                      </span>
+                    )}
                   </div>
                   {isOpen ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
                 </button>
@@ -410,26 +505,12 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
                     <div className="sm:hidden divide-y divide-slate-50">
                       {grpOrders.map((order) => (
                         <div key={order.id} className="p-4">
-                          <PlanningCard
-                            order={order}
-                            canEditStatus={canEditStatus}
-                            canSeeFinance={canSeeFinance}
-                            isPending={isPending}
-                            onStatusChange={handleStatusChange}
-                            compact
-                          />
+                          <PlanningCard order={order} {...sharedCardProps} compact />
                         </div>
                       ))}
                     </div>
                     <div className="hidden sm:block overflow-x-auto">
-                      <PlanningTable
-                        orders={grpOrders}
-                        canEditStatus={canEditStatus}
-                        canSeeFinance={canSeeFinance}
-                        isPending={isPending}
-                        onStatusChange={handleStatusChange}
-                        hideStatusCol
-                      />
+                      <PlanningTable orders={grpOrders} {...sharedCardProps} hideStatusCol />
                     </div>
                   </>
                 )}
@@ -442,23 +523,30 @@ export function PlanningClient({ orders, canEditStatus, canSeeFinance }: Plannin
   );
 }
 
-// ─── Sous-composant card mobile ───────────────────────────────────────────────
+// ─── Props partagées ──────────────────────────────────────────────────────────
+
+interface SharedProps {
+  canEditStatus: boolean;
+  canSeeFinance: boolean;
+  isPending: boolean;
+  qcMap: Map<string, QualityCheck>;
+  role: AdminRole;
+  onStatusChange: (o: OrderEnriched, s: OrderStatus) => void;
+  onOpenQC: (o: OrderEnriched) => void;
+}
+
+// ─── Card mobile ─────────────────────────────────────────────────────────────
 
 function PlanningCard({
   order,
   canEditStatus,
   canSeeFinance,
   isPending,
+  qcMap,
   onStatusChange,
+  onOpenQC,
   compact = false,
-}: {
-  order: OrderEnriched;
-  canEditStatus: boolean;
-  canSeeFinance: boolean;
-  isPending: boolean;
-  onStatusChange: (o: OrderEnriched, s: OrderStatus) => void;
-  compact?: boolean;
-}) {
+}: SharedProps & { order: OrderEnriched; compact?: boolean }) {
   const cfg      = STATUS_CONFIG[order.status];
   const late     = isLate(order);
   const today    = isToday(order);
@@ -466,6 +554,7 @@ function PlanningCard({
   const waLink   = buildWaMessage(order);
   const StatusIcon = cfg?.icon ?? CheckCircle2;
   const transitions = QUICK_TRANSITIONS[order.status as OrderStatus] ?? [];
+  const qc = qcMap.get(order.id) ?? null;
 
   return (
     <div className={`space-y-3 ${!compact ? "bg-white rounded-2xl border border-slate-100 p-4" : ""}`}>
@@ -484,6 +573,7 @@ function PlanningCard({
                 <Clock className="w-2.5 h-2.5" /> Aujourd&apos;hui
               </span>
             )}
+            {qc && <QCBadge status={qc.status} />}
           </div>
           {order.customer && (
             <p className="text-xs text-slate-500 mt-0.5 truncate">{order.customer.contactName}</p>
@@ -499,7 +589,6 @@ function PlanningCard({
         )}
       </div>
 
-      {/* Notes */}
       {order.notes && (
         <p className="text-[11px] text-slate-500 italic truncate">{order.notes}</p>
       )}
@@ -539,6 +628,19 @@ function PlanningCard({
         >
           <ExternalLink className="w-4 h-4" />
         </Link>
+        <button
+          onClick={() => onOpenQC(order)}
+          title="Contrôle qualité"
+          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+            qc?.status === "valide"
+              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+              : qc?.status === "a_corriger"
+              ? "bg-red-100 text-red-600 hover:bg-red-200"
+              : "bg-cyan-100 text-cyan-600 hover:bg-cyan-200"
+          }`}
+        >
+          <Shield className="w-4 h-4" />
+        </button>
         {order.customer?.whatsapp && (
           <a
             href={waLink}
@@ -565,23 +667,18 @@ function PlanningCard({
   );
 }
 
-// ─── Sous-composant tableau desktop ──────────────────────────────────────────
+// ─── Tableau desktop ──────────────────────────────────────────────────────────
 
 function PlanningTable({
   orders,
   canEditStatus,
   canSeeFinance,
   isPending,
+  qcMap,
   onStatusChange,
+  onOpenQC,
   hideStatusCol = false,
-}: {
-  orders: OrderEnriched[];
-  canEditStatus: boolean;
-  canSeeFinance: boolean;
-  isPending: boolean;
-  onStatusChange: (o: OrderEnriched, s: OrderStatus) => void;
-  hideStatusCol?: boolean;
-}) {
+}: SharedProps & { orders: OrderEnriched[]; hideStatusCol?: boolean }) {
   return (
     <table className="w-full text-sm">
       <thead>
@@ -591,6 +688,7 @@ function PlanningTable({
           {!hideStatusCol && (
             <th className="text-center px-5 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Statut</th>
           )}
+          <th className="text-center px-5 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">QC</th>
           <th className="text-center px-5 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Livraison</th>
           {canSeeFinance && (
             <th className="text-right px-5 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Solde</th>
@@ -607,6 +705,7 @@ function PlanningTable({
           const waLink   = buildWaMessage(order);
           const StatusIcon = cfg?.icon ?? CheckCircle2;
           const transitions = QUICK_TRANSITIONS[order.status as OrderStatus] ?? [];
+          const qc = qcMap.get(order.id) ?? null;
 
           return (
             <tr key={order.id} className={`hover:bg-slate-50/50 transition-colors ${late ? "bg-red-50/30" : ""}`}>
@@ -648,6 +747,13 @@ function PlanningTable({
                 </td>
               )}
               <td className="px-5 py-4 text-center">
+                {qc ? (
+                  <QCBadge status={qc.status} />
+                ) : (
+                  <span className="text-slate-300 text-[10px]">—</span>
+                )}
+              </td>
+              <td className="px-5 py-4 text-center">
                 {order.estimatedDelivery ? (
                   <p className={`text-xs font-semibold ${late ? "text-red-500" : today ? "text-blue-600" : "text-slate-600"}`}>
                     {formatDateShort(order.estimatedDelivery)}
@@ -679,6 +785,19 @@ function PlanningTable({
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
+                  <button
+                    onClick={() => onOpenQC(order)}
+                    title="Contrôle qualité"
+                    className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                      qc?.status === "valide"
+                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                        : qc?.status === "a_corriger"
+                        ? "bg-red-100 text-red-600 hover:bg-red-200"
+                        : "bg-cyan-100 text-cyan-600 hover:bg-cyan-200"
+                    }`}
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                  </button>
                   {order.customer?.whatsapp && (
                     <a
                       href={waLink}

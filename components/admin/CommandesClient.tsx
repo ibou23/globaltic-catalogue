@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2, Receipt, Truck, CheckCircle2 } from "lucide-react";
-import type { OrderEnriched, AdminRole, OrderStatus, Invoice } from "@/lib/types/domain";
+import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2, Receipt, Truck, CheckCircle2, Shield } from "lucide-react";
+import type { OrderEnriched, AdminRole, OrderStatus, Invoice, QualityCheck } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
 import { canPerform } from "@/lib/auth/permissions";
@@ -13,6 +13,7 @@ import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
 import { QuickStatusSelect } from "@/components/admin/QuickStatusSelect";
 import { QuickPaymentModal } from "@/components/admin/QuickPaymentModal";
 import { ConfirmWithWord } from "@/components/admin/ConfirmWithWord";
+import { QualityCheckModal, QCBadge } from "@/components/admin/QualityCheckModal";
 import { useRouter } from "next/navigation";
 
 interface ActiveFilter {
@@ -32,12 +33,14 @@ const INVOICE_STATUS_LABELS: Record<string, { label: string; color: string }> = 
 interface CommandesClientProps {
   orders: OrderEnriched[];
   invoicesMap?: Map<string, Invoice>;
+  qcMap?: Map<string, QualityCheck>;
   role: AdminRole;
   totalCount?: number;
   activeFilter?: ActiveFilter;
   canDelete?: boolean;
   canFacture?: boolean;
   canBL?: boolean;
+  canSeeFinance?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -81,11 +84,12 @@ function buildWhatsAppMessage(order: OrderEnriched): string {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function CommandesClient({ orders, invoicesMap = new Map(), role, totalCount, activeFilter, canDelete, canFacture, canBL }: CommandesClientProps) {
+export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new Map(), role, totalCount, activeFilter, canDelete, canFacture, canBL, canSeeFinance = false }: CommandesClientProps) {
   const router = useRouter();
   const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
   const [payingOrder, setPayingOrder] = useState<OrderEnriched | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<OrderEnriched | null>(null);
+  const [qcOrder, setQcOrder] = useState<OrderEnriched | null>(null);
   const [isPending, startTransition] = useTransition();
   const canEdit = canPerform(role, "commande:edit_status");
   const canPay = canPerform(role, "commande:edit_payment");
@@ -138,6 +142,15 @@ export function CommandesClient({ orders, invoicesMap = new Map(), role, totalCo
           onClose={() => setDeletingOrder(null)}
         />
       )}
+      {qcOrder && (
+        <QualityCheckModal
+          order={qcOrder}
+          qc={qcMap.get(qcOrder.id) ?? null}
+          role={role}
+          canSeeFinance={canSeeFinance}
+          onClose={() => { setQcOrder(null); router.refresh(); }}
+        />
+      )}
       <div className="space-y-4 sm:space-y-6">
         <div>
           <h2 className="text-xl font-black text-slate-800 font-heading tracking-tight">
@@ -179,7 +192,7 @@ export function CommandesClient({ orders, invoicesMap = new Map(), role, totalCo
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-black text-slate-800 text-sm">{order.reference}</p>
                           {invoicesMap.has(order.id) && (() => {
                             const inv = invoicesMap.get(order.id)!;
@@ -190,6 +203,9 @@ export function CommandesClient({ orders, invoicesMap = new Map(), role, totalCo
                               </span>
                             );
                           })()}
+                          {qcMap.has(order.id) && (
+                            <QCBadge status={qcMap.get(order.id)!.status} />
+                          )}
                         </div>
                         {order.customer && (
                           <p className="text-xs text-slate-500 mt-0.5 truncate">{order.customer.contactName}</p>
@@ -235,6 +251,19 @@ export function CommandesClient({ orders, invoicesMap = new Map(), role, totalCo
                           <Pencil className="w-3.5 h-3.5" /> Modifier
                         </button>
                       )}
+                      <button
+                        onClick={() => setQcOrder(order)}
+                        title="Contrôle qualité"
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+                          qcMap.get(order.id)?.status === "valide"
+                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                            : qcMap.get(order.id)?.status === "a_corriger"
+                            ? "bg-red-100 text-red-600 hover:bg-red-200"
+                            : "bg-cyan-100 text-cyan-600 hover:bg-cyan-200"
+                        }`}
+                      >
+                        <Shield className="w-4 h-4" />
+                      </button>
                       {canPay && order.paymentStatus !== "paye" && order.paymentStatus !== "rembourse" && (
                         <button
                           onClick={() => setPayingOrder(order)}
@@ -339,6 +368,11 @@ export function CommandesClient({ orders, invoicesMap = new Map(), role, totalCo
                                 </span>
                               );
                             })()}
+                            {qcMap.has(order.id) && (
+                              <div className="mt-1">
+                                <QCBadge status={qcMap.get(order.id)!.status} />
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             {order.customer ? (
@@ -404,6 +438,19 @@ export function CommandesClient({ orders, invoicesMap = new Map(), role, totalCo
                                   <Pencil className="w-4 h-4" />
                                 </button>
                               )}
+                              <button
+                                onClick={() => setQcOrder(order)}
+                                title="Contrôle qualité"
+                                className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                                  qcMap.get(order.id)?.status === "valide"
+                                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                    : qcMap.get(order.id)?.status === "a_corriger"
+                                    ? "bg-red-100 text-red-600 hover:bg-red-200"
+                                    : "bg-cyan-100 text-cyan-600 hover:bg-cyan-200"
+                                }`}
+                              >
+                                <Shield className="w-3.5 h-3.5" />
+                              </button>
                               {canPay && order.paymentStatus !== "paye" && order.paymentStatus !== "rembourse" && (
                                 <button
                                   onClick={() => setPayingOrder(order)}
