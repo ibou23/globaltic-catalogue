@@ -17,7 +17,8 @@ export type OrderStatus =
   | "annulee";
 export type PaymentStatus = "non_paye" | "acompte" | "paye" | "rembourse";
 export type PaymentMethod = "wave" | "orange_money" | "especes" | "virement" | "cheque";
-export type DeliveryMethod = "retrait" | "livraison_dakar" | "livraison_region";
+export type DeliveryMethod = "retrait" | "livraison_dakar" | "livraison_region" | "livraison_coursier" | "autre";
+export type DeliveryStatus = "non_planifiee" | "planifiee" | "en_cours" | "livree" | "echec" | "reportee";
 export type FileType = "fichier_client" | "maquette" | "bat_client" | "bat_valide" | "bon_livraison" | "facture" | "recu" | "autre";
 export type FileStatus = "en_attente" | "valide" | "refuse";
 export type AdminRole = "patron" | "admin" | "commercial" | "production" | "infographiste";
@@ -191,10 +192,15 @@ export interface Order {
   paymentNote: string | null;
   lastPaymentAt: string | null;
   deliveryMethod: DeliveryMethod;
+  deliveryStatus: DeliveryStatus;
   deliveryFee: number;
   estimatedDelivery: string | null;
   actualDelivery: string | null;
   deliveryAddress: string | null;
+  deliveryRecipientName: string | null;
+  deliveryRecipientPhone: string | null;
+  deliveryDriver: string | null;
+  deliveryNotes: string | null;
   notes: string | null;
   internalNotes: string | null;
   createdAt: string;

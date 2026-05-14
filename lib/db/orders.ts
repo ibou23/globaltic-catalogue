@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ok, err, type Result } from "@/lib/utils/result";
 import { mapOrder } from "./mappers";
 import type { Order, OrderEnriched, OrderStatus } from "@/lib/types/domain";
-import type { CreateOrderInput, UpdateOrderInput } from "@/lib/validators/order";
+import type { CreateOrderInput, UpdateOrderInput, UpdateDeliveryInput } from "@/lib/validators/order";
 
 export async function getOrders(): Promise<Result<Order[]>> {
   const supabase = await createClient();
@@ -278,6 +278,34 @@ export async function deleteOrder(id: string): Promise<Result<null>> {
   }
 
   return ok(null);
+}
+
+export async function updateOrderDelivery(
+  id: string,
+  input: UpdateDeliveryInput
+): Promise<Result<Order>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("orders")
+    .update({
+      delivery_method:          input.delivery_method,
+      delivery_status:          input.delivery_status,
+      delivery_address:         input.delivery_address ?? null,
+      delivery_recipient_name:  input.delivery_recipient_name ?? null,
+      delivery_recipient_phone: input.delivery_recipient_phone ?? null,
+      delivery_driver:          input.delivery_driver ?? null,
+      delivery_fee:             input.delivery_fee,
+      estimated_delivery:       input.estimated_delivery ?? null,
+      actual_delivery:          input.actual_delivery ?? null,
+      delivery_notes:           input.delivery_notes ?? null,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return err(error.message);
+  return ok(mapOrder(data));
 }
 
 export async function getActiveOrders(): Promise<Result<Order[]>> {

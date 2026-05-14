@@ -177,9 +177,11 @@ function formatDate(iso: string): string {
 }
 
 const DELIVERY_METHOD_LABELS: Record<string, string> = {
-  retrait:           "Retrait en boutique",
-  livraison_dakar:   "Livraison Dakar",
-  livraison_region:  "Livraison region",
+  retrait:              "Retrait en boutique",
+  livraison_dakar:      "Livraison Dakar",
+  livraison_region:     "Livraison region",
+  livraison_coursier:   "Livraison par coursier",
+  autre:                "Autre",
 };
 
 interface CompanyInfo {
@@ -268,27 +270,47 @@ export function BonLivraisonPDF({ order, quote, logoUrl, company, pdfFooterText,
                 {formatDate(order.actualDelivery)}
               </Text>
             )}
+            {order.deliveryDriver && (
+              <Text style={s.metaCardLine}>
+                <Text style={{ fontFamily: "Helvetica-Bold" }}>Livreur : </Text>
+                {order.deliveryDriver}
+              </Text>
+            )}
+            {order.deliveryFee > 0 && (
+              <Text style={s.metaCardLine}>
+                <Text style={{ fontFamily: "Helvetica-Bold" }}>Frais livraison : </Text>
+                {formatNumber(order.deliveryFee)} FCFA
+              </Text>
+            )}
           </View>
           <View style={s.metaCard}>
             <Text style={s.metaCardTitle}>Destinataire</Text>
-            {order.customer ? (
-              <>
-                <Text style={s.metaCardLineBold}>{order.customer.contactName}</Text>
-                {order.customer.companyName && (
-                  <Text style={s.metaCardLineGray}>{order.customer.companyName}</Text>
-                )}
-                {order.customer.whatsapp && (
-                  <Text style={s.metaCardLineGray}>
-                    WhatsApp : {formatWhatsapp(order.customer.whatsapp)}
-                  </Text>
-                )}
-                {order.deliveryAddress ? (
-                  <Text style={s.metaCardLineGray}>{order.deliveryAddress}</Text>
-                ) : (
-                  <Text style={s.metaCardLineGray}>Adresse : —</Text>
-                )}
-              </>
+            {order.deliveryRecipientName ? (
+              <Text style={s.metaCardLineBold}>{order.deliveryRecipientName}</Text>
+            ) : order.customer ? (
+              <Text style={s.metaCardLineBold}>{order.customer.contactName}</Text>
+            ) : null}
+            {order.customer?.companyName && (
+              <Text style={s.metaCardLineGray}>{order.customer.companyName}</Text>
+            )}
+            {order.deliveryRecipientPhone ? (
+              <Text style={s.metaCardLineGray}>
+                Tel : {order.deliveryRecipientPhone}
+              </Text>
+            ) : order.customer?.whatsapp ? (
+              <Text style={s.metaCardLineGray}>
+                WhatsApp : {formatWhatsapp(order.customer.whatsapp)}
+              </Text>
+            ) : null}
+            {order.deliveryAddress ? (
+              <Text style={s.metaCardLineGray}>{order.deliveryAddress}</Text>
             ) : (
+              <Text style={s.metaCardLineGray}>Adresse : —</Text>
+            )}
+            {order.deliveryNotes && (
+              <Text style={s.metaCardLineGray}>Note : {order.deliveryNotes}</Text>
+            )}
+            {!order.deliveryRecipientName && !order.customer && (
               <Text style={s.metaCardLineGray}>Destinataire non renseigne</Text>
             )}
           </View>

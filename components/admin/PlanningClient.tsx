@@ -19,11 +19,12 @@ import {
   Activity,
   Shield,
 } from "lucide-react";
-import type { OrderEnriched, AdminRole, OrderStatus, QualityCheck } from "@/lib/types/domain";
+import type { OrderEnriched, AdminRole, OrderStatus, QualityCheck, DeliveryStatus } from "@/lib/types/domain";
 import { formatDateShort } from "@/lib/utils/format";
 import { quickUpdateOrderStatusAction } from "@/lib/actions/orders";
 import { siteConfig } from "@/lib/config/site";
 import { QualityCheckModal, QCBadge } from "@/components/admin/QualityCheckModal";
+import { DeliveryModal, DeliveryBadge } from "@/components/admin/DeliveryModal";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -143,7 +144,8 @@ export function PlanningClient({ orders, qcMap, canEditStatus, canSeeFinance, ro
   const [filter, setFilter]     = useState<FilterKey>("tout");
   const [view,   setView]       = useState<ViewMode>("priorite");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [qcOrder, setQcOrder]   = useState<OrderEnriched | null>(null);
+  const [qcOrder, setQcOrder]         = useState<OrderEnriched | null>(null);
+  const [deliveryOrder, setDeliveryOrder] = useState<OrderEnriched | null>(null);
   const [pendingTransition, setPendingTransition] = useState<{ order: OrderEnriched; status: OrderStatus } | null>(null);
 
   // Stats rapides
@@ -251,14 +253,15 @@ export function PlanningClient({ orders, qcMap, canEditStatus, canSeeFinance, ro
     isPending,
     qcMap,
     role,
-    onStatusChange: requestStatusChange,
-    onOpenQC: (o: OrderEnriched) => setQcOrder(o),
+    onStatusChange:   requestStatusChange,
+    onOpenQC:         (o: OrderEnriched) => setQcOrder(o),
+    onOpenDelivery:   (o: OrderEnriched) => setDeliveryOrder(o),
   };
 
   return (
     <div className="space-y-4 sm:space-y-6">
 
-      {/* Modal contrôle qualité */}
+      {/* Modals */}
       {qcOrder && (
         <QualityCheckModal
           order={qcOrder}
@@ -266,6 +269,13 @@ export function PlanningClient({ orders, qcMap, canEditStatus, canSeeFinance, ro
           role={role}
           canSeeFinance={canSeeFinance}
           onClose={() => { setQcOrder(null); router.refresh(); }}
+        />
+      )}
+      {deliveryOrder && (
+        <DeliveryModal
+          order={deliveryOrder}
+          role={role}
+          onClose={() => { setDeliveryOrder(null); router.refresh(); }}
         />
       )}
 
@@ -526,13 +536,14 @@ export function PlanningClient({ orders, qcMap, canEditStatus, canSeeFinance, ro
 // ─── Props partagées ──────────────────────────────────────────────────────────
 
 interface SharedProps {
-  canEditStatus: boolean;
-  canSeeFinance: boolean;
-  isPending: boolean;
-  qcMap: Map<string, QualityCheck>;
-  role: AdminRole;
-  onStatusChange: (o: OrderEnriched, s: OrderStatus) => void;
-  onOpenQC: (o: OrderEnriched) => void;
+  canEditStatus:    boolean;
+  canSeeFinance:    boolean;
+  isPending:        boolean;
+  qcMap:            Map<string, QualityCheck>;
+  role:             AdminRole;
+  onStatusChange:   (o: OrderEnriched, s: OrderStatus) => void;
+  onOpenQC:         (o: OrderEnriched) => void;
+  onOpenDelivery:   (o: OrderEnriched) => void;
 }
 
 // ─── Card mobile ─────────────────────────────────────────────────────────────
@@ -545,6 +556,7 @@ function PlanningCard({
   qcMap,
   onStatusChange,
   onOpenQC,
+  onOpenDelivery,
   compact = false,
 }: SharedProps & { order: OrderEnriched; compact?: boolean }) {
   const cfg      = STATUS_CONFIG[order.status];
@@ -574,6 +586,9 @@ function PlanningCard({
               </span>
             )}
             {qc && <QCBadge status={qc.status} />}
+            {order.deliveryStatus && order.deliveryStatus !== "non_planifiee" && (
+              <DeliveryBadge status={order.deliveryStatus as DeliveryStatus} />
+            )}
           </div>
           {order.customer && (
             <p className="text-xs text-slate-500 mt-0.5 truncate">{order.customer.contactName}</p>
@@ -641,6 +656,21 @@ function PlanningCard({
         >
           <Shield className="w-4 h-4" />
         </button>
+        <button
+          onClick={() => onOpenDelivery(order)}
+          title="Gestion livraison"
+          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+            order.deliveryStatus === "livree"
+              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+              : order.deliveryStatus === "echec"
+              ? "bg-red-100 text-red-600 hover:bg-red-200"
+              : order.deliveryStatus === "en_cours"
+              ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+              : "bg-teal-100 text-teal-600 hover:bg-teal-200"
+          }`}
+        >
+          <Truck className="w-4 h-4" />
+        </button>
         {order.customer?.whatsapp && (
           <a
             href={waLink}
@@ -677,6 +707,7 @@ function PlanningTable({
   qcMap,
   onStatusChange,
   onOpenQC,
+  onOpenDelivery,
   hideStatusCol = false,
 }: SharedProps & { orders: OrderEnriched[]; hideStatusCol?: boolean }) {
   return (
@@ -797,6 +828,21 @@ function PlanningTable({
                     }`}
                   >
                     <Shield className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => onOpenDelivery(order)}
+                    title="Gestion livraison"
+                    className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                      order.deliveryStatus === "livree"
+                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                        : order.deliveryStatus === "echec"
+                        ? "bg-red-100 text-red-600 hover:bg-red-200"
+                        : order.deliveryStatus === "en_cours"
+                        ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                        : "bg-teal-100 text-teal-600 hover:bg-teal-200"
+                    }`}
+                  >
+                    <Truck className="w-3.5 h-3.5" />
                   </button>
                   {order.customer?.whatsapp && (
                     <a

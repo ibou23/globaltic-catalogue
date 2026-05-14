@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2, Receipt, Truck, CheckCircle2, Shield } from "lucide-react";
-import type { OrderEnriched, AdminRole, OrderStatus, Invoice, QualityCheck } from "@/lib/types/domain";
+import type { OrderEnriched, AdminRole, OrderStatus, Invoice, QualityCheck, DeliveryStatus } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
 import { canPerform } from "@/lib/auth/permissions";
@@ -14,6 +14,7 @@ import { QuickStatusSelect } from "@/components/admin/QuickStatusSelect";
 import { QuickPaymentModal } from "@/components/admin/QuickPaymentModal";
 import { ConfirmWithWord } from "@/components/admin/ConfirmWithWord";
 import { QualityCheckModal, QCBadge } from "@/components/admin/QualityCheckModal";
+import { DeliveryModal, DeliveryBadge } from "@/components/admin/DeliveryModal";
 import { useRouter } from "next/navigation";
 
 interface ActiveFilter {
@@ -89,8 +90,9 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
   const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
   const [payingOrder, setPayingOrder] = useState<OrderEnriched | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<OrderEnriched | null>(null);
-  const [qcOrder, setQcOrder] = useState<OrderEnriched | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [qcOrder, setQcOrder]           = useState<OrderEnriched | null>(null);
+  const [deliveryOrder, setDeliveryOrder] = useState<OrderEnriched | null>(null);
+  const [isPending, startTransition]    = useTransition();
   const canEdit = canPerform(role, "commande:edit_status");
   const canPay = canPerform(role, "commande:edit_payment");
   const canReceipt = canPerform(role, "receipt:generate");
@@ -151,6 +153,13 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
           onClose={() => { setQcOrder(null); router.refresh(); }}
         />
       )}
+      {deliveryOrder && (
+        <DeliveryModal
+          order={deliveryOrder}
+          role={role}
+          onClose={() => { setDeliveryOrder(null); router.refresh(); }}
+        />
+      )}
       <div className="space-y-4 sm:space-y-6">
         <div>
           <h2 className="text-xl font-black text-slate-800 font-heading tracking-tight">
@@ -205,6 +214,9 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
                           })()}
                           {qcMap.has(order.id) && (
                             <QCBadge status={qcMap.get(order.id)!.status} />
+                          )}
+                          {order.deliveryStatus && order.deliveryStatus !== "non_planifiee" && (
+                            <DeliveryBadge status={order.deliveryStatus as DeliveryStatus} />
                           )}
                         </div>
                         {order.customer && (
@@ -263,6 +275,21 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
                         }`}
                       >
                         <Shield className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeliveryOrder(order)}
+                        title="Gestion livraison"
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+                          order.deliveryStatus === "livree"
+                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                            : order.deliveryStatus === "echec"
+                            ? "bg-red-100 text-red-600 hover:bg-red-200"
+                            : order.deliveryStatus === "en_cours"
+                            ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                            : "bg-teal-100 text-teal-600 hover:bg-teal-200"
+                        }`}
+                      >
+                        <Truck className="w-4 h-4" />
                       </button>
                       {canPay && order.paymentStatus !== "paye" && order.paymentStatus !== "rembourse" && (
                         <button
@@ -373,6 +400,11 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
                                 <QCBadge status={qcMap.get(order.id)!.status} />
                               </div>
                             )}
+                            {order.deliveryStatus && order.deliveryStatus !== "non_planifiee" && (
+                              <div className="mt-1">
+                                <DeliveryBadge status={order.deliveryStatus as DeliveryStatus} />
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             {order.customer ? (
@@ -450,6 +482,21 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
                                 }`}
                               >
                                 <Shield className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setDeliveryOrder(order)}
+                                title="Gestion livraison"
+                                className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                                  order.deliveryStatus === "livree"
+                                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                    : order.deliveryStatus === "echec"
+                                    ? "bg-red-100 text-red-600 hover:bg-red-200"
+                                    : order.deliveryStatus === "en_cours"
+                                    ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                    : "bg-teal-100 text-teal-600 hover:bg-teal-200"
+                                }`}
+                              >
+                                <Truck className="w-3.5 h-3.5" />
                               </button>
                               {canPay && order.paymentStatus !== "paye" && order.paymentStatus !== "rembourse" && (
                                 <button

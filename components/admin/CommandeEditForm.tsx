@@ -51,9 +51,11 @@ const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
 ];
 
 const DELIVERY_OPTIONS = [
-  { value: "retrait",            label: "Retrait en boutique" },
-  { value: "livraison_dakar",    label: "Livraison Dakar" },
-  { value: "livraison_region",   label: "Livraison région" },
+  { value: "retrait",             label: "Retrait en boutique" },
+  { value: "livraison_dakar",     label: "Livraison Dakar" },
+  { value: "livraison_region",    label: "Livraison région" },
+  { value: "livraison_coursier",  label: "Livraison par coursier" },
+  { value: "autre",               label: "Autre" },
 ] as const;
 
 type OrderStatus = typeof STATUS_OPTIONS[number]["value"];
@@ -223,6 +225,7 @@ export function CommandeEditForm({ order, role, onClose }: CommandeEditFormProps
   const [paymentNote, setPaymentNote] = useState(order.paymentNote ?? "");
   const [deliveryMethod, setDeliveryMethod] = useState(order.deliveryMethod);
   const [deliveryAddress, setDeliveryAddress] = useState(order.deliveryAddress ?? "");
+  const [deliveryFee, setDeliveryFee] = useState(String(order.deliveryFee ?? 0));
   const [estimatedDelivery, setEstimatedDelivery] = useState(order.estimatedDelivery ?? "");
   const [actualDelivery, setActualDelivery] = useState(order.actualDelivery ?? "");
   const [notes, setNotes] = useState(order.notes ?? "");
@@ -491,6 +494,14 @@ export function CommandeEditForm({ order, role, onClose }: CommandeEditFormProps
                   onChange={(e) => setActualDelivery(e.target.value)}
                 />
               </div>
+              {order.deliveryFee > 0 && (
+                <div>
+                  <label className={labelClass}>Frais de livraison</label>
+                  <p className="px-4 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 rounded-xl border border-slate-200 tabular-nums">
+                    {order.deliveryFee.toLocaleString("fr-SN")} FCFA
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
