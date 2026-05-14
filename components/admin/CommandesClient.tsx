@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2 } from "lucide-react";
+import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2, Receipt, Truck } from "lucide-react";
 import type { OrderEnriched, AdminRole, OrderStatus } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
@@ -27,6 +27,8 @@ interface CommandesClientProps {
   totalCount?: number;
   activeFilter?: ActiveFilter;
   canDelete?: boolean;
+  canFacture?: boolean;
+  canBL?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -70,7 +72,7 @@ function buildWhatsAppMessage(order: OrderEnriched): string {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function CommandesClient({ orders, role, totalCount, activeFilter, canDelete }: CommandesClientProps) {
+export function CommandesClient({ orders, role, totalCount, activeFilter, canDelete, canFacture, canBL }: CommandesClientProps) {
   const router = useRouter();
   const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
   const [payingOrder, setPayingOrder] = useState<OrderEnriched | null>(null);
@@ -233,6 +235,28 @@ export function CommandesClient({ orders, role, totalCount, activeFilter, canDel
                           <FileDown className="w-4 h-4" />
                         </a>
                       )}
+                      {canFacture && (
+                        <a
+                          href={`/api/admin/commandes/${order.id}/facture`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 hover:bg-violet-200 flex items-center justify-center transition-colors shrink-0"
+                          title="Facture PDF"
+                        >
+                          <Receipt className="w-4 h-4" />
+                        </a>
+                      )}
+                      {canBL && (
+                        <a
+                          href={`/api/admin/commandes/${order.id}/bon-livraison`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-10 h-10 rounded-xl bg-teal-100 text-teal-600 hover:bg-teal-200 flex items-center justify-center transition-colors shrink-0"
+                          title="Bon de livraison PDF"
+                        >
+                          <Truck className="w-4 h-4" />
+                        </a>
+                      )}
                       {order.customer && (
                         <a
                           href={waLink}
@@ -369,6 +393,28 @@ export function CommandesClient({ orders, role, totalCount, activeFilter, canDel
                                   className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
                                 >
                                   <FileDown className="w-4 h-4" />
+                                </a>
+                              )}
+                              {canFacture && (
+                                <a
+                                  href={`/api/admin/commandes/${order.id}/facture`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Télécharger la facture PDF"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 text-violet-600 hover:bg-violet-200 transition-colors"
+                                >
+                                  <Receipt className="w-4 h-4" />
+                                </a>
+                              )}
+                              {canBL && (
+                                <a
+                                  href={`/api/admin/commandes/${order.id}/bon-livraison`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Télécharger le bon de livraison PDF"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-600 hover:bg-teal-200 transition-colors"
+                                >
+                                  <Truck className="w-4 h-4" />
                                 </a>
                               )}
                               {order.customer && (

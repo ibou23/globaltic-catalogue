@@ -84,6 +84,8 @@ export default async function AdminCommandesPage({
       totalCount={allOrders.length}
       activeFilter={activeFilter}
       canDelete={canPerform(admin.role, "commande:force_delete")}
+      canFacture={canPerform(admin.role, "facture:generate")}
+      canBL={canPerform(admin.role, "bl:generate")}
     />
   );
 }

@@ -52,7 +52,9 @@ export type Action =
   | "devis:force_delete"
   | "commande:force_delete"
   | "client:delete"
-  | "notifications:purge";
+  | "notifications:purge"
+  | "facture:generate"
+  | "bl:generate";
 
 // Matrice complète : role → modules accessibles
 const MODULE_ACCESS: Record<Module, AdminRole[]> = {
@@ -108,6 +110,8 @@ const ACTION_ACCESS: Record<Action, AdminRole[]> = {
   "commande:force_delete":  ["patron"],
   "client:delete":          ["patron"],
   "notifications:purge":    ["patron"],
+  "facture:generate":       ["patron", "admin", "commercial"],
+  "bl:generate":            ["patron", "admin", "commercial", "production"],
 };
 
 export function canAccessModule(role: AdminRole, module: Module): boolean {
