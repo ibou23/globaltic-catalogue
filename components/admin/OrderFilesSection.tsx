@@ -86,7 +86,7 @@ export function OrderFilesSection({ orderId, initialFiles }: OrderFilesSectionPr
   function handleDelete(fileId: string) {
     setDeletingId(fileId);
     startTransition(async () => {
-      const result = await deleteOrderFileAction(fileId);
+      const result = await deleteOrderFileAction(fileId, orderId);
       if (result.data) {
         setFiles((prev) => prev.filter((f) => f.id !== fileId));
       } else {

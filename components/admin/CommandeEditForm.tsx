@@ -8,6 +8,7 @@ import { getOrderFilesAction } from "@/lib/actions/order-files";
 import type { OrderEnriched, OrderFile, PaymentMethod } from "@/lib/types/domain";
 import { OrderFilesSection } from "@/components/admin/OrderFilesSection";
 import { BatWorkflowSection } from "@/components/admin/BatWorkflowSection";
+import { OrderActivityLog } from "@/components/admin/OrderActivityLog";
 
 interface CommandeEditFormProps {
   order: OrderEnriched;
@@ -515,6 +516,9 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
 
           {/* Fichiers de production */}
           <OrderFilesSection orderId={order.id} initialFiles={orderFiles} />
+
+          {/* Journal d'activité */}
+          <OrderActivityLog orderId={order.id} />
 
           {error && (
             <p className="text-sm font-semibold text-red-600 bg-red-50 px-4 py-3 rounded-xl">

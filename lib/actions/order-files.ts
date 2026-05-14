@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/order-files";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { getOrderById } from "@/lib/db/orders";
+import { logOrderEvent } from "@/lib/db/activity-log";
 import { err, type Result } from "@/lib/utils/result";
 import type { OrderFile, FileType, FileStatus } from "@/lib/types/domain";
 
@@ -40,21 +41,38 @@ export async function uploadOrderFileAction(
   if (file.size > MAX_SIZE) return err("Fichier trop volumineux (max 20 Mo)");
   if (file.size === 0) return err("Le fichier est vide");
 
-  return uploadOrderFile(
+  const result = await uploadOrderFile(
     orderId,
     orderResult.data.reference,
     file,
     fileType,
     admin.data.userId
   );
+
+  if (result.data) {
+    await logOrderEvent(admin.data.userId, orderId, "fichier_ajoute", {
+      nom: file.name,
+      type: fileType,
+    });
+  }
+
+  return result;
 }
 
 export async function deleteOrderFileAction(
-  fileId: string
+  fileId: string,
+  orderId?: string
 ): Promise<Result<true>> {
   const admin = await getCurrentAdmin();
   if (!admin.data) return err("Accès non autorisé");
-  return deleteOrderFile(fileId);
+
+  const result = await deleteOrderFile(fileId);
+
+  if (result.data && orderId) {
+    await logOrderEvent(admin.data.userId, orderId, "fichier_supprime", { file_id: fileId });
+  }
+
+  return result;
 }
 
 export async function updateOrderFileStatusAction(
