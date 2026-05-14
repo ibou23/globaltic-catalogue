@@ -243,6 +243,33 @@ export interface PriceCalculation {
   quantity: number;
 }
 
+export type InvoiceStatus =
+  | "brouillon"
+  | "emise"
+  | "payee"
+  | "partiellement_payee"
+  | "annulee";
+
+export interface Invoice {
+  id:           string;
+  reference:    string;
+  orderId:      string;
+  customerId:   string | null;
+  status:       InvoiceStatus;
+  total:        number;
+  paidAmount:   number;
+  issuedAt:     string;
+  generatedBy:  string | null;
+  notes:        string | null;
+  createdAt:    string;
+  updatedAt:    string;
+}
+
+export interface InvoiceEnriched extends Invoice {
+  order: { id: string; reference: string; status: string } | null;
+  customer: { id: string; contactName: string; companyName: string | null; whatsapp: string } | null;
+}
+
 export type TaskType =
   | "relancer_devis"
   | "relancer_paiement"

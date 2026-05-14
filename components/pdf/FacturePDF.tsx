@@ -6,7 +6,7 @@ import {
   Image,
   StyleSheet,
 } from "@react-pdf/renderer";
-import type { OrderEnriched, Quote, QuoteItem } from "@/lib/types/domain";
+import type { OrderEnriched, Quote, QuoteItem, Invoice, InvoiceStatus } from "@/lib/types/domain";
 
 const BRAND_PRIMARY   = "#529FD7";
 const BRAND_SECONDARY = "#132034";
@@ -58,7 +58,9 @@ const s = StyleSheet.create({
     color: "#FFFFFF",
     letterSpacing: 1,
   },
-  titleBandRef: { fontSize: 10, color: BRAND_PRIMARY, fontFamily: "Helvetica-Bold" },
+  titleBandRight: { alignItems: "flex-end", gap: 3 },
+  titleBandRef:    { fontSize: 10, color: BRAND_PRIMARY, fontFamily: "Helvetica-Bold" },
+  titleBandStatus: { fontSize: 8, color: "#FFFFFF", fontFamily: "Helvetica-Bold", opacity: 0.75 },
   metaRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
   metaCard: {
     flex: 1,
@@ -76,7 +78,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 6,
   },
-  metaCardLine: { fontSize: 9, color: GRAY_DARK, marginBottom: 2 },
+  metaCardLine:     { fontSize: 9, color: GRAY_DARK, marginBottom: 2 },
   metaCardLineBold: { fontSize: 9, fontFamily: "Helvetica-Bold", color: GRAY_DARK, marginBottom: 2 },
   metaCardLineGray: { fontSize: 8, color: GRAY_TEXT, marginBottom: 2 },
   tableHeader: {
@@ -177,6 +179,20 @@ const s = StyleSheet.create({
     padding: 10,
   },
   notesText: { fontSize: 8.5, color: GRAY_DARK, lineHeight: 1.5 },
+  issuerBand: {
+    backgroundColor: GRAY_LIGHT,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: GRAY_BORDER,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  issuerText: { fontSize: 8, color: GRAY_TEXT },
+  issuerBold: { fontSize: 8, fontFamily: "Helvetica-Bold", color: BRAND_SECONDARY },
   footer: {
     position: "absolute",
     bottom: 24,
@@ -211,6 +227,14 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
+const STATUS_LABELS: Record<InvoiceStatus, string> = {
+  brouillon:           "Brouillon",
+  emise:               "Emise",
+  payee:               "Payee",
+  partiellement_payee: "Partiellement payee",
+  annulee:             "Annulee",
+};
+
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   wave:         "Wave",
   orange_money: "Orange Money",
@@ -235,14 +259,14 @@ interface CompanyInfo {
 
 interface FacturePDFProps {
   order: OrderEnriched;
+  invoice: Invoice;
   quote?: (Quote & { items: QuoteItem[] }) | null;
   logoUrl?: string;
   company?: CompanyInfo;
   pdfFooterText?: string;
-  factureRef: string;
 }
 
-export function FacturePDF({ order, quote, logoUrl, company, pdfFooterText, factureRef }: FacturePDFProps) {
+export function FacturePDF({ order, invoice, quote, logoUrl, company, pdfFooterText }: FacturePDFProps) {
   const companyName    = company?.name    ?? "GLOBAL TIC";
   const companyTagline = company?.tagline ?? "Imprimerie Professionnelle";
   const companyAddress = company?.address ?? "Dakar, Senegal";
@@ -257,7 +281,7 @@ export function FacturePDF({ order, quote, logoUrl, company, pdfFooterText, fact
 
   return (
     <Document
-      title={`Facture ${factureRef}`}
+      title={`Facture ${invoice.reference}`}
       author={companyName}
       subject="Facture"
       creator={companyName}
@@ -283,20 +307,31 @@ export function FacturePDF({ order, quote, logoUrl, company, pdfFooterText, fact
         {/* Title band */}
         <View style={s.titleBand}>
           <Text style={s.titleBandLabel}>FACTURE</Text>
-          <Text style={s.titleBandRef}>{factureRef}</Text>
+          <View style={s.titleBandRight}>
+            <Text style={s.titleBandRef}>{invoice.reference}</Text>
+            <Text style={s.titleBandStatus}>{STATUS_LABELS[invoice.status]}</Text>
+          </View>
         </View>
 
         {/* Meta row */}
         <View style={s.metaRow}>
           <View style={s.metaCard}>
-            <Text style={s.metaCardTitle}>Informations commande</Text>
+            <Text style={s.metaCardTitle}>Informations facture</Text>
             <Text style={s.metaCardLine}>
-              <Text style={{ fontFamily: "Helvetica-Bold" }}>N° commande : </Text>
+              <Text style={{ fontFamily: "Helvetica-Bold" }}>Ref. facture : </Text>
+              {invoice.reference}
+            </Text>
+            <Text style={s.metaCardLine}>
+              <Text style={{ fontFamily: "Helvetica-Bold" }}>Ref. commande : </Text>
               {order.reference}
             </Text>
             <Text style={s.metaCardLine}>
-              <Text style={{ fontFamily: "Helvetica-Bold" }}>Date : </Text>
-              {formatDate(order.createdAt)}
+              <Text style={{ fontFamily: "Helvetica-Bold" }}>Date d&apos;emission : </Text>
+              {formatDate(invoice.issuedAt)}
+            </Text>
+            <Text style={s.metaCardLine}>
+              <Text style={{ fontFamily: "Helvetica-Bold" }}>Statut : </Text>
+              {STATUS_LABELS[invoice.status]}
             </Text>
             <Text style={s.metaCardLine}>
               <Text style={{ fontFamily: "Helvetica-Bold" }}>Livraison : </Text>
@@ -399,7 +434,7 @@ export function FacturePDF({ order, quote, logoUrl, company, pdfFooterText, fact
             </View>
           </>
         ) : (
-          /* No quote items — show single-line summary */
+          /* Pas de lignes de devis — résumé une ligne */
           <View style={s.totalsBlock}>
             {order.notes && (
               <View style={s.notesSection}>
@@ -438,10 +473,17 @@ export function FacturePDF({ order, quote, logoUrl, company, pdfFooterText, fact
           </View>
         )}
 
+        {/* Bande émetteur */}
+        <View style={s.issuerBand}>
+          <Text style={s.issuerText}>Facture emise par</Text>
+          <Text style={s.issuerBold}>{companyName} — {companyTagline}</Text>
+          <Text style={s.issuerText}>{companyEmail}</Text>
+        </View>
+
         {/* Footer */}
         <View style={s.footer} fixed>
           <Text style={s.footerText}>{footerText}</Text>
-          <Text style={s.footerBrand}>{factureRef}</Text>
+          <Text style={s.footerBrand}>{invoice.reference}</Text>
         </View>
       </Page>
     </Document>

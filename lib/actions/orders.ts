@@ -9,6 +9,7 @@ import { requireRole } from "@/lib/auth/permissions";
 import { logOrderEvent } from "@/lib/db/activity-log";
 import { getActiveAdminProfiles } from "@/lib/db/admin-users";
 import { createAdminNotifications } from "@/lib/db/notifications";
+import { syncInvoicePayment } from "@/lib/db/invoices";
 import { err, type Result } from "@/lib/utils/result";
 import type { Order } from "@/lib/types/domain";
 
@@ -133,6 +134,11 @@ export async function updateOrderAction(
 
     for (const { action, meta } of logEvents) {
       await logOrderEvent(uid, id, action, meta);
+    }
+
+    // Synchroniser le statut de la facture si le paiement a changé
+    if (previous.paidAmount !== order.paidAmount || previous.paymentStatus !== order.paymentStatus) {
+      syncInvoicePayment(id, order.paidAmount, order.total);
     }
 
     // Notifications selon événements clés

@@ -48,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Imports CSV",    href: "/admin/imports",      icon: Upload,                       module: "imports" },
   { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
   { label: "Tâches",         href: "/admin/taches",       icon: CheckSquare,                  module: "taches" },
+  { label: "Factures",       href: "/admin/factures",     icon: FileText,                     module: "factures" },
   { label: "Aide",           href: "/admin/aide",         icon: HelpCircle,                   module: "aide" },
   { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                        module: "maintenance" },
 ];

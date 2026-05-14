@@ -1,4 +1,5 @@
 import { getOrdersEnriched } from "@/lib/db/orders";
+import { getInvoicesByOrderIds } from "@/lib/db/invoices";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { canAccessModule, canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
@@ -48,6 +49,11 @@ export default async function AdminCommandesPage({
   const result = await getOrdersEnriched();
   const allOrders = result.data ?? [];
 
+  // Charger les factures existantes pour afficher l'indicateur dans l'UI
+  const orderIds = allOrders.map((o) => o.id);
+  const invoicesResult = await getInvoicesByOrderIds(orderIds);
+  const invoicesMap = invoicesResult.data ?? new Map();
+
   let orders = allOrders;
   let filterLabel = "";
 
@@ -80,6 +86,7 @@ export default async function AdminCommandesPage({
   return (
     <CommandesClient
       orders={orders}
+      invoicesMap={invoicesMap}
       role={admin.role}
       totalCount={allOrders.length}
       activeFilter={activeFilter}

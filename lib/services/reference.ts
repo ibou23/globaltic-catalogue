@@ -13,7 +13,7 @@ export async function generateReference(
       ? "quotes"
       : prefix === "CMD"
         ? "orders"
-        : "orders";
+        : "invoices";
 
   const { count } = await supabase
     .from(table)

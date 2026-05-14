@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2, Receipt, Truck } from "lucide-react";
-import type { OrderEnriched, AdminRole, OrderStatus } from "@/lib/types/domain";
+import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2, Receipt, Truck, CheckCircle2 } from "lucide-react";
+import type { OrderEnriched, AdminRole, OrderStatus, Invoice } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
 import { canPerform } from "@/lib/auth/permissions";
@@ -21,8 +21,17 @@ interface ActiveFilter {
   resetHref: string;
 }
 
+const INVOICE_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  brouillon:           { label: "Brouillon",        color: "bg-slate-100 text-slate-500" },
+  emise:               { label: "Émise",             color: "bg-violet-100 text-violet-700" },
+  payee:               { label: "Payée",             color: "bg-green-100 text-green-700" },
+  partiellement_payee: { label: "Partiel.",          color: "bg-amber-100 text-amber-700" },
+  annulee:             { label: "Annulée",           color: "bg-red-100 text-red-500" },
+};
+
 interface CommandesClientProps {
   orders: OrderEnriched[];
+  invoicesMap?: Map<string, Invoice>;
   role: AdminRole;
   totalCount?: number;
   activeFilter?: ActiveFilter;
@@ -72,7 +81,7 @@ function buildWhatsAppMessage(order: OrderEnriched): string {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function CommandesClient({ orders, role, totalCount, activeFilter, canDelete, canFacture, canBL }: CommandesClientProps) {
+export function CommandesClient({ orders, invoicesMap = new Map(), role, totalCount, activeFilter, canDelete, canFacture, canBL }: CommandesClientProps) {
   const router = useRouter();
   const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
   const [payingOrder, setPayingOrder] = useState<OrderEnriched | null>(null);
@@ -170,7 +179,18 @@ export function CommandesClient({ orders, role, totalCount, activeFilter, canDel
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="font-black text-slate-800 text-sm">{order.reference}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-black text-slate-800 text-sm">{order.reference}</p>
+                          {invoicesMap.has(order.id) && (() => {
+                            const inv = invoicesMap.get(order.id)!;
+                            const s = INVOICE_STATUS_LABELS[inv.status] ?? INVOICE_STATUS_LABELS.emise;
+                            return (
+                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${s.color}`}>
+                                <CheckCircle2 className="w-2.5 h-2.5" /> {s.label}
+                              </span>
+                            );
+                          })()}
+                        </div>
                         {order.customer && (
                           <p className="text-xs text-slate-500 mt-0.5 truncate">{order.customer.contactName}</p>
                         )}
@@ -310,6 +330,15 @@ export function CommandesClient({ orders, role, totalCount, activeFilter, canDel
                             {order.quoteId && (
                               <p className="text-[10px] text-slate-400 mt-0.5">via devis</p>
                             )}
+                            {invoicesMap.has(order.id) && (() => {
+                              const inv = invoicesMap.get(order.id)!;
+                              const s = INVOICE_STATUS_LABELS[inv.status] ?? INVOICE_STATUS_LABELS.emise;
+                              return (
+                                <span className={`mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${s.color}`}>
+                                  <CheckCircle2 className="w-2.5 h-2.5" /> {inv.reference}
+                                </span>
+                              );
+                            })()}
                           </td>
                           <td className="px-6 py-4">
                             {order.customer ? (
