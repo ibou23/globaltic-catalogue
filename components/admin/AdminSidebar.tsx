@@ -23,6 +23,7 @@ import {
   CheckSquare,
   AlertCircle,
   CalendarDays,
+  BarChart2,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -53,6 +54,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Factures",       href: "/admin/factures",     icon: FileText,                     module: "factures" },
   { label: "Impayés",        href: "/admin/impayes",      icon: AlertCircle,                  module: "impayes" },
   { label: "Planning",       href: "/admin/planning",     icon: CalendarDays,                 module: "planning" },
+  { label: "Rapports",       href: "/admin/rapports",     icon: BarChart2,                    module: "rapports" },
   { label: "Aide",           href: "/admin/aide",         icon: HelpCircle,                   module: "aide" },
   { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                        module: "maintenance" },
 ];
