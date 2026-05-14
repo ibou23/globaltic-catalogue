@@ -10,17 +10,18 @@ export default async function AdminFacturesPage() {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "commandes")) {
-    return <AccessDenied />;
-  }
-
-  const canManage = canPerform(admin.role, "facture:generate");
-  if (!canManage) {
+  if (!admin || !canAccessModule(admin.role, "factures")) {
     return <AccessDenied />;
   }
 
   const result = await getInvoices();
   const invoices = result.data ?? [];
 
-  return <FacturesClient invoices={invoices} role={admin.role} />;
+  return (
+    <FacturesClient
+      invoices={invoices}
+      role={admin.role}
+      canEdit={canPerform(admin.role, "facture:generate")}
+    />
+  );
 }
