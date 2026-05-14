@@ -46,7 +46,7 @@ export function AdminTopbar({ admin, title, description, unreadCount }: AdminTop
           </button>
 
           {/* Notifications */}
-          <NotificationBell initialUnread={unreadCount} />
+          <NotificationBell initialUnread={unreadCount} isPatron={admin.role === "patron"} />
 
           {/* Separator */}
           <div className="w-px h-8 bg-slate-200 mx-1" />

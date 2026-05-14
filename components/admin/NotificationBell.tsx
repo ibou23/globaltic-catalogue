@@ -4,10 +4,11 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Check, CheckCheck, X } from "lucide-react";
 import type { Notification } from "@/lib/types/domain";
-import { getNotificationsAction, markReadAction, markAllReadAction } from "@/lib/actions/notifications";
+import { getNotificationsAction, markReadAction, markAllReadAction, createTestNotificationAction } from "@/lib/actions/notifications";
 
 interface NotificationBellProps {
   initialUnread: number;
+  isPatron?: boolean;
 }
 
 function timeAgo(iso: string): string {
@@ -21,13 +22,14 @@ function timeAgo(iso: string): string {
   return `il y a ${d}j`;
 }
 
-export function NotificationBell({ initialUnread }: NotificationBellProps) {
+export function NotificationBell({ initialUnread, isPatron = false }: NotificationBellProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(initialUnread);
   const [loaded, setLoaded] = useState(false);
+  const [testSent, setTestSent] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Fermer le dropdown au clic extérieur
@@ -71,6 +73,21 @@ export function NotificationBell({ initialUnread }: NotificationBellProps) {
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnread(0);
       router.refresh();
+    });
+  }
+
+  function handleSendTest() {
+    startTransition(async () => {
+      const result = await createTestNotificationAction();
+      if (result.data) {
+        setTestSent(true);
+        // Recharger la liste après création
+        const fresh = await getNotificationsAction();
+        if (fresh.data) {
+          setNotifications(fresh.data);
+          setUnread(fresh.data.filter((n) => !n.isRead).length);
+        }
+      }
     });
   }
 
@@ -140,6 +157,15 @@ export function NotificationBell({ initialUnread }: NotificationBellProps) {
               <div className="px-4 py-10 text-center">
                 <Bell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
                 <p className="text-xs font-bold text-slate-300">Aucune notification</p>
+                {isPatron && (
+                  <button
+                    onClick={handleSendTest}
+                    disabled={isPending || testSent}
+                    className="mt-3 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[11px] font-bold hover:bg-slate-200 transition-colors disabled:opacity-40"
+                  >
+                    {testSent ? "Notification créée ✓" : "Envoyer une notification test"}
+                  </button>
+                )}
               </div>
             ) : notifications.map((notif) => (
               <div

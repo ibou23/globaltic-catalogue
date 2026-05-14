@@ -104,7 +104,6 @@ export async function createAdminNotifications(params: {
   entityType?: string;
   entityId?: string;
   link?: string;
-  // Liste de tous les profils admin actifs à filtrer
   adminProfiles: Array<{ id: string; userId: string; role: AdminRole; isActive: boolean }>;
 }): Promise<void> {
   const targetRoles = EVENT_TARGET_ROLES[params.eventKey];
@@ -117,7 +116,8 @@ export async function createAdminNotifications(params: {
 
   const supabase = await createClient();
 
-  const rows = recipients.map((p) => ({
+  // Tentative avec toutes les colonnes (migration 005 appliquée)
+  const fullRows = recipients.map((p) => ({
     recipient_type: "admin",
     recipient_id: p.userId,
     channel: "in_app",
@@ -129,6 +129,42 @@ export async function createAdminNotifications(params: {
     is_read: false,
   }));
 
-  await supabase.from("notifications").insert(rows);
-  // Non bloquant — échec silencieux
+  const { error: fullError } = await supabase.from("notifications").insert(fullRows);
+
+  // Fallback sans colonnes optionnelles si migration 005 non encore appliquée
+  if (fullError) {
+    const minimalRows = recipients.map((p) => ({
+      recipient_type: "admin",
+      recipient_id: p.userId,
+      channel: "in_app",
+      title: params.title,
+      body: params.body,
+      is_read: false,
+    }));
+    await supabase.from("notifications").insert(minimalRows);
+    // Non bloquant — on ne lève pas d'erreur
+  }
+}
+
+// Insertion directe d'une notification (sans filtre rôle) — pour tests et notifications système
+export async function insertDirectNotification(params: {
+  recipientUserId: string;
+  title: string;
+  body: string;
+  entityType?: string;
+  link?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("notifications").insert({
+    recipient_type: "admin",
+    recipient_id: params.recipientUserId,
+    channel: "in_app",
+    title: params.title,
+    body: params.body,
+    is_read: false,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
