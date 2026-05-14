@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCog,
+  Upload,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -41,6 +42,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Clients",        href: "/admin/clients",      icon: Users,                        module: "clients" },
   { label: "Réalisations",   href: "/admin/realisations", icon: Image,                        module: "realisations" },
   { label: "Utilisateurs",   href: "/admin/utilisateurs", icon: UserCog,                      module: "utilisateurs" },
+  { label: "Imports CSV",    href: "/admin/imports",      icon: Upload,                       module: "imports" },
   { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
 ];
 
