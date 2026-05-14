@@ -3,6 +3,7 @@ import { getInvoicesByOrderIds } from "@/lib/db/invoices";
 import { getQualityChecksByOrderIds } from "@/lib/db/quality-checks";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { canAccessModule, canPerform } from "@/lib/auth/permissions";
+import { getConfigValue } from "@/lib/db/business-config";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { CommandesClient } from "@/components/admin/CommandesClient";
 import type { OrderStatus } from "@/lib/types/domain";
@@ -51,9 +52,10 @@ export default async function AdminCommandesPage({
   const allOrders = result.data ?? [];
 
   const orderIds = allOrders.map((o) => o.id);
-  const [invoicesResult, qcResult] = await Promise.all([
+  const [invoicesResult, qcResult, googleReviewUrl] = await Promise.all([
     getInvoicesByOrderIds(orderIds),
     getQualityChecksByOrderIds(orderIds),
+    getConfigValue("google_review_url"),
   ]);
   const invoicesMap = invoicesResult.data ?? new Map();
   const qcMap       = qcResult.data       ?? new Map();
@@ -102,6 +104,7 @@ export default async function AdminCommandesPage({
       canFacture={canPerform(admin.role, "facture:generate")}
       canBL={canPerform(admin.role, "bl:generate")}
       canSeeFinance={canSeeFinance}
+      googleReviewUrl={googleReviewUrl}
     />
   );
 }

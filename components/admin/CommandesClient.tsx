@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2, Receipt, Truck, CheckCircle2, Shield } from "lucide-react";
+import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard, Trash2, Receipt, Truck, CheckCircle2, Shield, Archive } from "lucide-react";
 import type { OrderEnriched, AdminRole, OrderStatus, Invoice, QualityCheck, DeliveryStatus } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
@@ -15,6 +15,7 @@ import { QuickPaymentModal } from "@/components/admin/QuickPaymentModal";
 import { ConfirmWithWord } from "@/components/admin/ConfirmWithWord";
 import { QualityCheckModal, QCBadge } from "@/components/admin/QualityCheckModal";
 import { DeliveryModal, DeliveryBadge } from "@/components/admin/DeliveryModal";
+import { ClosureModal, ClosureBadge } from "@/components/admin/ClosureModal";
 import { useRouter } from "next/navigation";
 
 interface ActiveFilter {
@@ -42,6 +43,7 @@ interface CommandesClientProps {
   canFacture?: boolean;
   canBL?: boolean;
   canSeeFinance?: boolean;
+  googleReviewUrl?: string;
 }
 
 const STATUS_OPTIONS = [
@@ -85,13 +87,14 @@ function buildWhatsAppMessage(order: OrderEnriched): string {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new Map(), role, totalCount, activeFilter, canDelete, canFacture, canBL, canSeeFinance = false }: CommandesClientProps) {
+export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new Map(), role, totalCount, activeFilter, canDelete, canFacture, canBL, canSeeFinance = false, googleReviewUrl = "" }: CommandesClientProps) {
   const router = useRouter();
   const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
   const [payingOrder, setPayingOrder] = useState<OrderEnriched | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<OrderEnriched | null>(null);
   const [qcOrder, setQcOrder]           = useState<OrderEnriched | null>(null);
   const [deliveryOrder, setDeliveryOrder] = useState<OrderEnriched | null>(null);
+  const [closureOrder, setClosureOrder] = useState<OrderEnriched | null>(null);
   const [isPending, startTransition]    = useTransition();
   const canEdit = canPerform(role, "commande:edit_status");
   const canPay = canPerform(role, "commande:edit_payment");
@@ -160,6 +163,14 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
           onClose={() => { setDeliveryOrder(null); router.refresh(); }}
         />
       )}
+      {closureOrder && (
+        <ClosureModal
+          order={closureOrder}
+          role={role}
+          googleReviewUrl={googleReviewUrl}
+          onClose={() => { setClosureOrder(null); router.refresh(); }}
+        />
+      )}
       <div className="space-y-4 sm:space-y-6">
         <div>
           <h2 className="text-xl font-black text-slate-800 font-heading tracking-tight">
@@ -218,6 +229,7 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
                           {order.deliveryStatus && order.deliveryStatus !== "non_planifiee" && (
                             <DeliveryBadge status={order.deliveryStatus as DeliveryStatus} />
                           )}
+                          <ClosureBadge status={order.closureStatus} />
                         </div>
                         {order.customer && (
                           <p className="text-xs text-slate-500 mt-0.5 truncate">{order.customer.contactName}</p>
@@ -290,6 +302,21 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
                         }`}
                       >
                         <Truck className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setClosureOrder(order)}
+                        title="Clôture &amp; satisfaction"
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+                          order.closureStatus === "satisfait"
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : order.closureStatus === "reclamation"
+                            ? "bg-red-100 text-red-600 hover:bg-red-200"
+                            : order.closureStatus === "cloturee"
+                            ? "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                            : "bg-violet-100 text-violet-600 hover:bg-violet-200"
+                        }`}
+                      >
+                        <Archive className="w-4 h-4" />
                       </button>
                       {canPay && order.paymentStatus !== "paye" && order.paymentStatus !== "rembourse" && (
                         <button
@@ -405,6 +432,11 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
                                 <DeliveryBadge status={order.deliveryStatus as DeliveryStatus} />
                               </div>
                             )}
+                            {order.closureStatus !== "non_cloturee" && (
+                              <div className="mt-1">
+                                <ClosureBadge status={order.closureStatus} />
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             {order.customer ? (
@@ -497,6 +529,21 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
                                 }`}
                               >
                                 <Truck className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setClosureOrder(order)}
+                                title="Clôture &amp; satisfaction"
+                                className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                                  order.closureStatus === "satisfait"
+                                    ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                    : order.closureStatus === "reclamation"
+                                    ? "bg-red-100 text-red-600 hover:bg-red-200"
+                                    : order.closureStatus === "cloturee"
+                                    ? "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                    : "bg-violet-100 text-violet-600 hover:bg-violet-200"
+                                }`}
+                              >
+                                <Archive className="w-3.5 h-3.5" />
                               </button>
                               {canPay && order.paymentStatus !== "paye" && order.paymentStatus !== "rembourse" && (
                                 <button

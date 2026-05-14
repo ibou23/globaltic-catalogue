@@ -71,6 +71,7 @@ function TabEntreprise({ config }: { config: BusinessConfig }) {
   const [whatsapp, setWhatsapp] = useState(String(config.whatsapp_number));
   const [email, setEmail]     = useState(String(config.company_email));
   const [website, setWebsite] = useState(String(config.company_website));
+  const [googleReviewUrl, setGoogleReviewUrl] = useState(String(config.google_review_url));
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,13 +79,14 @@ function TabEntreprise({ config }: { config: BusinessConfig }) {
     setSaved(false);
     startTransition(async () => {
       const result = await updateCompanyInfoAction({
-        company_name:    name.trim(),
-        company_tagline: tagline.trim(),
-        company_address: address.trim(),
-        company_phone:   phone.trim(),
-        whatsapp_number: whatsapp.trim().replace(/[^0-9]/g, ""),
-        company_email:   email.trim().toLowerCase(),
-        company_website: website.trim(),
+        company_name:      name.trim(),
+        company_tagline:   tagline.trim(),
+        company_address:   address.trim(),
+        company_phone:     phone.trim(),
+        whatsapp_number:   whatsapp.trim().replace(/[^0-9]/g, ""),
+        company_email:     email.trim().toLowerCase(),
+        company_website:   website.trim(),
+        google_review_url: googleReviewUrl.trim(),
       });
       if (!result.data) {
         setError(result.error ?? "Erreur lors de l'enregistrement");
@@ -134,6 +136,10 @@ function TabEntreprise({ config }: { config: BusinessConfig }) {
           <div>
             <label className={labelClass}>Site web</label>
             <input className={inputClass} type="url" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://example.com" />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass}>Lien Google Avis <span className="normal-case font-normal text-slate-400">(pour demandes d&apos;avis post-livraison)</span></label>
+            <input className={inputClass} type="url" value={googleReviewUrl} onChange={e => setGoogleReviewUrl(e.target.value)} placeholder="https://g.page/r/..." />
           </div>
         </div>
       </div>

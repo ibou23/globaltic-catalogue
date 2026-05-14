@@ -27,6 +27,10 @@ import {
   Star,
   CheckSquare,
   Plus,
+  Smile,
+  Meh,
+  Frown,
+  AlertTriangle,
 } from "lucide-react";
 import type { Customer, QuoteEnriched, OrderEnriched, AdminRole, TaskEnriched, AdminProfile } from "@/lib/types/domain";
 import { formatPrice, formatDate, formatDateShort } from "@/lib/utils/format";
@@ -93,6 +97,19 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   especes:      "Espèces",
   virement:     "Virement",
   cheque:       "Chèque",
+};
+
+const SATISFACTION_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  satisfait:   { label: "Satisfait",   color: "bg-green-100 text-green-700",  icon: Smile },
+  neutre:      { label: "Neutre",      color: "bg-slate-100 text-slate-600",  icon: Meh },
+  insatisfait: { label: "Insatisfait", color: "bg-red-100 text-red-600",      icon: Frown },
+};
+
+const CLOSURE_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  non_cloturee: { label: "Active",      color: "bg-blue-100 text-blue-600" },
+  cloturee:     { label: "Clôturée",    color: "bg-slate-100 text-slate-500" },
+  satisfait:    { label: "Satisfait",   color: "bg-green-100 text-green-700" },
+  reclamation:  { label: "Réclamation", color: "bg-red-100 text-red-600" },
 };
 
 // ─── WhatsApp message builders ───────────────────────────────────────────────
@@ -250,6 +267,8 @@ export function ClientDetailClient({
   const lastOrder     = orders[0] ?? null;
   const pendingQuotes = quotes.filter((q) => ["brouillon", "envoye"].includes(q.status));
   const activeOrders  = orders.filter((o) => !["livre", "annulee"].includes(o.status));
+  const hasReclamation = orders.some((o) => o.closureStatus === "reclamation");
+  const hasInsatisfait = orders.some((o) => o.satisfaction === "insatisfait");
 
   function handleCopy() {
     navigator.clipboard.writeText(customer.whatsapp).then(() => {
@@ -518,7 +537,25 @@ export function ClientDetailClient({
                       </div>
                     </div>
                   )}
-                  {totalOrders > 0 && activeOrders.length === 0 && pendingQuotes.length === 0 && totalBalance <= 0 && (
+                  {hasReclamation && (
+                    <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl">
+                      <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold text-red-700">Réclamation en cours</p>
+                        <p className="text-[11px] text-red-500 mt-0.5">Une réclamation a été enregistrée pour ce client</p>
+                      </div>
+                    </div>
+                  )}
+                  {!hasReclamation && hasInsatisfait && (
+                    <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl">
+                      <Frown className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold text-amber-700">Client insatisfait</p>
+                        <p className="text-[11px] text-amber-500 mt-0.5">Satisfaction négative enregistrée sur une commande</p>
+                      </div>
+                    </div>
+                  )}
+                  {totalOrders > 0 && activeOrders.length === 0 && pendingQuotes.length === 0 && totalBalance <= 0 && !hasReclamation && !hasInsatisfait && (
                     <div className="flex items-start gap-3 p-3 bg-green-50 rounded-xl">
                       <PackageCheck className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                       <div>
@@ -675,21 +712,46 @@ export function ClientDetailClient({
                   {orders.map((o) => {
                     const st = ORDER_STATUS_LABELS[o.status] ?? { label: o.status, color: "bg-slate-100 text-slate-500" };
                     const balance = o.total - o.paidAmount;
+                    const satCfg = o.satisfaction ? SATISFACTION_LABELS[o.satisfaction] : null;
+                    const SatIcon = satCfg?.icon;
+                    const closureCfg = o.closureStatus !== "non_cloturee" ? CLOSURE_STATUS_LABELS[o.closureStatus] : null;
                     return (
-                      <div key={o.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                        <div className="min-w-0">
-                          <span className="text-sm font-bold text-slate-700">{o.reference}</span>
-                          <p className="text-[11px] text-slate-400 mt-0.5">{formatDateShort(o.createdAt)}</p>
-                          {canSeeFinances && balance > 0 && o.status !== "annulee" && (
-                            <p className="text-[11px] text-amber-600 font-semibold mt-0.5">Solde : {formatPrice(balance)}</p>
-                          )}
+                      <div key={o.id} className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors space-y-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-slate-700">{o.reference}</span>
+                              {closureCfg && (
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${closureCfg.color}`}>{closureCfg.label}</span>
+                              )}
+                              {o.closureStatus === "reclamation" && (
+                                <AlertTriangle className="w-3 h-3 text-red-500" />
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-0.5">{formatDateShort(o.createdAt)}</p>
+                            {canSeeFinances && balance > 0 && o.status !== "annulee" && (
+                              <p className="text-[11px] text-amber-600 font-semibold mt-0.5">Solde : {formatPrice(balance)}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {canSeeFinances && (
+                              <span className="text-sm font-black text-slate-700">{formatPrice(o.total)}</span>
+                            )}
+                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${st.color}`}>{st.label}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {canSeeFinances && (
-                            <span className="text-sm font-black text-slate-700">{formatPrice(o.total)}</span>
-                          )}
-                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${st.color}`}>{st.label}</span>
-                        </div>
+                        {satCfg && SatIcon && (
+                          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold ${satCfg.color}`}>
+                            <SatIcon className="w-3.5 h-3.5 shrink-0" />
+                            {satCfg.label}
+                            {o.customerComment && (
+                              <span className="ml-1 text-[10px] font-normal opacity-75 truncate max-w-[200px]">— {o.customerComment}</span>
+                            )}
+                          </div>
+                        )}
+                        {o.complaint && (
+                          <p className="text-[11px] text-red-600 font-medium px-2.5">Réclamation : {o.complaint}</p>
+                        )}
                       </div>
                     );
                   })}

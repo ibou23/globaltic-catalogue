@@ -35,6 +35,8 @@ export const CONFIG_DEFAULTS = {
   ],
   // Production
   working_hours: { start: "08:30", end: "18:00", days: [1, 2, 3, 4, 5, 6] },
+  // Satisfaction client
+  google_review_url: "",
   // Messages WhatsApp
   wa_template_devis:        "Bonjour *{client}*,\n\nSuite à notre échange, voici le récapitulatif de votre devis :\n\n*Référence* : {reference}\n*Total estimatif* : {total} FCFA\n\nConfirmez-vous cette commande ? Nous pouvons démarrer la production dès validation.\n\n*GLOBAL TIC*",
   wa_template_confirmation: "Bonjour *{client}*,\n\nNous avons bien enregistré votre commande.\n\n*Référence commande* : {reference}\n*Montant total* : {total} FCFA\n\nNotre équipe vous contactera prochainement pour les prochaines étapes.\n\nMerci pour votre confiance — *GLOBAL TIC*",

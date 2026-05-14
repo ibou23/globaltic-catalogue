@@ -104,6 +104,9 @@ const EVENT_TARGET_ROLES: Record<string, AdminRole[]> = {
   livraison_livree:        ["patron", "admin", "commercial"],
   livraison_echec:         ["patron", "admin", "production"],
   livraison_reportee:      ["patron", "admin", "commercial"],
+  commande_cloturee:       ["patron", "admin", "commercial"],
+  client_insatisfait:      ["patron", "admin", "commercial"],
+  reclamation_creee:       ["patron", "admin", "commercial"],
 };
 
 export async function createAdminNotifications(params: {
