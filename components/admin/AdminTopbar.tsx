@@ -1,13 +1,15 @@
 import type { AdminProfile } from "@/lib/types/domain";
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { NotificationBell } from "@/components/admin/NotificationBell";
 
 interface AdminTopbarProps {
   admin: AdminProfile;
   title: string;
   description?: string;
+  unreadCount: number;
 }
 
-export function AdminTopbar({ admin, title, description }: AdminTopbarProps) {
+export function AdminTopbar({ admin, title, description, unreadCount }: AdminTopbarProps) {
   const initials = admin.fullName
     .split(" ")
     .map((n) => n[0])
@@ -40,14 +42,11 @@ export function AdminTopbar({ admin, title, description }: AdminTopbarProps) {
         <div className="flex items-center gap-3">
           {/* Search */}
           <button className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all">
-            <Search className="w-4.5 h-4.5" />
+            <Search className="w-4 h-4" />
           </button>
 
           {/* Notifications */}
-          <button className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all relative">
-            <Bell className="w-4.5 h-4.5" />
-            <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
-          </button>
+          <NotificationBell initialUnread={unreadCount} />
 
           {/* Separator */}
           <div className="w-px h-8 bg-slate-200 mx-1" />

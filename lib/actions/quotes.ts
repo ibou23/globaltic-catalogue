@@ -5,6 +5,8 @@ import { createQuote, updateQuote, updateQuoteStatus } from "@/lib/db/quotes";
 import { generateReference } from "@/lib/services/reference";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { requireRole } from "@/lib/auth/permissions";
+import { getActiveAdminProfiles } from "@/lib/db/admin-users";
+import { createAdminNotifications } from "@/lib/db/notifications";
 import { err, type Result } from "@/lib/utils/result";
 import type { Quote } from "@/lib/types/domain";
 
@@ -21,7 +23,22 @@ export async function createQuoteAction(
   }
 
   const reference = await generateReference("DEV");
-  return createQuote(parsed.data, reference);
+  const result = await createQuote(parsed.data, reference);
+
+  if (result.data) {
+    const profiles = await getActiveAdminProfiles();
+    await createAdminNotifications({
+      eventKey: "devis_cree",
+      title: "Nouveau devis créé",
+      body: `Devis ${result.data.reference} créé par ${admin.data?.fullName ?? "un admin"}`,
+      entityType: "quote",
+      entityId: result.data.id,
+      link: "/admin/devis",
+      adminProfiles: profiles,
+    });
+  }
+
+  return result;
 }
 
 export async function updateQuoteAction(
@@ -52,5 +69,20 @@ export async function updateQuoteStatusAction(
     return err(parsed.error.issues[0]?.message ?? "Données invalides");
   }
 
-  return updateQuoteStatus(parsed.data.id, parsed.data.status);
+  const result = await updateQuoteStatus(parsed.data.id, parsed.data.status);
+
+  if (result.data && parsed.data.status === "accepte") {
+    const profiles = await getActiveAdminProfiles();
+    await createAdminNotifications({
+      eventKey: "devis_accepte",
+      title: "Devis accepté",
+      body: `Le devis ${result.data.reference} a été accepté — à convertir en commande`,
+      entityType: "quote",
+      entityId: result.data.id,
+      link: "/admin/devis",
+      adminProfiles: profiles,
+    });
+  }
+
+  return result;
 }

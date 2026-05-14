@@ -7,6 +7,8 @@ import { generateReference } from "@/lib/services/reference";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { requireRole } from "@/lib/auth/permissions";
 import { logOrderEvent } from "@/lib/db/activity-log";
+import { getActiveAdminProfiles } from "@/lib/db/admin-users";
+import { createAdminNotifications } from "@/lib/db/notifications";
 import { err, type Result } from "@/lib/utils/result";
 import type { Order } from "@/lib/types/domain";
 
@@ -30,7 +32,6 @@ export async function convertQuoteToOrderAction(
     return err("Seuls les devis acceptés peuvent être convertis en commande");
   }
 
-  // Empêcher la double conversion
   const existingResult = await getOrderByQuoteId(quoteId);
   if (existingResult.data) {
     return err(`Une commande existe déjà pour ce devis (${existingResult.data.reference})`);
@@ -58,6 +59,17 @@ export async function convertQuoteToOrderAction(
       devis: quote.reference,
       total: result.data.total,
     });
+
+    const profiles = await getActiveAdminProfiles();
+    await createAdminNotifications({
+      eventKey: "commande_creee",
+      title: "Nouvelle commande",
+      body: `Commande ${result.data.reference} créée (${result.data.total.toLocaleString("fr-SN")} FCFA)`,
+      entityType: "order",
+      entityId: result.data.id,
+      link: "/admin/commandes",
+      adminProfiles: profiles,
+    });
   }
 
   return result;
@@ -78,11 +90,9 @@ export async function updateOrderAction(
     return err(parsed.error.issues[0]?.message ?? "Données invalides");
   }
 
-  // Lire l'état avant la mise à jour pour détecter les changements
   const previousResult = await getOrderById(id);
   const previous = previousResult.data;
 
-  // Gate payment field changes behind commande:edit_payment
   if (previous) {
     const paymentChanged =
       parsed.data.paid_amount !== previous.paidAmount ||
@@ -101,17 +111,13 @@ export async function updateOrderAction(
   if (result.data && previous) {
     const uid = adminCheck.data?.userId ?? null;
     const order = result.data;
-    const events: Array<{ action: string; meta: Record<string, unknown> }> = [];
+    const logEvents: Array<{ action: string; meta: Record<string, unknown> }> = [];
 
     if (previous.status !== order.status) {
-      events.push({
-        action: "statut_change",
-        meta: { de: previous.status, vers: order.status },
-      });
+      logEvents.push({ action: "statut_change", meta: { de: previous.status, vers: order.status } });
     }
-
     if (previous.paidAmount !== order.paidAmount) {
-      events.push({
+      logEvents.push({
         action: "paiement_mis_a_jour",
         meta: {
           montant_precedent: previous.paidAmount,
@@ -121,13 +127,62 @@ export async function updateOrderAction(
         },
       });
     }
-
     if (previous.internalNotes !== order.internalNotes && order.internalNotes) {
-      events.push({ action: "note_interne_modifiee", meta: {} });
+      logEvents.push({ action: "note_interne_modifiee", meta: {} });
     }
 
-    for (const { action, meta } of events) {
+    for (const { action, meta } of logEvents) {
       await logOrderEvent(uid, id, action, meta);
+    }
+
+    // Notifications selon événements clés
+    const profiles = await getActiveAdminProfiles();
+    const ref = order.reference;
+    const notifJobs: Array<Parameters<typeof createAdminNotifications>[0]> = [];
+
+    if (previous.paidAmount !== order.paidAmount && order.paidAmount > 0) {
+      const balance = order.total - order.paidAmount;
+      if (balance > 0) {
+        notifJobs.push({
+          eventKey: "paiement_mis_a_jour",
+          title: "Acompte reçu",
+          body: `Commande ${ref} — acompte ${order.paidAmount.toLocaleString("fr-SN")} FCFA, solde ${balance.toLocaleString("fr-SN")} FCFA`,
+          entityType: "order", entityId: id, link: "/admin/commandes",
+          adminProfiles: profiles,
+        });
+        notifJobs.push({
+          eventKey: "solde_restant",
+          title: "Solde restant à encaisser",
+          body: `Commande ${ref} — solde de ${balance.toLocaleString("fr-SN")} FCFA restant`,
+          entityType: "order", entityId: id, link: "/admin/commandes",
+          adminProfiles: profiles,
+        });
+      } else {
+        notifJobs.push({
+          eventKey: "paiement_mis_a_jour",
+          title: "Paiement complet",
+          body: `Commande ${ref} entièrement réglée (${order.total.toLocaleString("fr-SN")} FCFA)`,
+          entityType: "order", entityId: id, link: "/admin/commandes",
+          adminProfiles: profiles,
+        });
+      }
+    }
+
+    if (previous.status !== order.status) {
+      const statusNotifs: Partial<Record<string, { eventKey: string; title: string; body: string }>> = {
+        bat_en_cours:   { eventKey: "bat_en_cours",          title: "BAT à préparer",        body: `Commande ${ref} — préparation du BAT en cours` },
+        bat_valide:     { eventKey: "bat_valide",            title: "BAT validé",             body: `Commande ${ref} — BAT validé, prête pour la production` },
+        pret:           { eventKey: "commande_prete",        title: "Commande prête",         body: `Commande ${ref} est prête à être livrée` },
+        en_livraison:   { eventKey: "en_livraison",          title: "En livraison",           body: `Commande ${ref} est en cours de livraison` },
+      };
+      const notif = statusNotifs[order.status];
+      if (notif) {
+        notifJobs.push({ ...notif, entityType: "order", entityId: id, link: "/admin/commandes", adminProfiles: profiles });
+      }
+    }
+
+    for (const job of notifJobs) {
+      await createAdminNotifications(job);
     }
   }
 

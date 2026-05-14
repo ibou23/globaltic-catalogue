@@ -11,6 +11,8 @@ import { getCurrentAdmin } from "@/lib/db/admin";
 import { requireRole } from "@/lib/auth/permissions";
 import { getOrderById } from "@/lib/db/orders";
 import { logOrderEvent } from "@/lib/db/activity-log";
+import { getActiveAdminProfiles } from "@/lib/db/admin-users";
+import { createAdminNotifications } from "@/lib/db/notifications";
 import { err, type Result } from "@/lib/utils/result";
 import type { OrderFile, FileType, FileStatus } from "@/lib/types/domain";
 
@@ -56,6 +58,17 @@ export async function uploadOrderFileAction(
     await logOrderEvent(admin.data.userId, orderId, "fichier_ajoute", {
       nom: file.name,
       type: fileType,
+    });
+
+    const profiles = await getActiveAdminProfiles();
+    await createAdminNotifications({
+      eventKey: "fichier_ajoute",
+      title: "Fichier ajouté",
+      body: `Fichier "${file.name}" ajouté à la commande ${orderResult.data.reference}`,
+      entityType: "order",
+      entityId: orderId,
+      link: "/admin/commandes",
+      adminProfiles: profiles,
     });
   }
 

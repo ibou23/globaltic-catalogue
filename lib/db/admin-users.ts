@@ -5,6 +5,26 @@ import { mapAdminProfile } from "./mappers";
 import type { AdminProfile, AdminRole } from "@/lib/types/domain";
 import type { UpdateAdminUserInput } from "@/lib/validators/admin-user";
 
+// Profils actifs uniquement — pour fan-out des notifications
+export async function getActiveAdminProfiles(): Promise<
+  Array<{ id: string; userId: string; role: AdminRole; isActive: boolean }>
+> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("admin_profiles")
+    .select("id, user_id, role, is_active")
+    .eq("is_active", true);
+
+  if (!data) return [];
+  return (data as Record<string, unknown>[]).map((row) => ({
+    id: row.id as string,
+    userId: row.user_id as string,
+    role: row.role as AdminRole,
+    isActive: row.is_active as boolean,
+  }));
+}
+
 // Retourne TOUS les profils (actifs + inactifs) pour la gestion
 export async function getAllAdminProfiles(): Promise<Result<AdminProfile[]>> {
   const supabase = await createClient();

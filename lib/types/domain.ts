@@ -22,6 +22,21 @@ export type FileType = "fichier_client" | "maquette" | "bat_client" | "bat_valid
 export type FileStatus = "en_attente" | "valide" | "refuse";
 export type AdminRole = "patron" | "admin" | "commercial" | "production" | "infographiste";
 export type NotificationChannel = "whatsapp" | "email" | "in_app";
+export type NotificationRecipientType = "admin" | "customer";
+
+export interface Notification {
+  id: string;
+  recipientType: NotificationRecipientType;
+  recipientId: string;
+  channel: NotificationChannel;
+  title: string;
+  body: string;
+  isRead: boolean;
+  entityType: string | null;
+  entityId: string | null;
+  link: string | null;
+  createdAt: string;
+}
 
 export interface Category {
   id: string;
