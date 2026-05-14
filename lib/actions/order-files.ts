@@ -8,6 +8,7 @@ import {
   getSignedUrl,
 } from "@/lib/db/order-files";
 import { getCurrentAdmin } from "@/lib/db/admin";
+import { requireRole } from "@/lib/auth/permissions";
 import { getOrderById } from "@/lib/db/orders";
 import { logOrderEvent } from "@/lib/db/activity-log";
 import { err, type Result } from "@/lib/utils/result";
@@ -31,6 +32,8 @@ export async function uploadOrderFileAction(
 ): Promise<Result<OrderFile>> {
   const admin = await getCurrentAdmin();
   if (!admin.data) return err("Accès non autorisé");
+  const deniedUpload = requireRole(admin.data.role, "commande:upload_file");
+  if (deniedUpload) return err(deniedUpload);
 
   const orderResult = await getOrderById(orderId);
   if (!orderResult.data) return err("Commande introuvable");
@@ -65,6 +68,8 @@ export async function deleteOrderFileAction(
 ): Promise<Result<true>> {
   const admin = await getCurrentAdmin();
   if (!admin.data) return err("Accès non autorisé");
+  const deniedDelete = requireRole(admin.data.role, "commande:delete_file");
+  if (deniedDelete) return err(deniedDelete);
 
   const result = await deleteOrderFile(fileId);
 

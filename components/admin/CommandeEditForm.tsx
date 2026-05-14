@@ -5,13 +5,15 @@ import { X, Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateOrderAction } from "@/lib/actions/orders";
 import { getOrderFilesAction } from "@/lib/actions/order-files";
-import type { OrderEnriched, OrderFile, PaymentMethod } from "@/lib/types/domain";
+import { canPerform } from "@/lib/auth/permissions";
+import type { OrderEnriched, OrderFile, PaymentMethod, AdminRole } from "@/lib/types/domain";
 import { OrderFilesSection } from "@/components/admin/OrderFilesSection";
 import { BatWorkflowSection } from "@/components/admin/BatWorkflowSection";
 import { OrderActivityLog } from "@/components/admin/OrderActivityLog";
 
 interface CommandeEditFormProps {
   order: OrderEnriched;
+  role: AdminRole;
   onClose: () => void;
 }
 
@@ -205,8 +207,11 @@ function buildWhatsAppMessage(order: OrderEnriched, status: OrderStatus): string
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
+export function CommandeEditForm({ order, role, onClose }: CommandeEditFormProps) {
   const router = useRouter();
+  const canEditPayment = canPerform(role, "commande:edit_payment");
+  const canBat = canPerform(role, "commande:bat");
+  const canUploadFile = canPerform(role, "commande:upload_file");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -327,14 +332,16 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
           </div>
 
           {/* Workflow BAT */}
-          <BatWorkflowSection
-            order={order}
-            currentStatus={status}
-            onStatusChange={setStatus}
-          />
+          {canBat && (
+            <BatWorkflowSection
+              order={order}
+              currentStatus={status}
+              onStatusChange={setStatus}
+            />
+          )}
 
           {/* Paiement */}
-          <div>
+          {canEditPayment && <div>
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Paiement</h3>
 
             {/* Récapitulatif financier */}
@@ -439,7 +446,7 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
                 </a>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Livraison */}
           <div>
@@ -515,7 +522,7 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
           </div>
 
           {/* Fichiers de production */}
-          <OrderFilesSection orderId={order.id} initialFiles={orderFiles} />
+          {canUploadFile && <OrderFilesSection orderId={order.id} initialFiles={orderFiles} />}
 
           {/* Journal d'activité */}
           <OrderActivityLog orderId={order.id} />

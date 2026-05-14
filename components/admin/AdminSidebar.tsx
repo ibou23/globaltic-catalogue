@@ -19,26 +19,37 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { signOutAction } from "@/lib/actions/auth";
+import { canAccessModule, type Module } from "@/lib/auth/permissions";
+import type { AdminRole } from "@/lib/types/domain";
 
-const navItems = [
-  {
-    label: "Vue d'ensemble",
-    href: "/admin",
-    icon: LayoutDashboard,
-    exact: true,
-  },
-  { label: "Produits", href: "/admin/produits", icon: Package },
-  { label: "Catégories", href: "/admin/categories", icon: FolderOpen },
-  { label: "Devis", href: "/admin/devis", icon: FileText },
-  { label: "Commandes", href: "/admin/commandes", icon: ShoppingCart },
-  { label: "Clients", href: "/admin/clients", icon: Users },
-  { label: "Réalisations", href: "/admin/realisations", icon: Image },
-  { label: "Paramètres", href: "/admin/parametres", icon: Settings },
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  exact?: boolean;
+  module: Module;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { label: "Vue d'ensemble", href: "/admin",              icon: LayoutDashboard, exact: true, module: "dashboard" },
+  { label: "Produits",       href: "/admin/produits",     icon: Package,                      module: "produits" },
+  { label: "Catégories",     href: "/admin/categories",   icon: FolderOpen,                   module: "categories" },
+  { label: "Devis",          href: "/admin/devis",        icon: FileText,                     module: "devis" },
+  { label: "Commandes",      href: "/admin/commandes",    icon: ShoppingCart,                 module: "commandes" },
+  { label: "Clients",        href: "/admin/clients",      icon: Users,                        module: "clients" },
+  { label: "Réalisations",   href: "/admin/realisations", icon: Image,                        module: "realisations" },
+  { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
 ];
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  role: AdminRole;
+}
+
+export function AdminSidebar({ role }: AdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  const visibleItems = NAV_ITEMS.filter((item) => canAccessModule(role, item.module));
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href;
@@ -70,7 +81,7 @@ export function AdminSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const active = isActive(item.href, item.exact);
           return (
             <Link

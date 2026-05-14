@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { ShoppingCart, MessageCircle, Pencil, FileDown } from "lucide-react";
-import type { OrderEnriched } from "@/lib/types/domain";
+import type { OrderEnriched, AdminRole } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
+import { canPerform } from "@/lib/auth/permissions";
 import { CommandeEditForm } from "@/components/admin/CommandeEditForm";
 
 interface CommandesClientProps {
   orders: OrderEnriched[];
+  role: AdminRole;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -60,13 +62,15 @@ function buildWhatsAppConfirmation(order: OrderEnriched): string {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
-export function CommandesClient({ orders }: CommandesClientProps) {
+export function CommandesClient({ orders, role }: CommandesClientProps) {
   const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
+  const canEdit = canPerform(role, "commande:edit_status");
+  const canReceipt = canPerform(role, "receipt:generate");
 
   return (
     <>
       {editingOrder && (
-        <CommandeEditForm order={editingOrder} onClose={() => setEditingOrder(null)} />
+        <CommandeEditForm order={editingOrder} role={role} onClose={() => setEditingOrder(null)} />
       )}
     <div className="space-y-6">
       <div>
@@ -163,14 +167,16 @@ export function CommandesClient({ orders }: CommandesClientProps) {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => setEditingOrder(order)}
-                            title="Modifier la commande"
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          {order.paidAmount > 0 && (
+                          {canEdit && (
+                            <button
+                              onClick={() => setEditingOrder(order)}
+                              title="Modifier la commande"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canReceipt && order.paidAmount > 0 && (
                             <a
                               href={`/api/admin/commandes/${order.id}/receipt`}
                               target="_blank"

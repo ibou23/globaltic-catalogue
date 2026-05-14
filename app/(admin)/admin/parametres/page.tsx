@@ -1,7 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentAdmin } from "@/lib/db/admin";
+import { canAccessModule } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/admin/AccessDenied";
 import { Settings } from "lucide-react";
 
 export default async function AdminParametresPage() {
+  const adminResult = await getCurrentAdmin();
+  const admin = adminResult.data;
+
+  if (!admin || !canAccessModule(admin.role, "parametres")) {
+    return <AccessDenied message="Seul le patron peut accéder aux paramètres." />;
+  }
+
   const supabase = await createClient();
   const { data } = await supabase.from("business_config").select("*").order("key");
   const configs = data ?? [];

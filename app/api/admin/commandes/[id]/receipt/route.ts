@@ -3,6 +3,7 @@ import { createElement, type JSXElementConstructor, type ReactElement } from "re
 import { NextResponse } from "next/server";
 import { getOrderEnrichedById } from "@/lib/db/orders";
 import { getCurrentAdmin } from "@/lib/db/admin";
+import { canPerform } from "@/lib/auth/permissions";
 import { PaymentReceiptPDF } from "@/components/pdf/PaymentReceiptPDF";
 import path from "path";
 import fs from "fs";
@@ -14,6 +15,9 @@ export async function GET(
   const admin = await getCurrentAdmin();
   if (!admin.data) {
     return NextResponse.json({ error: "Accès réservé aux administrateurs" }, { status: 403 });
+  }
+  if (!canPerform(admin.data.role, "receipt:generate")) {
+    return NextResponse.json({ error: "Vous n'avez pas les droits nécessaires" }, { status: 403 });
   }
 
   const { id } = await params;

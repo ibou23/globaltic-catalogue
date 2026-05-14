@@ -1,8 +1,18 @@
 import { getCustomers } from "@/lib/db/customers";
+import { getCurrentAdmin } from "@/lib/db/admin";
+import { canAccessModule } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/admin/AccessDenied";
 import { formatDateShort } from "@/lib/utils/format";
 import { Users, Plus, Search } from "lucide-react";
 
 export default async function AdminClientsPage() {
+  const adminResult = await getCurrentAdmin();
+  const admin = adminResult.data;
+
+  if (!admin || !canAccessModule(admin.role, "clients")) {
+    return <AccessDenied />;
+  }
+
   const result = await getCustomers();
   const customers = result.data ?? [];
 
