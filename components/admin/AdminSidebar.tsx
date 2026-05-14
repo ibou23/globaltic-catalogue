@@ -21,6 +21,7 @@ import {
   HelpCircle,
   Wrench,
   CheckSquare,
+  AlertCircle,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -49,6 +50,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
   { label: "Tâches",         href: "/admin/taches",       icon: CheckSquare,                  module: "taches" },
   { label: "Factures",       href: "/admin/factures",     icon: FileText,                     module: "factures" },
+  { label: "Impayés",        href: "/admin/impayes",      icon: AlertCircle,                  module: "impayes" },
   { label: "Aide",           href: "/admin/aide",         icon: HelpCircle,                   module: "aide" },
   { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                        module: "maintenance" },
 ];

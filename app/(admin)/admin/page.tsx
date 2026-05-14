@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDashboardStats } from "@/lib/db/stats";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { getTasksDueToday, getOverdueTasks } from "@/lib/db/tasks";
+import { getImpayesStats } from "@/lib/db/impayes";
 import { StatCard } from "@/components/admin/StatCard";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import {
@@ -102,11 +103,12 @@ function canSeeFinance(role: AdminRole): boolean {
 }
 
 export default async function AdminOverviewPage() {
-  const [adminResult, statsResult, todayTasksResult, overdueTasksResult] = await Promise.all([
+  const [adminResult, statsResult, todayTasksResult, overdueTasksResult, impayesStatsResult] = await Promise.all([
     getCurrentAdmin(),
     getDashboardStats(),
     getTasksDueToday(),
     getOverdueTasks(),
+    getImpayesStats(),
   ]);
 
   const admin = adminResult.data;
@@ -125,9 +127,10 @@ export default async function AdminOverviewPage() {
   }
 
   const stats = statsResult.data!;
-  const showFinance = canSeeFinance(role);
-  const todayTasks   = todayTasksResult.data ?? [];
-  const overdueTasks = overdueTasksResult.data ?? [];
+  const showFinance   = canSeeFinance(role);
+  const todayTasks    = todayTasksResult.data  ?? [];
+  const overdueTasks  = overdueTasksResult.data ?? [];
+  const impayesStats  = impayesStatsResult.data ?? null;
 
   // Liens uniquement si le rôle a accès au module cible
   const href = {
@@ -144,6 +147,7 @@ export default async function AdminOverviewPage() {
     pret:          canAccessModule(role, "commandes")   ? "/admin/commandes?status=pret"           : undefined,
     encaisse:      canAccessModule(role, "commandes")   ? "/admin/commandes?payment=paid"          : undefined,
     solde:         canAccessModule(role, "commandes")   ? "/admin/commandes?payment=remaining"     : undefined,
+    impayes:       canAccessModule(role, "impayes")     ? "/admin/impayes"                         : undefined,
   };
 
   const greetingByRole: Record<AdminRole, string> = {
@@ -307,6 +311,37 @@ export default async function AdminOverviewPage() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── ALERTE IMPAYÉS ── */}
+      {showFinance && impayesStats && impayesStats.totalBalance > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-amber-800">Soldes restants à encaisser</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  {impayesStats.nbInvoicesUnpaid} facture{impayesStats.nbInvoicesUnpaid > 1 ? "s" : ""} impayée{impayesStats.nbInvoicesUnpaid > 1 ? "s" : ""}
+                  {impayesStats.nbDeliveredUnpaid > 0 && ` · ${impayesStats.nbDeliveredUnpaid} commande${impayesStats.nbDeliveredUnpaid > 1 ? "s" : ""} livrée${impayesStats.nbDeliveredUnpaid > 1 ? "s" : ""} non soldée${impayesStats.nbDeliveredUnpaid > 1 ? "s" : ""}`}
+                </p>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-xl font-black text-amber-700 tabular-nums">{formatPrice(impayesStats.totalBalance)}</p>
+              {href.impayes && (
+                <Link
+                  href={href.impayes}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600/80 hover:text-amber-700 transition-colors mt-1"
+                >
+                  Voir les impayés <ArrowRight className="w-3 h-3" />
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       )}
