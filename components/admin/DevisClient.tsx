@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { Plus, FileText, MessageCircle, Download, Pencil, ShoppingCart, Loader2 } from "lucide-react";
-import type { QuoteEnriched } from "@/lib/types/domain";
+import type { QuoteEnriched, QuoteStatus } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { DevisForm } from "@/components/admin/DevisForm";
 import { DevisEditForm } from "@/components/admin/DevisEditForm";
 import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
+import { QuickStatusSelect } from "@/components/admin/QuickStatusSelect";
+import { updateQuoteStatusAction } from "@/lib/actions/quotes";
 import { convertQuoteToOrderAction } from "@/lib/actions/orders";
 import { siteConfig } from "@/lib/config/site";
 import { useRouter } from "next/navigation";
@@ -23,13 +25,13 @@ interface DevisClientProps {
   activeFilter?: ActiveFilter;
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  brouillon: { label: "Brouillon", color: "bg-slate-100 text-slate-600" },
-  envoye:    { label: "Envoyé",    color: "bg-blue-100 text-blue-600" },
-  accepte:   { label: "Accepté",  color: "bg-green-100 text-green-600" },
-  refuse:    { label: "Refusé",   color: "bg-red-100 text-red-600" },
-  expire:    { label: "Expiré",   color: "bg-amber-100 text-amber-600" },
-};
+const STATUS_OPTIONS = [
+  { value: "brouillon", label: "Brouillon", color: "bg-slate-100 text-slate-600" },
+  { value: "envoye",    label: "Envoyé",    color: "bg-blue-100 text-blue-600" },
+  { value: "accepte",   label: "Accepté",   color: "bg-green-100 text-green-600" },
+  { value: "refuse",    label: "Refusé",    color: "bg-red-100 text-red-600" },
+  { value: "expire",    label: "Expiré",    color: "bg-amber-100 text-amber-600" },
+];
 
 function buildWhatsAppReply(quote: QuoteEnriched): string {
   const client = quote.customer?.contactName ?? "client";
@@ -71,6 +73,16 @@ export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientPro
         router.refresh();
       }
       setConvertingId(null);
+    });
+  }
+
+  function handleQuickStatus(quote: QuoteEnriched, status: string) {
+    return new Promise<{ error?: string | null }>((resolve) => {
+      startTransition(async () => {
+        const result = await updateQuoteStatusAction({ id: quote.id, status: status as QuoteStatus });
+        if (!result.error) router.refresh();
+        resolve({ error: result.error });
+      });
     });
   }
 
@@ -128,7 +140,6 @@ export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientPro
             {/* ── Vue mobile : cards ── */}
             <div className="sm:hidden space-y-3">
               {quotes.map((quote) => {
-                const status = STATUS_LABELS[quote.status] ?? { label: quote.status, color: "bg-slate-100 text-slate-600" };
                 const waLink = buildWhatsAppReply(quote);
                 return (
                   <div key={quote.id} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
@@ -146,9 +157,12 @@ export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientPro
                         )}
                         <p className="text-[10px] text-slate-400 mt-0.5">{formatDateShort(quote.createdAt)}</p>
                       </div>
-                      <span className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
-                        {status.label}
-                      </span>
+                      <QuickStatusSelect
+                        current={quote.status}
+                        options={STATUS_OPTIONS}
+                        onSelect={(s) => handleQuickStatus(quote, s)}
+                        disabled={isPending}
+                      />
                     </div>
 
                     {/* Produit + total */}
@@ -227,7 +241,6 @@ export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientPro
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {quotes.map((quote) => {
-                      const status = STATUS_LABELS[quote.status] ?? { label: quote.status, color: "bg-slate-100 text-slate-600" };
                       const waLink = buildWhatsAppReply(quote);
                       return (
                         <tr key={quote.id} className="hover:bg-slate-50/50 transition-colors">
@@ -261,16 +274,19 @@ export function DevisClient({ quotes, totalCount, activeFilter }: DevisClientPro
                             )}
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
-                              {status.label}
-                            </span>
+                            <QuickStatusSelect
+                              current={quote.status}
+                              options={STATUS_OPTIONS}
+                              onSelect={(s) => handleQuickStatus(quote, s)}
+                              disabled={isPending}
+                            />
                           </td>
                           <td className="px-6 py-4 text-slate-500 text-xs">{formatDateShort(quote.createdAt)}</td>
                           <td className="px-6 py-4 text-right font-black text-slate-700 tabular-nums">
                             {formatPrice(quote.total)}
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-1.5">
                               {quote.status === "accepte" && (
                                 <button
                                   onClick={() => handleConvert(quote.id)}

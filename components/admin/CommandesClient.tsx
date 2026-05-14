@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { ShoppingCart, MessageCircle, Pencil, FileDown } from "lucide-react";
-import type { OrderEnriched, AdminRole } from "@/lib/types/domain";
+import { useState, useTransition } from "react";
+import { ShoppingCart, MessageCircle, Pencil, FileDown, CreditCard } from "lucide-react";
+import type { OrderEnriched, AdminRole, OrderStatus } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
 import { canPerform } from "@/lib/auth/permissions";
+import { updateOrderAction } from "@/lib/actions/orders";
 import { CommandeEditForm } from "@/components/admin/CommandeEditForm";
 import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
+import { QuickStatusSelect } from "@/components/admin/QuickStatusSelect";
+import { QuickPaymentModal } from "@/components/admin/QuickPaymentModal";
+import { useRouter } from "next/navigation";
 
 interface ActiveFilter {
   label: string;
@@ -22,18 +26,18 @@ interface CommandesClientProps {
   activeFilter?: ActiveFilter;
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  en_attente:       { label: "En attente",       color: "bg-slate-100 text-slate-600" },
-  confirmee:        { label: "Confirmée",         color: "bg-blue-100 text-blue-600" },
-  bat_en_cours:     { label: "BAT en cours",      color: "bg-purple-100 text-purple-600" },
-  bat_valide:       { label: "BAT validé",        color: "bg-indigo-100 text-indigo-600" },
-  en_production:    { label: "En production",     color: "bg-amber-100 text-amber-600" },
-  controle_qualite: { label: "Contrôle qualité",  color: "bg-cyan-100 text-cyan-600" },
-  pret:             { label: "Prête",             color: "bg-emerald-100 text-emerald-600" },
-  en_livraison:     { label: "En livraison",      color: "bg-teal-100 text-teal-600" },
-  livre:            { label: "Livrée",            color: "bg-green-100 text-green-600" },
-  annulee:          { label: "Annulée",           color: "bg-red-100 text-red-600" },
-};
+const STATUS_OPTIONS = [
+  { value: "en_attente",       label: "En attente",       color: "bg-slate-100 text-slate-600" },
+  { value: "confirmee",        label: "Confirmée",         color: "bg-blue-100 text-blue-600" },
+  { value: "bat_en_cours",     label: "BAT en cours",      color: "bg-purple-100 text-purple-600" },
+  { value: "bat_valide",       label: "BAT validé",        color: "bg-indigo-100 text-indigo-600" },
+  { value: "en_production",    label: "En production",     color: "bg-amber-100 text-amber-600" },
+  { value: "controle_qualite", label: "Contrôle qualité",  color: "bg-cyan-100 text-cyan-600" },
+  { value: "pret",             label: "Prête",             color: "bg-emerald-100 text-emerald-600" },
+  { value: "en_livraison",     label: "En livraison",      color: "bg-teal-100 text-teal-600" },
+  { value: "livre",            label: "Livrée",            color: "bg-green-100 text-green-600" },
+  { value: "annulee",          label: "Annulée",           color: "bg-red-100 text-red-600" },
+];
 
 const PAYMENT_LABELS: Record<string, { label: string; color: string }> = {
   non_paye:  { label: "Non payé",   color: "bg-red-100 text-red-600" },
@@ -43,43 +47,65 @@ const PAYMENT_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  wave:         "Wave",
-  orange_money: "Orange Money",
-  especes:      "Espèces",
-  virement:     "Virement",
-  cheque:       "Chèque",
+  wave: "Wave", orange_money: "Orange Money", especes: "Espèces", virement: "Virement", cheque: "Chèque",
 };
 
-function buildWhatsAppConfirmation(order: OrderEnriched): string {
+
+function buildWhatsAppMessage(order: OrderEnriched): string {
   const client = order.customer?.contactName ?? "client";
+  const statusLabel = STATUS_OPTIONS.find((s) => s.value === order.status)?.label ?? order.status;
   const lines = [
     `Bonjour *${client}*,`,
     ``,
-    `Nous avons bien enregistré votre commande.`,
-    ``,
-    `*Référence commande* : ${order.reference}`,
+    `Mise à jour de votre commande *${order.reference}* :`,
+    `*Statut* : ${statusLabel}`,
     `*Montant total* : ${order.total.toLocaleString("fr-SN")} FCFA`,
-    order.notes ? `*Notes* : ${order.notes}` : null,
-    ``,
-    `Notre équipe vous contactera prochainement pour les prochaines étapes (BAT, délais de production).`,
     ``,
     `Merci pour votre confiance — *GLOBAL TIC*`,
-  ].filter((l): l is string => l !== null);
-
-  const whatsapp =
-    order.customer?.whatsapp?.replace(/[^0-9]/g, "") ?? siteConfig.whatsapp;
+  ];
+  const whatsapp = order.customer?.whatsapp?.replace(/[^0-9]/g, "") ?? siteConfig.whatsapp;
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
 export function CommandesClient({ orders, role, totalCount, activeFilter }: CommandesClientProps) {
+  const router = useRouter();
   const [editingOrder, setEditingOrder] = useState<OrderEnriched | null>(null);
+  const [payingOrder, setPayingOrder] = useState<OrderEnriched | null>(null);
+  const [isPending, startTransition] = useTransition();
   const canEdit = canPerform(role, "commande:edit_status");
+  const canPay = canPerform(role, "commande:edit_payment");
   const canReceipt = canPerform(role, "receipt:generate");
+
+  function handleQuickStatus(order: OrderEnriched, status: string) {
+    return new Promise<{ error?: string | null }>((resolve) => {
+      startTransition(async () => {
+        const result = await updateOrderAction(order.id, {
+          status: status as OrderStatus,
+          payment_status: order.paymentStatus,
+          paid_amount: order.paidAmount,
+          payment_method: order.paymentMethod,
+          payment_reference: order.paymentReference,
+          payment_note: order.paymentNote,
+          delivery_method: order.deliveryMethod,
+          delivery_address: order.deliveryAddress,
+          estimated_delivery: order.estimatedDelivery,
+          actual_delivery: order.actualDelivery,
+          notes: order.notes,
+          internal_notes: order.internalNotes,
+        });
+        if (!result.error) router.refresh();
+        resolve({ error: result.error });
+      });
+    });
+  }
 
   return (
     <>
       {editingOrder && (
-        <CommandeEditForm order={editingOrder} role={role} onClose={() => setEditingOrder(null)} />
+        <CommandeEditForm order={editingOrder} role={role} onClose={() => { setEditingOrder(null); router.refresh(); }} />
+      )}
+      {payingOrder && (
+        <QuickPaymentModal order={payingOrder} onClose={() => { setPayingOrder(null); router.refresh(); }} />
       )}
       <div className="space-y-4 sm:space-y-6">
         <div>
@@ -114,13 +140,12 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
             {/* ── Vue mobile : cards ── */}
             <div className="sm:hidden space-y-3">
               {orders.map((order) => {
-                const status = STATUS_LABELS[order.status] ?? { label: order.status, color: "bg-slate-100 text-slate-600" };
                 const payment = PAYMENT_LABELS[order.paymentStatus] ?? { label: order.paymentStatus, color: "bg-slate-100 text-slate-600" };
                 const balance = order.total - order.paidAmount;
-                const waLink = buildWhatsAppConfirmation(order);
+                const waLink = buildWhatsAppMessage(order);
                 return (
                   <div key={order.id} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
-                    {/* Header card */}
+                    {/* Header */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-black text-slate-800 text-sm">{order.reference}</p>
@@ -129,9 +154,18 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
                         )}
                         <p className="text-[10px] text-slate-400 mt-0.5">{formatDateShort(order.createdAt)}</p>
                       </div>
-                      <span className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
-                        {status.label}
-                      </span>
+                      {canEdit ? (
+                        <QuickStatusSelect
+                          current={order.status}
+                          options={STATUS_OPTIONS}
+                          onSelect={(s) => handleQuickStatus(order, s)}
+                          disabled={isPending}
+                        />
+                      ) : (
+                        <span className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${STATUS_OPTIONS.find((s) => s.value === order.status)?.color ?? "bg-slate-100 text-slate-600"}`}>
+                          {STATUS_OPTIONS.find((s) => s.value === order.status)?.label ?? order.status}
+                        </span>
+                      )}
                     </div>
 
                     {/* Finance */}
@@ -157,6 +191,15 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
                           className="flex-1 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                         >
                           <Pencil className="w-3.5 h-3.5" /> Modifier
+                        </button>
+                      )}
+                      {canPay && order.paymentStatus !== "paye" && order.paymentStatus !== "rembourse" && (
+                        <button
+                          onClick={() => setPayingOrder(order)}
+                          className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 flex items-center justify-center transition-colors shrink-0"
+                          title="Ajouter un paiement"
+                        >
+                          <CreditCard className="w-4 h-4" />
                         </button>
                       )}
                       {canReceipt && order.paidAmount > 0 && (
@@ -204,10 +247,9 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {orders.map((order) => {
-                      const status = STATUS_LABELS[order.status] ?? { label: order.status, color: "bg-slate-100 text-slate-600" };
                       const payment = PAYMENT_LABELS[order.paymentStatus] ?? { label: order.paymentStatus, color: "bg-slate-100 text-slate-600" };
                       const balance = order.total - order.paidAmount;
-                      const waLink = buildWhatsAppConfirmation(order);
+                      const waLink = buildWhatsAppMessage(order);
                       return (
                         <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4">
@@ -233,9 +275,18 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
                             {formatDateShort(order.createdAt)}
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
-                              {status.label}
-                            </span>
+                            {canEdit ? (
+                              <QuickStatusSelect
+                                current={order.status}
+                                options={STATUS_OPTIONS}
+                                onSelect={(s) => handleQuickStatus(order, s)}
+                                disabled={isPending}
+                              />
+                            ) : (
+                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${STATUS_OPTIONS.find((s) => s.value === order.status)?.color ?? "bg-slate-100 text-slate-600"}`}>
+                                {STATUS_OPTIONS.find((s) => s.value === order.status)?.label ?? order.status}
+                              </span>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-right">
                             <p className="font-black text-slate-700 tabular-nums">{formatPrice(order.total)}</p>
@@ -261,7 +312,7 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
                             )}
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-1.5">
                               {canEdit && (
                                 <button
                                   onClick={() => setEditingOrder(order)}
@@ -269,6 +320,15 @@ export function CommandesClient({ orders, role, totalCount, activeFilter }: Comm
                                   className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
                                 >
                                   <Pencil className="w-4 h-4" />
+                                </button>
+                              )}
+                              {canPay && order.paymentStatus !== "paye" && order.paymentStatus !== "rembourse" && (
+                                <button
+                                  onClick={() => setPayingOrder(order)}
+                                  title="Ajouter un paiement"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
+                                >
+                                  <CreditCard className="w-4 h-4" />
                                 </button>
                               )}
                               {canReceipt && order.paidAmount > 0 && (

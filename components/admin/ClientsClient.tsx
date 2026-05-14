@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Plus, Search } from "lucide-react";
+import { Users, Plus, Search, MessageCircle, Copy, Check, FileText, ShoppingCart, Pencil } from "lucide-react";
 import type { Customer } from "@/lib/types/domain";
 import { formatDateShort } from "@/lib/utils/format";
 import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
+import Link from "next/link";
+import { siteConfig } from "@/lib/config/site";
 
 const TIER_LABELS: Record<string, { label: string; color: string }> = {
   nouveau:  { label: "Nouveau",  color: "bg-slate-100 text-slate-600" },
@@ -23,10 +25,17 @@ interface ClientsClientProps {
   customers: Customer[];
   totalCount?: number;
   activeFilter?: ActiveFilter;
+  canEdit?: boolean;
 }
 
-export function ClientsClient({ customers, totalCount, activeFilter }: ClientsClientProps) {
+function buildWhatsAppLink(whatsapp: string): string {
+  const number = whatsapp.replace(/[^0-9]/g, "") || siteConfig.whatsapp;
+  return `https://wa.me/${number}`;
+}
+
+export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: ClientsClientProps) {
   const [search, setSearch] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const filtered = search.trim()
     ? customers.filter((c) => {
@@ -38,6 +47,13 @@ export function ClientsClient({ customers, totalCount, activeFilter }: ClientsCl
         );
       })
     : customers;
+
+  function handleCopyPhone(customer: Customer) {
+    navigator.clipboard.writeText(customer.whatsapp).then(() => {
+      setCopiedId(customer.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -54,10 +70,12 @@ export function ClientsClient({ customers, totalCount, activeFilter }: ClientsCl
               : `${customers.length} client${customers.length > 1 ? "s" : ""} enregistrés`}
           </p>
         </div>
-        <button className="h-10 px-4 sm:px-5 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-primary-dark transition-all shrink-0">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Ajouter</span>
-        </button>
+        {canEdit && (
+          <button className="h-10 px-4 sm:px-5 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-primary-dark transition-all shrink-0">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Ajouter</span>
+          </button>
+        )}
       </div>
 
       {/* Badge filtre actif */}
@@ -94,6 +112,7 @@ export function ClientsClient({ customers, totalCount, activeFilter }: ClientsCl
           <div className="sm:hidden space-y-3">
             {filtered.map((c) => {
               const tier = TIER_LABELS[c.loyaltyTier] ?? TIER_LABELS.nouveau;
+              const waLink = buildWhatsAppLink(c.whatsapp);
               return (
                 <div key={c.id} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
@@ -111,6 +130,39 @@ export function ClientsClient({ customers, totalCount, activeFilter }: ClientsCl
                     <span>{c.whatsapp}</span>
                     <span>{formatDateShort(c.createdAt)}</span>
                   </div>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-9 rounded-xl bg-green-100 text-green-700 hover:bg-green-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      title="Ouvrir WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                    </a>
+                    <button
+                      onClick={() => handleCopyPhone(c)}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${copiedId === c.id ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+                      title={copiedId === c.id ? "Copié !" : "Copier le numéro"}
+                    >
+                      {copiedId === c.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                    <Link
+                      href={`/admin/devis?client=${encodeURIComponent(c.whatsapp)}`}
+                      className="w-9 h-9 rounded-xl bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center transition-colors shrink-0"
+                      title="Voir les devis"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                    </Link>
+                    <Link
+                      href={`/admin/commandes?client=${encodeURIComponent(c.whatsapp)}`}
+                      className="w-9 h-9 rounded-xl bg-slate-100 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary flex items-center justify-center transition-colors shrink-0"
+                      title="Voir les commandes"
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
               );
             })}
@@ -125,24 +177,63 @@ export function ClientsClient({ customers, totalCount, activeFilter }: ClientsCl
                   <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Contact</th>
                   <th className="text-center px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fidélité</th>
                   <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</th>
+                  <th className="text-center px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filtered.map((c) => {
                   const tier = TIER_LABELS[c.loyaltyTier] ?? TIER_LABELS.nouveau;
+                  const waLink = buildWhatsAppLink(c.whatsapp);
                   return (
                     <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <p className="font-bold text-slate-700">{c.contactName}</p>
                         {c.companyName && <p className="text-[11px] text-slate-400">{c.companyName}</p>}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{c.whatsapp}</td>
+                      <td className="px-6 py-4">
+                        <p className="text-slate-600 text-sm">{c.whatsapp}</p>
+                        {c.email && <p className="text-[11px] text-slate-400">{c.email}</p>}
+                      </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${tier.color}`}>
                           {tier.label}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-500 text-xs">{formatDateShort(c.createdAt)}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <a
+                            href={waLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Ouvrir WhatsApp"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </a>
+                          <button
+                            onClick={() => handleCopyPhone(c)}
+                            title={copiedId === c.id ? "Copié !" : "Copier le numéro"}
+                            className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${copiedId === c.id ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+                          >
+                            {copiedId === c.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                          <Link
+                            href={`/admin/devis?client=${encodeURIComponent(c.whatsapp)}`}
+                            title="Voir les devis"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                          </Link>
+                          <Link
+                            href={`/admin/commandes?client=${encodeURIComponent(c.whatsapp)}`}
+                            title="Voir les commandes"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary transition-colors"
+                          >
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}

@@ -28,7 +28,7 @@ const VALID_STATUSES: OrderStatus[] = [
 export default async function AdminCommandesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; payment?: string; filter?: string }>;
+  searchParams: Promise<{ status?: string; payment?: string; filter?: string; client?: string }>;
 }) {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
@@ -43,6 +43,7 @@ export default async function AdminCommandesPage({
     : undefined;
   const paymentParam = params.payment;
   const filterParam = params.filter;
+  const clientParam = params.client?.trim() || undefined;
 
   const result = await getOrdersEnriched();
   const allOrders = result.data ?? [];
@@ -66,9 +67,13 @@ export default async function AdminCommandesPage({
     orders = allOrders.filter((o) => !["livre", "annulee"].includes(o.status));
     filterLabel = "À traiter";
   }
+  if (clientParam) {
+    orders = orders.filter((o) => o.customer?.whatsapp === clientParam);
+    filterLabel = filterLabel ? `${filterLabel} · Client ${clientParam}` : `Client ${clientParam}`;
+  }
 
   const activeFilter =
-    statusParam || paymentParam || filterParam
+    statusParam || paymentParam || filterParam || clientParam
       ? { label: filterLabel, count: orders.length, resetHref: "/admin/commandes" }
       : undefined;
 

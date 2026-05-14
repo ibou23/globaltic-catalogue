@@ -20,7 +20,7 @@ const VALID_STATUSES: QuoteStatus[] = ["brouillon", "envoye", "accepte", "refuse
 export default async function AdminDevisPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; client?: string }>;
 }) {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
@@ -33,21 +33,27 @@ export default async function AdminDevisPage({
   const statusParam = VALID_STATUSES.includes(params.status as QuoteStatus)
     ? (params.status as QuoteStatus)
     : undefined;
+  const clientParam = params.client?.trim() || undefined;
 
   const result = await getQuotesEnriched();
   const allQuotes = result.data ?? [];
 
-  const quotes = statusParam
-    ? allQuotes.filter((q) => q.status === statusParam)
-    : allQuotes;
+  let quotes = allQuotes;
+  let filterLabel = "";
 
-  const activeFilter = statusParam
-    ? {
-        label: DEVIS_STATUS_LABELS[statusParam] ?? statusParam,
-        count: quotes.length,
-        resetHref: "/admin/devis",
-      }
-    : undefined;
+  if (statusParam) {
+    quotes = quotes.filter((q) => q.status === statusParam);
+    filterLabel = DEVIS_STATUS_LABELS[statusParam] ?? statusParam;
+  }
+  if (clientParam) {
+    quotes = quotes.filter((q) => q.customer?.whatsapp === clientParam);
+    filterLabel = filterLabel ? `${filterLabel} · Client ${clientParam}` : `Client ${clientParam}`;
+  }
+
+  const activeFilter =
+    statusParam || clientParam
+      ? { label: filterLabel, count: quotes.length, resetHref: "/admin/devis" }
+      : undefined;
 
   return <DevisClient quotes={quotes} totalCount={allQuotes.length} activeFilter={activeFilter} />;
 }

@@ -1,6 +1,6 @@
 import { getCustomers } from "@/lib/db/customers";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule } from "@/lib/auth/permissions";
+import { canAccessModule, canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { ClientsClient } from "@/components/admin/ClientsClient";
 
@@ -45,6 +45,7 @@ export default async function AdminClientsPage({
       customers={customers}
       totalCount={allCustomers.length}
       activeFilter={activeFilter}
+      canEdit={canPerform(admin.role, "client:edit")}
     />
   );
 }
