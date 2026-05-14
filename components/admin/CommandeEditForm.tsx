@@ -7,6 +7,7 @@ import { updateOrderAction } from "@/lib/actions/orders";
 import { getOrderFilesAction } from "@/lib/actions/order-files";
 import type { OrderEnriched, OrderFile, PaymentMethod } from "@/lib/types/domain";
 import { OrderFilesSection } from "@/components/admin/OrderFilesSection";
+import { BatWorkflowSection } from "@/components/admin/BatWorkflowSection";
 
 interface CommandeEditFormProps {
   order: OrderEnriched;
@@ -151,6 +152,15 @@ function buildWhatsAppMessage(order: OrderEnriched, status: OrderStatus): string
       ``,
       `Votre commande *${ref}* est en cours de préparation du BAT.`,
       `Vous recevrez prochainement un fichier de validation à approuver avant l'impression.`,
+      ``,
+      `*GLOBAL TIC*`,
+    ],
+    bat_valide: [
+      `Bonjour *${client}*,`,
+      ``,
+      `Nous vous confirmons la validation du *BAT* pour votre commande *${ref}*.`,
+      ``,
+      `Votre commande peut maintenant passer en production.`,
       ``,
       `*GLOBAL TIC*`,
     ],
@@ -314,6 +324,13 @@ export function CommandeEditForm({ order, onClose }: CommandeEditFormProps) {
               </div>
             )}
           </div>
+
+          {/* Workflow BAT */}
+          <BatWorkflowSection
+            order={order}
+            currentStatus={status}
+            onStatusChange={setStatus}
+          />
 
           {/* Paiement */}
           <div>
