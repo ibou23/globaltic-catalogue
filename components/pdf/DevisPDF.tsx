@@ -338,12 +338,23 @@ function addDays(iso: string, days: number): string {
   });
 }
 
+interface CompanyInfo {
+  name: string;
+  tagline: string;
+  address: string;
+  phone: string;
+  email: string;
+}
+
 interface DevisPDFProps {
   quote: Quote & { items: QuoteItem[] };
   customerName?: string;
   customerCompany?: string;
   customerWhatsapp?: string;
   logoUrl?: string;
+  company?: CompanyInfo;
+  pdfConditions?: string[];
+  pdfFooterText?: string;
 }
 
 export function DevisPDF({
@@ -352,7 +363,21 @@ export function DevisPDF({
   customerCompany,
   customerWhatsapp,
   logoUrl,
+  company,
+  pdfConditions,
+  pdfFooterText,
 }: DevisPDFProps) {
+  const companyName    = company?.name    ?? "GLOBAL TIC";
+  const companyTagline = company?.tagline ?? "Imprimerie Professionnelle";
+  const companyAddress = company?.address ?? "Dakar, Sénégal";
+  const companyPhone   = company?.phone   ?? "+221 77 619 04 19";
+  const companyEmail   = company?.email   ?? "contact@globalticgroup.com";
+  const footerText     = pdfFooterText    ?? `${companyName} — ${companyTagline} — ${companyAddress}`;
+  const conditions     = pdfConditions && pdfConditions.length > 0 ? pdfConditions : [
+    "Les délais de production sont donnés à titre indicatif et commencent à courir après validation définitive de la commande.",
+    "Les modalités de paiement sont les suivantes : 50 % d'acompte à la validation de la commande, le solde restant étant payable à la livraison.",
+  ];
+
   const hasDiscount = quote.discountPercent > 0;
   const validUntil = quote.validUntil
     ? formatDate(quote.validUntil)
@@ -361,9 +386,9 @@ export function DevisPDF({
   return (
     <Document
       title={`Devis ${quote.reference}`}
-      author="GLOBAL TIC"
+      author={companyName}
       subject="Devis imprimerie"
-      creator="GLOBAL TIC"
+      creator={companyName}
     >
       <Page size="A4" style={s.page}>
         {/* Header */}
@@ -371,14 +396,14 @@ export function DevisPDF({
           {logoUrl ? (
             <Image src={logoUrl} style={s.logo} />
           ) : (
-            <Text style={s.companyName}>GLOBAL TIC</Text>
+            <Text style={s.companyName}>{companyName}</Text>
           )}
           <View style={s.companyBlock}>
-            <Text style={s.companyName}>GLOBAL TIC</Text>
-            <Text style={s.companyDetail}>Imprimerie Professionnelle</Text>
-            <Text style={s.companyDetail}>Dakar, Sénégal</Text>
-            <Text style={s.companyDetail}>+221 77 619 04 19</Text>
-            <Text style={s.companyDetail}>contact@globalticgroup.com</Text>
+            <Text style={s.companyName}>{companyName}</Text>
+            <Text style={s.companyDetail}>{companyTagline}</Text>
+            <Text style={s.companyDetail}>{companyAddress}</Text>
+            <Text style={s.companyDetail}>{companyPhone}</Text>
+            <Text style={s.companyDetail}>{companyEmail}</Text>
           </View>
         </View>
 
@@ -498,23 +523,20 @@ export function DevisPDF({
         <View style={s.conditionsSection}>
           <Text style={s.conditionsTitle}>Conditions générales</Text>
           <View style={s.conditionsList}>
-            {[
-              "Les délais de production sont donnés à titre indicatif et commencent à courir après validation définitive de la commande.",
-              "Les modalités de paiement sont les suivantes : 50 % d'acompte à la validation de la commande, le solde restant étant payable à la livraison.",
-              `Ce devis est valable 30 jours à compter de sa date d'émission, soit jusqu'au ${validUntil}.`,
-            ].map((cond, i) => (
+            {conditions.map((cond, i) => (
               <Text key={i} style={s.conditionItem}>
                 • {cond}
               </Text>
             ))}
+            <Text style={s.conditionItem}>
+              • Ce devis est valable jusqu&apos;au {validUntil}.
+            </Text>
           </View>
         </View>
 
         {/* Footer */}
         <View style={s.footer} fixed>
-          <Text style={s.footerText}>
-            GLOBAL TIC — Imprimerie Professionnelle — Dakar, Sénégal
-          </Text>
+          <Text style={s.footerText}>{footerText}</Text>
           <Text style={s.footerBrand}>{quote.reference}</Text>
         </View>
       </Page>

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getQuoteById } from "@/lib/db/quotes";
 import { getCustomerById } from "@/lib/db/customers";
 import { getCurrentAdmin } from "@/lib/db/admin";
+import { getBusinessConfig } from "@/lib/db/business-config";
 import { DevisPDF } from "@/components/pdf/DevisPDF";
 import path from "path";
 import fs from "fs";
@@ -19,7 +20,11 @@ export async function GET(
 
   const { id } = await params;
 
-  const quoteResult = await getQuoteById(id);
+  const [quoteResult, config] = await Promise.all([
+    getQuoteById(id),
+    getBusinessConfig(),
+  ]);
+
   if (!quoteResult.data) {
     return NextResponse.json({ error: "Devis introuvable" }, { status: 404 });
   }
@@ -40,7 +45,6 @@ export async function GET(
     }
   }
 
-  // Resolve logo as absolute path for @react-pdf/renderer (server-side file read)
   const logoPath = path.join(process.cwd(), "public", "logo.png");
   const logoUrl = fs.existsSync(logoPath) ? logoPath : undefined;
 
@@ -50,6 +54,15 @@ export async function GET(
     customerCompany,
     customerWhatsapp,
     logoUrl,
+    company: {
+      name:    String(config.company_name),
+      tagline: String(config.company_tagline),
+      address: String(config.company_address),
+      phone:   String(config.company_phone),
+      email:   String(config.company_email),
+    },
+    pdfConditions:  Array.isArray(config.pdf_conditions) ? (config.pdf_conditions as string[]) : undefined,
+    pdfFooterText:  String(config.pdf_footer_text),
   }) as unknown as ReactElement<DocumentProps, string | JSXElementConstructor<unknown>>;
 
   const buffer = await renderToBuffer(element);

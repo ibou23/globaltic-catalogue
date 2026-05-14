@@ -30,6 +30,7 @@ export type Action =
   | "categorie:edit"
   | "categorie:delete"
   | "parametres:read"
+  | "parametres:edit"
   | "receipt:generate"
   | "pdf:generate"
   | "admin_user:read"
@@ -68,6 +69,7 @@ const ACTION_ACCESS: Record<Action, AdminRole[]> = {
   "categorie:edit":         ["patron", "admin"],
   "categorie:delete":       ["patron", "admin"],
   "parametres:read":        ["patron"],
+  "parametres:edit":        ["patron"],
   "receipt:generate":       ["patron", "admin", "commercial"],
   "pdf:generate":           ["patron", "admin", "commercial"],
   "admin_user:read":        ["patron"],

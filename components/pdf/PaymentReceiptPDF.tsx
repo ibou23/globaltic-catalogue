@@ -284,12 +284,29 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
   rembourse: "Rembourse",
 };
 
+interface CompanyInfo {
+  name: string;
+  tagline: string;
+  address: string;
+  phone: string;
+  email: string;
+}
+
 interface PaymentReceiptPDFProps {
   order: OrderEnriched;
   logoUrl?: string;
+  company?: CompanyInfo;
+  pdfFooterText?: string;
 }
 
-export function PaymentReceiptPDF({ order, logoUrl }: PaymentReceiptPDFProps) {
+export function PaymentReceiptPDF({ order, logoUrl, company, pdfFooterText }: PaymentReceiptPDFProps) {
+  const companyName    = company?.name    ?? "GLOBAL TIC";
+  const companyTagline = company?.tagline ?? "Imprimerie Professionnelle";
+  const companyAddress = company?.address ?? "Dakar, Sénégal";
+  const companyPhone   = company?.phone   ?? "+221 77 619 04 19";
+  const companyEmail   = company?.email   ?? "contact@globalticgroup.com";
+  const footerText     = pdfFooterText    ?? `${companyName} — ${companyTagline} — ${companyAddress}`;
+
   const balance     = order.total - order.paidAmount;
   const isFullyPaid = balance <= 0;
   const paymentDate = order.lastPaymentAt ?? order.createdAt;
@@ -297,9 +314,9 @@ export function PaymentReceiptPDF({ order, logoUrl }: PaymentReceiptPDFProps) {
   return (
     <Document
       title={`Recu de paiement ${order.reference}`}
-      author="GLOBAL TIC"
+      author={companyName}
       subject="Recu de paiement"
-      creator="GLOBAL TIC"
+      creator={companyName}
     >
       <Page size="A4" style={s.page}>
 
@@ -308,14 +325,14 @@ export function PaymentReceiptPDF({ order, logoUrl }: PaymentReceiptPDFProps) {
           {logoUrl ? (
             <Image src={logoUrl} style={s.logo} />
           ) : (
-            <Text style={s.companyName}>GLOBAL TIC</Text>
+            <Text style={s.companyName}>{companyName}</Text>
           )}
           <View style={s.companyBlock}>
-            <Text style={s.companyName}>GLOBAL TIC</Text>
-            <Text style={s.companyDetail}>Imprimerie Professionnelle</Text>
-            <Text style={s.companyDetail}>Dakar, Senegal</Text>
-            <Text style={s.companyDetail}>+221 77 619 04 19</Text>
-            <Text style={s.companyDetail}>contact@globalticgroup.com</Text>
+            <Text style={s.companyName}>{companyName}</Text>
+            <Text style={s.companyDetail}>{companyTagline}</Text>
+            <Text style={s.companyDetail}>{companyAddress}</Text>
+            <Text style={s.companyDetail}>{companyPhone}</Text>
+            <Text style={s.companyDetail}>{companyEmail}</Text>
           </View>
         </View>
 
@@ -426,9 +443,7 @@ export function PaymentReceiptPDF({ order, logoUrl }: PaymentReceiptPDFProps) {
 
         {/* Footer */}
         <View style={s.footer} fixed>
-          <Text style={s.footerText}>
-            GLOBAL TIC — Imprimerie Professionnelle — Dakar, Senegal
-          </Text>
+          <Text style={s.footerText}>{footerText}</Text>
           <Text style={s.footerBrand}>{order.reference}</Text>
         </View>
 

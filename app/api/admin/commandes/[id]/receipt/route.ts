@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getOrderEnrichedById } from "@/lib/db/orders";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { canPerform } from "@/lib/auth/permissions";
+import { getBusinessConfig } from "@/lib/db/business-config";
 import { PaymentReceiptPDF } from "@/components/pdf/PaymentReceiptPDF";
 import path from "path";
 import fs from "fs";
@@ -22,7 +23,11 @@ export async function GET(
 
   const { id } = await params;
 
-  const orderResult = await getOrderEnrichedById(id);
+  const [orderResult, config] = await Promise.all([
+    getOrderEnrichedById(id),
+    getBusinessConfig(),
+  ]);
+
   if (!orderResult.data) {
     return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
   }
@@ -39,6 +44,14 @@ export async function GET(
   const element = createElement(PaymentReceiptPDF, {
     order,
     logoUrl,
+    company: {
+      name:    String(config.company_name),
+      tagline: String(config.company_tagline),
+      address: String(config.company_address),
+      phone:   String(config.company_phone),
+      email:   String(config.company_email),
+    },
+    pdfFooterText: String(config.pdf_footer_text),
   }) as unknown as ReactElement<DocumentProps, string | JSXElementConstructor<unknown>>;
 
   const buffer = await renderToBuffer(element);
