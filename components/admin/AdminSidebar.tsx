@@ -22,6 +22,7 @@ import {
   Wrench,
   CheckSquare,
   AlertCircle,
+  CalendarDays,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -51,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Tâches",         href: "/admin/taches",       icon: CheckSquare,                  module: "taches" },
   { label: "Factures",       href: "/admin/factures",     icon: FileText,                     module: "factures" },
   { label: "Impayés",        href: "/admin/impayes",      icon: AlertCircle,                  module: "impayes" },
+  { label: "Planning",       href: "/admin/planning",     icon: CalendarDays,                 module: "planning" },
   { label: "Aide",           href: "/admin/aide",         icon: HelpCircle,                   module: "aide" },
   { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                        module: "maintenance" },
 ];

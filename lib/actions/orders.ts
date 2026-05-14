@@ -1,7 +1,7 @@
 "use server";
 
 import { createOrderSchema, updateOrderSchema } from "@/lib/validators/order";
-import { createOrder, updateOrder, getOrderByQuoteId, getOrderById } from "@/lib/db/orders";
+import { createOrder, updateOrder, getOrderByQuoteId, getOrderById, updateOrderStatus } from "@/lib/db/orders";
 import { getQuoteById } from "@/lib/db/quotes";
 import { generateReference } from "@/lib/services/reference";
 import { getCurrentAdmin } from "@/lib/db/admin";
@@ -190,6 +190,24 @@ export async function updateOrderAction(
     for (const job of notifJobs) {
       await createAdminNotifications(job);
     }
+  }
+
+  return result;
+}
+
+export async function quickUpdateOrderStatusAction(
+  id: string,
+  status: Order["status"]
+): Promise<Result<Order>> {
+  const adminCheck = await getCurrentAdmin();
+  const denied = requireRole(adminCheck.data?.role, "commande:edit_status");
+  if (denied) return err(denied);
+  if (!id) return err("Identifiant manquant");
+
+  const result = await updateOrderStatus(id, status);
+
+  if (result.data) {
+    logOrderEvent(adminCheck.data?.userId ?? null, id, "statut_change", { vers: status });
   }
 
   return result;
