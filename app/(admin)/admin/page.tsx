@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDashboardStats } from "@/lib/db/stats";
 import { getCurrentAdmin } from "@/lib/db/admin";
+import { getTasksDueToday, getOverdueTasks } from "@/lib/db/tasks";
 import { StatCard } from "@/components/admin/StatCard";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import {
@@ -20,6 +21,7 @@ import {
   Image,
   FolderOpen,
   ArrowRight,
+  CheckSquare,
 } from "lucide-react";
 import type { AdminRole } from "@/lib/types/domain";
 import { canAccessModule } from "@/lib/auth/permissions";
@@ -100,9 +102,11 @@ function canSeeFinance(role: AdminRole): boolean {
 }
 
 export default async function AdminOverviewPage() {
-  const [adminResult, statsResult] = await Promise.all([
+  const [adminResult, statsResult, todayTasksResult, overdueTasksResult] = await Promise.all([
     getCurrentAdmin(),
     getDashboardStats(),
+    getTasksDueToday(),
+    getOverdueTasks(),
   ]);
 
   const admin = adminResult.data;
@@ -122,6 +126,8 @@ export default async function AdminOverviewPage() {
 
   const stats = statsResult.data!;
   const showFinance = canSeeFinance(role);
+  const todayTasks   = todayTasksResult.data ?? [];
+  const overdueTasks = overdueTasksResult.data ?? [];
 
   // Liens uniquement si le rôle a accès au module cible
   const href = {
@@ -301,6 +307,60 @@ export default async function AdminOverviewPage() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── TÂCHES DU JOUR / EN RETARD ── */}
+      {canAccessModule(role, "taches") && (overdueTasks.length > 0 || todayTasks.length > 0) && (
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-brand-primary" />
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                Tâches du jour
+                {overdueTasks.length > 0 && (
+                  <span className="ml-2 text-red-500">· {overdueTasks.length} en retard</span>
+                )}
+              </h3>
+            </div>
+            <Link
+              href="/admin/taches"
+              className="flex items-center gap-1 text-[10px] font-bold text-brand-primary/70 hover:text-brand-primary transition-colors"
+            >
+              Voir tout <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="divide-y divide-slate-50">
+            {[...overdueTasks.slice(0, 3), ...todayTasks.slice(0, 3)].slice(0, 5).map((task) => {
+              const isOverdue = task.dueDate ? task.dueDate < new Date().toISOString().slice(0, 10) : false;
+              return (
+                <Link
+                  key={task.id}
+                  href="/admin/taches"
+                  className="px-6 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                >
+                  <div className="min-w-0">
+                    <p className={`text-sm font-bold group-hover:text-brand-primary transition-colors truncate ${isOverdue ? "text-red-600" : "text-slate-700"}`}>
+                      {task.title}
+                    </p>
+                    {task.customer && (
+                      <p className="text-[11px] text-slate-400 mt-0.5">{task.customer.contactName}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    {isOverdue && (
+                      <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded">En retard</span>
+                    )}
+                    <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg ${
+                      task.priority === "urgente" ? "bg-red-100 text-red-600" :
+                      task.priority === "haute"   ? "bg-amber-100 text-amber-600" :
+                      "bg-slate-100 text-slate-500"
+                    }`}>{task.priority}</span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}

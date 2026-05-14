@@ -25,11 +25,15 @@ import {
   PackageCheck,
   Clock,
   Star,
+  CheckSquare,
+  Plus,
 } from "lucide-react";
-import type { Customer, QuoteEnriched, OrderEnriched, AdminRole } from "@/lib/types/domain";
+import type { Customer, QuoteEnriched, OrderEnriched, AdminRole, TaskEnriched, AdminProfile } from "@/lib/types/domain";
 import { formatPrice, formatDate, formatDateShort } from "@/lib/utils/format";
 import { canPerform } from "@/lib/auth/permissions";
 import { updateCustomerNotesAction } from "@/lib/actions/customers";
+import { updateTaskStatusAction } from "@/lib/actions/tasks";
+import { TaskForm } from "@/components/admin/TaskForm";
 import { siteConfig } from "@/lib/config/site";
 
 // ─── Labels ─────────────────────────────────────────────────────────────────
@@ -163,18 +167,52 @@ function msgRemerciement(customer: Customer, order: OrderEnriched): string {
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
+const TASK_TYPE_LABELS: Record<string, string> = {
+  relancer_devis:      "Relancer devis",
+  relancer_paiement:   "Relancer paiement",
+  envoyer_bat:         "Envoyer BAT",
+  verifier_production: "Vérifier production",
+  confirmer_livraison: "Confirmer livraison",
+  appeler_client:      "Appeler client",
+  autre:               "Autre",
+};
+
+const TASK_PRIORITY_COLORS: Record<string, string> = {
+  basse:   "bg-slate-100 text-slate-500",
+  normale: "bg-blue-100 text-blue-600",
+  haute:   "bg-amber-100 text-amber-700",
+  urgente: "bg-red-100 text-red-600",
+};
+
+const TASK_STATUS_COLORS: Record<string, string> = {
+  a_faire:  "bg-slate-100 text-slate-600",
+  en_cours: "bg-blue-100 text-blue-600",
+  terminee: "bg-green-100 text-green-600",
+  annulee:  "bg-slate-100 text-slate-400",
+};
+
+const TASK_STATUS_LABELS: Record<string, string> = {
+  a_faire:  "À faire",
+  en_cours: "En cours",
+  terminee: "Terminée",
+  annulee:  "Annulée",
+};
+
 interface ClientDetailClientProps {
   customer: Customer;
   quotes: QuoteEnriched[];
   orders: OrderEnriched[];
+  tasks: TaskEnriched[];
+  adminProfiles: AdminProfile[];
   role: AdminRole;
   canEdit: boolean;
   canSeeFinances: boolean;
+  canCreateTask: boolean;
 }
 
 // ─── Tabs ────────────────────────────────────────────────────────────────────
 
-type Tab = "resume" | "devis" | "commandes" | "paiements" | "notes";
+type Tab = "resume" | "devis" | "commandes" | "paiements" | "taches" | "notes";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -182,9 +220,12 @@ export function ClientDetailClient({
   customer,
   quotes,
   orders,
+  tasks,
+  adminProfiles,
   role,
   canEdit,
   canSeeFinances,
+  canCreateTask,
 }: ClientDetailClientProps) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("resume");
@@ -193,6 +234,8 @@ export function ClientDetailClient({
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesPending, startNotesTransition] = useTransition();
   const [notesError, setNotesError] = useState<string | null>(null);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskPending, startTaskTransition] = useTransition();
 
   const tier = TIER_LABELS[customer.loyaltyTier] ?? TIER_LABELS.nouveau;
   const waBase = buildWaLink(customer.whatsapp);
@@ -215,6 +258,13 @@ export function ClientDetailClient({
     });
   }
 
+  function handleTaskStatus(taskId: string, status: string) {
+    startTaskTransition(async () => {
+      await updateTaskStatusAction({ id: taskId, status });
+      router.refresh();
+    });
+  }
+
   function handleSaveNotes() {
     setNotesError(null);
     startNotesTransition(async () => {
@@ -233,11 +283,21 @@ export function ClientDetailClient({
     { key: "devis",      label: "Devis",     count: totalQuotes },
     { key: "commandes",  label: "Commandes", count: totalOrders },
     { key: "paiements",  label: "Paiements", count: orders.filter((o) => o.paidAmount > 0).length },
+    { key: "taches",     label: "Tâches",    count: tasks.filter((t) => !["terminee", "annulee"].includes(t.status)).length },
     { key: "notes",      label: "Notes" },
   ];
 
   return (
     <div className="space-y-6">
+
+      {showTaskForm && (
+        <TaskForm
+          adminProfiles={adminProfiles}
+          customers={[customer]}
+          prefill={{ customerId: customer.id }}
+          onClose={() => { setShowTaskForm(false); router.refresh(); }}
+        />
+      )}
 
       {/* Back + en-tête */}
       <div>
@@ -681,6 +741,72 @@ export function ClientDetailClient({
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total encaissé</span>
                     <span className="text-base font-black text-slate-800">{formatPrice(totalSpent)}</span>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Tâches ── */}
+          {tab === "taches" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <CheckSquare className="w-3.5 h-3.5" /> Tâches liées à ce client
+                </h3>
+                {canCreateTask && (
+                  <button
+                    onClick={() => setShowTaskForm(true)}
+                    className="h-8 px-3 rounded-lg bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Plus className="w-3 h-3" /> Nouvelle tâche
+                  </button>
+                )}
+              </div>
+
+              {tasks.length === 0 ? (
+                <div className="py-8 text-center bg-slate-50 rounded-xl">
+                  <CheckSquare className="w-7 h-7 text-slate-200 mx-auto mb-2" />
+                  <p className="text-xs font-bold text-slate-300">Aucune tâche pour ce client</p>
+                  {canCreateTask && (
+                    <button onClick={() => setShowTaskForm(true)} className="mt-2 text-xs font-bold text-brand-primary hover:underline">
+                      Créer une tâche
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {tasks.map((t) => (
+                    <div key={t.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-slate-700">{t.title}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{TASK_TYPE_LABELS[t.taskType] ?? t.taskType}</p>
+                        {t.dueDate && (
+                          <p className="text-[11px] text-slate-400 mt-0.5">Échéance : {formatDateShort(t.dueDate)}</p>
+                        )}
+                        {t.assignedAdmin && (
+                          <p className="text-[10px] text-slate-400 mt-0.5">→ {t.assignedAdmin.fullName}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${TASK_PRIORITY_COLORS[t.priority] ?? ""}`}>
+                          {t.priority}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${TASK_STATUS_COLORS[t.status] ?? ""}`}>
+                          {TASK_STATUS_LABELS[t.status] ?? t.status}
+                        </span>
+                        {t.status !== "terminee" && (
+                          <button
+                            onClick={() => handleTaskStatus(t.id, "terminee")}
+                            disabled={taskPending}
+                            className="w-7 h-7 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 flex items-center justify-center transition-colors"
+                            title="Marquer terminée"
+                          >
+                            <CheckSquare className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

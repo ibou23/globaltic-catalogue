@@ -243,6 +243,44 @@ export interface PriceCalculation {
   quantity: number;
 }
 
+export type TaskType =
+  | "relancer_devis"
+  | "relancer_paiement"
+  | "envoyer_bat"
+  | "verifier_production"
+  | "confirmer_livraison"
+  | "appeler_client"
+  | "autre";
+
+export type TaskPriority = "basse" | "normale" | "haute" | "urgente";
+export type TaskStatus   = "a_faire" | "en_cours" | "terminee" | "annulee";
+
+export interface Task {
+  id:          string;
+  title:       string;
+  description: string | null;
+  taskType:    TaskType;
+  priority:    TaskPriority;
+  status:      TaskStatus;
+  dueDate:     string | null;
+  closedAt:    string | null;
+  customerId:  string | null;
+  quoteId:     string | null;
+  orderId:     string | null;
+  createdBy:   string | null;
+  assignedTo:  string | null;
+  createdAt:   string;
+  updatedAt:   string;
+}
+
+export interface TaskEnriched extends Task {
+  customer:    { id: string; contactName: string; whatsapp: string; companyName: string | null } | null;
+  quote:       { id: string; reference: string; total: number } | null;
+  order:       { id: string; reference: string; total: number } | null;
+  assignedAdmin: { id: string; fullName: string; email: string } | null;
+  createdByAdmin: { id: string; fullName: string } | null;
+}
+
 export interface Realisation {
   id: string;
   title: string;

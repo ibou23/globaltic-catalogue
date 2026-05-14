@@ -20,6 +20,7 @@ import {
   Upload,
   HelpCircle,
   Wrench,
+  CheckSquare,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -46,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Utilisateurs",   href: "/admin/utilisateurs", icon: UserCog,                      module: "utilisateurs" },
   { label: "Imports CSV",    href: "/admin/imports",      icon: Upload,                       module: "imports" },
   { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
+  { label: "Tâches",         href: "/admin/taches",       icon: CheckSquare,                  module: "taches" },
   { label: "Aide",           href: "/admin/aide",         icon: HelpCircle,                   module: "aide" },
   { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                        module: "maintenance" },
 ];
