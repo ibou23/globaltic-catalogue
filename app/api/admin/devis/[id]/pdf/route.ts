@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getQuoteById } from "@/lib/db/quotes";
 import { getCustomerById } from "@/lib/db/customers";
 import { getCurrentAdmin } from "@/lib/db/admin";
+import { canPerform } from "@/lib/auth/permissions";
 import { getBusinessConfig } from "@/lib/db/business-config";
 import { DevisPDF } from "@/components/pdf/DevisPDF";
 import path from "path";
@@ -16,6 +17,9 @@ export async function GET(
   const admin = await getCurrentAdmin();
   if (!admin.data) {
     return NextResponse.json({ error: "Accès réservé aux administrateurs" }, { status: 403 });
+  }
+  if (!canPerform(admin.data.role, "pdf:generate")) {
+    return NextResponse.json({ error: "Vous n'avez pas les droits nécessaires" }, { status: 403 });
   }
 
   const { id } = await params;

@@ -9,12 +9,18 @@ import {
   replaceQuantityTiers,
 } from "@/lib/db/products";
 import { err, type Result } from "@/lib/utils/result";
+import { getCurrentAdmin } from "@/lib/db/admin";
+import { requireRole } from "@/lib/auth/permissions";
 import type { Product } from "@/lib/types/domain";
 import { z } from "zod";
 
 export async function createProductAction(
   formData: unknown
 ): Promise<Result<Product>> {
+  const admin = await getCurrentAdmin();
+  const denied = requireRole(admin.data?.role, "produit:create");
+  if (denied) return err(denied);
+
   const parsed = productSchema.safeParse(formData);
   if (!parsed.success) {
     return err(parsed.error.issues[0]?.message ?? "Données invalides");
@@ -35,6 +41,10 @@ export async function updateProductAction(
   id: string,
   formData: unknown
 ): Promise<Result<Product>> {
+  const admin = await getCurrentAdmin();
+  const denied = requireRole(admin.data?.role, "produit:edit");
+  if (denied) return err(denied);
+
   const parsed = productSchema.partial().safeParse(formData);
   if (!parsed.success) {
     return err(parsed.error.issues[0]?.message ?? "Données invalides");
@@ -54,6 +64,10 @@ export async function updateProductAction(
 export async function deleteProductAction(
   id: string
 ): Promise<Result<null>> {
+  const admin = await getCurrentAdmin();
+  const denied = requireRole(admin.data?.role, "produit:delete");
+  if (denied) return err(denied);
+
   const result = await deleteProduct(id);
 
   if (!result.error) {
@@ -75,6 +89,10 @@ const tiersPayloadSchema = z.object({
 export async function replaceQuantityTiersAction(
   formData: unknown
 ): Promise<Result<null>> {
+  const admin = await getCurrentAdmin();
+  const denied = requireRole(admin.data?.role, "produit:edit");
+  if (denied) return err(denied);
+
   const parsed = tiersPayloadSchema.safeParse(formData);
   if (!parsed.success) {
     return err(parsed.error.issues[0]?.message ?? "Données invalides");

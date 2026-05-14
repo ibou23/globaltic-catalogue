@@ -30,6 +30,11 @@ export type Action =
   | "categorie:create"
   | "categorie:edit"
   | "categorie:delete"
+  | "realisation:create"
+  | "realisation:edit"
+  | "realisation:delete"
+  | "client:create"
+  | "client:edit"
   | "parametres:read"
   | "parametres:edit"
   | "receipt:generate"
@@ -73,6 +78,11 @@ const ACTION_ACCESS: Record<Action, AdminRole[]> = {
   "categorie:create":       ["patron", "admin"],
   "categorie:edit":         ["patron", "admin"],
   "categorie:delete":       ["patron", "admin"],
+  "realisation:create":     ["patron", "admin"],
+  "realisation:edit":       ["patron", "admin"],
+  "realisation:delete":     ["patron", "admin"],
+  "client:create":          ["patron", "admin", "commercial"],
+  "client:edit":            ["patron", "admin", "commercial"],
   "parametres:read":        ["patron"],
   "parametres:edit":        ["patron"],
   "receipt:generate":       ["patron", "admin", "commercial"],
