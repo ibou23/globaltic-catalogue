@@ -102,6 +102,35 @@ export async function getOrderById(
   return ok(data ? mapOrder(data) : null);
 }
 
+export async function getOrderEnrichedById(
+  id: string
+): Promise<Result<OrderEnriched | null>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, customers(contact_name, whatsapp, company_name)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) return err(error.message);
+  if (!data) return ok(null);
+
+  const row = data as Record<string, unknown>;
+  const order = mapOrder(row);
+  const customerRaw = row.customers as Record<string, unknown> | null;
+  return ok({
+    ...order,
+    customer: customerRaw
+      ? {
+          contactName: customerRaw.contact_name as string,
+          whatsapp: customerRaw.whatsapp as string,
+          companyName: (customerRaw.company_name as string) ?? null,
+        }
+      : null,
+  });
+}
+
 export async function getOrderByReference(
   reference: string
 ): Promise<Result<Order | null>> {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ShoppingCart, MessageCircle, Pencil } from "lucide-react";
+import { ShoppingCart, MessageCircle, Pencil, FileDown } from "lucide-react";
 import type { OrderEnriched } from "@/lib/types/domain";
 import { formatPrice, formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
@@ -170,6 +170,17 @@ export function CommandesClient({ orders }: CommandesClientProps) {
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
+                          {order.paidAmount > 0 && (
+                            <a
+                              href={`/api/admin/commandes/${order.id}/receipt`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Télécharger le reçu PDF"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                            >
+                              <FileDown className="w-4 h-4" />
+                            </a>
+                          )}
                           {order.customer && (
                             <a
                               href={waLink}
