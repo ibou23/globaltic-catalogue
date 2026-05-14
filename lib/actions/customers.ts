@@ -4,6 +4,7 @@ import { customerSchema } from "@/lib/validators/customer";
 import {
   createCustomer,
   updateCustomer,
+  updateCustomerNotes,
   getCustomerByWhatsapp,
 } from "@/lib/db/customers";
 import { ok, err, type Result } from "@/lib/utils/result";
@@ -45,6 +46,18 @@ export async function updateCustomerAction(
   }
 
   return updateCustomer(id, parsed.data);
+}
+
+export async function updateCustomerNotesAction(
+  id: string,
+  notes: string
+): Promise<Result<null>> {
+  const admin = await getCurrentAdmin();
+  const denied = requireRole(admin.data?.role, "client:edit");
+  if (denied) return err(denied);
+
+  const trimmed = notes.trim().slice(0, 2000);
+  return updateCustomerNotes(id, trimmed);
 }
 
 // Utilisé lors de la création d'un devis — le commercial crée le client s'il n'existe pas

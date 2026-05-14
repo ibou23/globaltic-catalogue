@@ -58,6 +58,51 @@ export async function getQuotesEnriched(): Promise<Result<QuoteEnriched[]>> {
   return ok(quotes);
 }
 
+export async function getQuotesEnrichedByCustomer(
+  customerId: string
+): Promise<Result<QuoteEnriched[]>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("*, customers(contact_name, whatsapp, company_name), quote_items(id, product_name, quantity, unit_price, total_price, config_snapshot)")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+
+  if (error) return err(error.message);
+
+  const quotes: QuoteEnriched[] = (data as Record<string, unknown>[]).map((row) => {
+    const quote = mapQuote(row);
+    const customerRaw = row.customers as Record<string, unknown> | null;
+    const itemsRaw = Array.isArray(row.quote_items)
+      ? (row.quote_items as Record<string, unknown>[])
+      : [];
+
+    return {
+      ...quote,
+      customer: customerRaw
+        ? {
+            contactName: customerRaw.contact_name as string,
+            whatsapp: customerRaw.whatsapp as string,
+            companyName: (customerRaw.company_name as string) ?? null,
+          }
+        : null,
+      firstItem: itemsRaw[0]
+        ? {
+            id: itemsRaw[0].id as string,
+            productName: itemsRaw[0].product_name as string,
+            quantity: itemsRaw[0].quantity as number,
+            unitPrice: itemsRaw[0].unit_price as number,
+            totalPrice: itemsRaw[0].total_price as number,
+            configSnapshot: (itemsRaw[0].config_snapshot as Record<string, unknown>) ?? {},
+          }
+        : null,
+    };
+  });
+
+  return ok(quotes);
+}
+
 export async function getQuotesByStatus(
   status: QuoteStatus
 ): Promise<Result<Quote[]>> {

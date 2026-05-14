@@ -1,0 +1,53 @@
+import { getCurrentAdmin } from "@/lib/db/admin";
+import { canAccessModule, canPerform } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/admin/AccessDenied";
+import { ClientDetailClient } from "@/components/admin/ClientDetailClient";
+import { getCustomerById } from "@/lib/db/customers";
+import { getQuotesEnrichedByCustomer } from "@/lib/db/quotes";
+import { getOrdersEnrichedByCustomer } from "@/lib/db/orders";
+import { notFound } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminClientDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const adminResult = await getCurrentAdmin();
+  const admin = adminResult.data;
+
+  if (!admin || !canAccessModule(admin.role, "clients")) {
+    return <AccessDenied />;
+  }
+
+  const { id } = await params;
+
+  const [customerResult, quotesResult, ordersResult] = await Promise.all([
+    getCustomerById(id),
+    getQuotesEnrichedByCustomer(id),
+    getOrdersEnrichedByCustomer(id),
+  ]);
+
+  if (!customerResult.data) {
+    notFound();
+  }
+
+  const customer  = customerResult.data;
+  const quotes    = quotesResult.data ?? [];
+  const orders    = ordersResult.data ?? [];
+
+  const canEdit        = canPerform(admin.role, "client:edit");
+  const canSeeFinances = canPerform(admin.role, "commande:edit_payment") || canPerform(admin.role, "receipt:generate");
+
+  return (
+    <ClientDetailClient
+      customer={customer}
+      quotes={quotes}
+      orders={orders}
+      role={admin.role}
+      canEdit={canEdit}
+      canSeeFinances={canSeeFinances}
+    />
+  );
+}

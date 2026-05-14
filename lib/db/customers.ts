@@ -96,6 +96,21 @@ export async function searchCustomers(
   return ok(data.map(mapCustomer));
 }
 
+export async function updateCustomerNotes(
+  id: string,
+  notes: string
+): Promise<Result<null>> {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("customers")
+    .update({ notes })
+    .eq("id", id);
+
+  if (error) return err(error.message);
+  return ok(null);
+}
+
 export async function getCustomerLinkedCount(
   id: string
 ): Promise<{ quotes: number; orders: number }> {

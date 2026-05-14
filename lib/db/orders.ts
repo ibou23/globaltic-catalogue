@@ -72,6 +72,37 @@ export async function createOrder(
   return ok(mapOrder(data));
 }
 
+export async function getOrdersEnrichedByCustomer(
+  customerId: string
+): Promise<Result<OrderEnriched[]>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, customers(contact_name, whatsapp, company_name)")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+
+  if (error) return err(error.message);
+
+  const orders: OrderEnriched[] = (data as Record<string, unknown>[]).map((row) => {
+    const order = mapOrder(row);
+    const customerRaw = row.customers as Record<string, unknown> | null;
+    return {
+      ...order,
+      customer: customerRaw
+        ? {
+            contactName: customerRaw.contact_name as string,
+            whatsapp: customerRaw.whatsapp as string,
+            companyName: (customerRaw.company_name as string) ?? null,
+          }
+        : null,
+    };
+  });
+
+  return ok(orders);
+}
+
 export async function getOrdersByStatus(
   status: OrderStatus
 ): Promise<Result<Order[]>> {

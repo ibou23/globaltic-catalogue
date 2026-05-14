@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Plus, Search, MessageCircle, Copy, Check, FileText, ShoppingCart, Pencil } from "lucide-react";
+import { Users, Plus, Search, MessageCircle, Copy, Check, FileText, ShoppingCart, Eye } from "lucide-react";
 import type { Customer } from "@/lib/types/domain";
 import { formatDateShort } from "@/lib/utils/format";
 import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
@@ -117,7 +117,9 @@ export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: 
                 <div key={c.id} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-black text-slate-800 text-sm">{c.contactName}</p>
+                      <Link href={`/admin/clients/${c.id}`} className="font-black text-slate-800 text-sm hover:text-brand-primary transition-colors">
+                        {c.contactName}
+                      </Link>
                       {c.companyName && (
                         <p className="text-xs text-slate-500 truncate">{c.companyName}</p>
                       )}
@@ -132,6 +134,13 @@ export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: 
                   </div>
                   {/* Actions */}
                   <div className="flex items-center gap-2 pt-1">
+                    <Link
+                      href={`/admin/clients/${c.id}`}
+                      className="flex-1 h-9 rounded-xl bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      title="Voir la fiche client"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Fiche
+                    </Link>
                     <a
                       href={waLink}
                       target="_blank"
@@ -187,7 +196,9 @@ export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-bold text-slate-700">{c.contactName}</p>
+                        <Link href={`/admin/clients/${c.id}`} className="font-bold text-slate-700 hover:text-brand-primary transition-colors">
+                          {c.contactName}
+                        </Link>
                         {c.companyName && <p className="text-[11px] text-slate-400">{c.companyName}</p>}
                       </td>
                       <td className="px-6 py-4">
@@ -202,6 +213,13 @@ export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: 
                       <td className="px-6 py-4 text-slate-500 text-xs">{formatDateShort(c.createdAt)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-1.5">
+                          <Link
+                            href={`/admin/clients/${c.id}`}
+                            title="Voir la fiche client"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </Link>
                           <a
                             href={waLink}
                             target="_blank"
