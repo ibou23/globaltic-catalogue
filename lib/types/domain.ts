@@ -212,6 +212,7 @@ export interface AdminProfile {
   role: AdminRole;
   avatarUrl: string | null;
   isActive: boolean;
+  createdAt: string;
 }
 
 export interface PriceCalculation {

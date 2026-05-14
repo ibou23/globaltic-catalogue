@@ -55,5 +55,23 @@ export async function logOrderEvent(
     entity_id: orderId,
     metadata: metadata ?? null,
   });
-  // Non bloquant : on n'interrompt pas le flux principal si le log échoue
+  // Non bloquant
+}
+
+export async function logAdminEvent(
+  actorId: string | null,
+  action: string,
+  targetId: string | null,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  const supabase = await createClient();
+
+  await supabase.from("activity_log").insert({
+    user_id: actorId ?? null,
+    action,
+    entity_type: "admin_user",
+    entity_id: targetId ?? null,
+    metadata: metadata ?? null,
+  });
+  // Non bloquant
 }

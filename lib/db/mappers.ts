@@ -221,5 +221,6 @@ export function mapAdminProfile(row: Record<string, unknown>): AdminProfile {
     role: row.role as AdminProfile["role"],
     avatarUrl: (row.avatar_url as string) ?? null,
     isActive: row.is_active as boolean,
+    createdAt: row.created_at as string,
   };
 }

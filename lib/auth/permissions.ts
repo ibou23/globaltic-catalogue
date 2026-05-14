@@ -9,7 +9,8 @@ export type Module =
   | "commandes"
   | "clients"
   | "realisations"
-  | "parametres";
+  | "parametres"
+  | "utilisateurs";
 
 // Actions métier sensibles
 export type Action =
@@ -30,7 +31,11 @@ export type Action =
   | "categorie:delete"
   | "parametres:read"
   | "receipt:generate"
-  | "pdf:generate";
+  | "pdf:generate"
+  | "admin_user:read"
+  | "admin_user:create"
+  | "admin_user:edit"
+  | "admin_user:toggle";
 
 // Matrice complète : role → modules accessibles
 const MODULE_ACCESS: Record<Module, AdminRole[]> = {
@@ -42,6 +47,7 @@ const MODULE_ACCESS: Record<Module, AdminRole[]> = {
   categories:   ["patron", "admin"],
   realisations: ["patron", "admin"],
   parametres:   ["patron"],
+  utilisateurs: ["patron"],
 };
 
 // Matrice complète : role → actions autorisées
@@ -64,6 +70,10 @@ const ACTION_ACCESS: Record<Action, AdminRole[]> = {
   "parametres:read":        ["patron"],
   "receipt:generate":       ["patron", "admin", "commercial"],
   "pdf:generate":           ["patron", "admin", "commercial"],
+  "admin_user:read":        ["patron"],
+  "admin_user:create":      ["patron"],
+  "admin_user:edit":        ["patron"],
+  "admin_user:toggle":      ["patron"],
 };
 
 export function canAccessModule(role: AdminRole, module: Module): boolean {

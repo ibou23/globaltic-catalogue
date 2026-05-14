@@ -16,6 +16,7 @@ import {
   Printer,
   ChevronLeft,
   ChevronRight,
+  UserCog,
 } from "lucide-react";
 import { useState } from "react";
 import { signOutAction } from "@/lib/actions/auth";
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Commandes",      href: "/admin/commandes",    icon: ShoppingCart,                 module: "commandes" },
   { label: "Clients",        href: "/admin/clients",      icon: Users,                        module: "clients" },
   { label: "Réalisations",   href: "/admin/realisations", icon: Image,                        module: "realisations" },
+  { label: "Utilisateurs",   href: "/admin/utilisateurs", icon: UserCog,                      module: "utilisateurs" },
   { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
 ];
 
