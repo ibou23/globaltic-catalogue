@@ -17,8 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCog,
+  X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signOutAction } from "@/lib/actions/auth";
 import { canAccessModule, type Module } from "@/lib/auth/permissions";
 import type { AdminRole } from "@/lib/types/domain";
@@ -45,11 +46,19 @@ const NAV_ITEMS: NavItem[] = [
 
 interface AdminSidebarProps {
   role: AdminRole;
+  isMobileOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function AdminSidebar({ role }: AdminSidebarProps) {
+export function AdminSidebar({ role, isMobileOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Fermer la sidebar mobile lors d'un changement de route
+  useEffect(() => {
+    if (isMobileOpen && onClose) onClose();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const visibleItems = NAV_ITEMS.filter((item) => canAccessModule(role, item.module));
 
@@ -58,10 +67,10 @@ export function AdminSidebar({ role }: AdminSidebarProps) {
     return pathname.startsWith(href);
   };
 
-  return (
+  const sidebarContent = (
     <aside
       className={cn(
-        "h-screen sticky top-0 flex flex-col bg-brand-secondary text-white transition-all duration-300 z-40",
+        "h-full flex flex-col bg-brand-secondary text-white transition-all duration-300",
         collapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
@@ -74,10 +83,19 @@ export function AdminSidebar({ role }: AdminSidebarProps) {
           <Printer className="w-5 h-5 text-white" />
         </div>
         {!collapsed && (
-          <div className="overflow-hidden">
+          <div className="flex-1 overflow-hidden">
             <h1 className="text-sm font-black tracking-tight leading-none">GLOBAL TIC</h1>
             <p className="text-[10px] font-medium text-white/50 uppercase tracking-widest mt-0.5">PrintTech Admin</p>
           </div>
+        )}
+        {/* Bouton fermeture mobile */}
+        {!collapsed && onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
         )}
       </div>
 
@@ -115,7 +133,7 @@ export function AdminSidebar({ role }: AdminSidebarProps) {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/40 hover:text-white/70 hover:bg-white/5 transition-all w-full",
+            "hidden lg:flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/40 hover:text-white/70 hover:bg-white/5 transition-all w-full",
             collapsed && "justify-center px-0"
           )}
         >
@@ -144,5 +162,29 @@ export function AdminSidebar({ role }: AdminSidebarProps) {
         </form>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop : sidebar sticky normale */}
+      <div className="hidden lg:block sticky top-0 h-screen z-40 shrink-0">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile : drawer avec backdrop */}
+      {isMobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          {/* Drawer */}
+          <div className="relative h-full">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

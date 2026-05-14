@@ -119,9 +119,9 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
   const totalApresRemise  = Math.round(totalEstime * (1 - discount / 100));
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center p-0 sm:p-4">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92dvh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-100">
           <div>
             <h2 className="text-lg font-black text-slate-800">Modifier le devis</h2>
             <p className="text-xs text-slate-400 mt-0.5">{quote.reference}</p>
@@ -131,7 +131,7 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
           {/* Client */}
           <div>
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Client</h3>

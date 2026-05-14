@@ -78,7 +78,7 @@ export function DevisClient({ quotes }: DevisClientProps) {
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-black text-slate-800 font-heading tracking-tight">
@@ -90,132 +90,220 @@ export function DevisClient({ quotes }: DevisClientProps) {
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="h-10 px-5 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-primary-dark hover:shadow-lg hover:shadow-brand-primary/25 transition-all"
+            className="h-10 px-4 sm:px-5 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-primary-dark hover:shadow-lg hover:shadow-brand-primary/25 transition-all shrink-0"
           >
-            <Plus className="w-4 h-4" /> Créer un devis
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Créer un devis</span>
+            <span className="sm:hidden">Créer</span>
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Référence</th>
-                  <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Client</th>
-                  <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Produit</th>
-                  <th className="text-center px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Statut</th>
-                  <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</th>
-                  <th className="text-right px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total</th>
-                  <th className="text-center px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {quotes.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
-                      <FileText className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                      <p className="text-xs font-bold text-slate-300">Aucun devis pour l&apos;instant</p>
-                      <p className="text-xs text-slate-300 mt-1">Créez votre premier devis depuis une discussion WhatsApp</p>
-                    </td>
-                  </tr>
-                ) : (
-                  quotes.map((quote) => {
-                    const status = STATUS_LABELS[quote.status] ?? { label: quote.status, color: "bg-slate-100 text-slate-600" };
-                    const waLink = buildWhatsAppReply(quote);
-                    return (
-                      <tr key={quote.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <span className="font-bold text-slate-700">{quote.reference}</span>
+        {quotes.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-100 px-6 py-12 text-center">
+            <FileText className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+            <p className="text-xs font-bold text-slate-300">Aucun devis pour l&apos;instant</p>
+            <p className="text-xs text-slate-300 mt-1">Créez votre premier devis depuis une discussion WhatsApp</p>
+          </div>
+        ) : (
+          <>
+            {/* ── Vue mobile : cards ── */}
+            <div className="sm:hidden space-y-3">
+              {quotes.map((quote) => {
+                const status = STATUS_LABELS[quote.status] ?? { label: quote.status, color: "bg-slate-100 text-slate-600" };
+                const waLink = buildWhatsAppReply(quote);
+                return (
+                  <div key={quote.id} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-black text-slate-800 text-sm">{quote.reference}</p>
                           {quote.isUrgent && (
-                            <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-black bg-red-100 text-red-600 uppercase">Urgent</span>
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-red-100 text-red-600 uppercase">Urgent</span>
                           )}
-                        </td>
-                        <td className="px-6 py-4">
-                          {quote.customer ? (
-                            <div>
-                              <p className="font-semibold text-slate-700">{quote.customer.contactName}</p>
-                              {quote.customer.companyName && (
-                                <p className="text-xs text-slate-400">{quote.customer.companyName}</p>
-                              )}
-                              <p className="text-xs text-slate-400">{quote.customer.whatsapp}</p>
-                            </div>
+                        </div>
+                        {quote.customer && (
+                          <p className="text-xs text-slate-500 mt-0.5 truncate">{quote.customer.contactName}</p>
+                        )}
+                        <p className="text-[10px] text-slate-400 mt-0.5">{formatDateShort(quote.createdAt)}</p>
+                      </div>
+                      <span className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
+                        {status.label}
+                      </span>
+                    </div>
+
+                    {/* Produit + total */}
+                    {quote.firstItem && (
+                      <div className="pt-2 border-t border-slate-50">
+                        <p className="text-xs font-medium text-slate-700 truncate">{quote.firstItem.productName}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-[10px] text-slate-400">{quote.firstItem.quantity.toLocaleString("fr-SN")} × {quote.firstItem.unitPrice.toLocaleString("fr-SN")} FCFA</p>
+                          <p className="text-sm font-black text-slate-700 tabular-nums">{formatPrice(quote.total)}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => setEditingQuote(quote)}
+                        className="flex-1 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Modifier
+                      </button>
+                      {quote.status === "accepte" && (
+                        <button
+                          onClick={() => handleConvert(quote.id)}
+                          disabled={isPending && convertingId === quote.id}
+                          className="w-10 h-10 rounded-xl bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
+                          title="Convertir en commande"
+                        >
+                          {isPending && convertingId === quote.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <span className="text-slate-300 text-xs">—</span>
+                            <ShoppingCart className="w-4 h-4" />
                           )}
-                        </td>
-                        <td className="px-6 py-4">
-                          {quote.firstItem ? (
-                            <div>
-                              <p className="font-medium text-slate-700 max-w-[180px] truncate">{quote.firstItem.productName}</p>
-                              <p className="text-xs text-slate-400">{quote.firstItem.quantity.toLocaleString("fr-SN")} × {quote.firstItem.unitPrice.toLocaleString("fr-SN")} FCFA</p>
-                            </div>
-                          ) : (
-                            <span className="text-slate-300 text-xs">—</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
-                            {status.label}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-slate-500 text-xs">{formatDateShort(quote.createdAt)}</td>
-                        <td className="px-6 py-4 text-right font-black text-slate-700 tabular-nums">
-                          {formatPrice(quote.total)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-center gap-2">
-                            {quote.status === "accepte" && (
-                              <button
-                                onClick={() => handleConvert(quote.id)}
-                                disabled={isPending && convertingId === quote.id}
-                                title="Convertir en commande"
-                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 transition-colors disabled:opacity-50"
-                              >
-                                {isPending && convertingId === quote.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <ShoppingCart className="w-4 h-4" />
-                                )}
-                              </button>
+                        </button>
+                      )}
+                      <a
+                        href={`/api/admin/devis/${quote.id}/pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors shrink-0"
+                        title="Télécharger PDF"
+                      >
+                        <Download className="w-4 h-4" />
+                      </a>
+                      {quote.customer && (
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-10 h-10 rounded-xl bg-green-100 text-green-600 hover:bg-green-200 flex items-center justify-center transition-colors shrink-0"
+                          title="WhatsApp"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── Vue desktop : tableau ── */}
+            <div className="hidden sm:block bg-white rounded-2xl border border-slate-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Référence</th>
+                      <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Client</th>
+                      <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Produit</th>
+                      <th className="text-center px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Statut</th>
+                      <th className="text-left px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</th>
+                      <th className="text-right px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total</th>
+                      <th className="text-center px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {quotes.map((quote) => {
+                      const status = STATUS_LABELS[quote.status] ?? { label: quote.status, color: "bg-slate-100 text-slate-600" };
+                      const waLink = buildWhatsAppReply(quote);
+                      return (
+                        <tr key={quote.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <span className="font-bold text-slate-700">{quote.reference}</span>
+                            {quote.isUrgent && (
+                              <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-black bg-red-100 text-red-600 uppercase">Urgent</span>
                             )}
-                            <button
-                              onClick={() => setEditingQuote(quote)}
-                              title="Modifier le devis"
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <a
-                              href={`/api/admin/devis/${quote.id}/pdf`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="Télécharger le devis PDF"
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                            >
-                              <Download className="w-4 h-4" />
-                            </a>
-                            {quote.customer && (
+                          </td>
+                          <td className="px-6 py-4">
+                            {quote.customer ? (
+                              <div>
+                                <p className="font-semibold text-slate-700">{quote.customer.contactName}</p>
+                                {quote.customer.companyName && (
+                                  <p className="text-xs text-slate-400">{quote.customer.companyName}</p>
+                                )}
+                                <p className="text-xs text-slate-400">{quote.customer.whatsapp}</p>
+                              </div>
+                            ) : (
+                              <span className="text-slate-300 text-xs">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            {quote.firstItem ? (
+                              <div>
+                                <p className="font-medium text-slate-700 max-w-[180px] truncate">{quote.firstItem.productName}</p>
+                                <p className="text-xs text-slate-400">{quote.firstItem.quantity.toLocaleString("fr-SN")} × {quote.firstItem.unitPrice.toLocaleString("fr-SN")} FCFA</p>
+                              </div>
+                            ) : (
+                              <span className="text-slate-300 text-xs">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
+                              {status.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-slate-500 text-xs">{formatDateShort(quote.createdAt)}</td>
+                          <td className="px-6 py-4 text-right font-black text-slate-700 tabular-nums">
+                            {formatPrice(quote.total)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-center gap-2">
+                              {quote.status === "accepte" && (
+                                <button
+                                  onClick={() => handleConvert(quote.id)}
+                                  disabled={isPending && convertingId === quote.id}
+                                  title="Convertir en commande"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 transition-colors disabled:opacity-50"
+                                >
+                                  {isPending && convertingId === quote.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <ShoppingCart className="w-4 h-4" />
+                                  )}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setEditingQuote(quote)}
+                                title="Modifier le devis"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
                               <a
-                                href={waLink}
+                                href={`/api/admin/devis/${quote.id}/pdf`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title="Répondre sur WhatsApp"
-                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
+                                title="Télécharger le devis PDF"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
                               >
-                                <MessageCircle className="w-4 h-4" />
+                                <Download className="w-4 h-4" />
                               </a>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                              {quote.customer && (
+                                <a
+                                  href={waLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Répondre sur WhatsApp"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
+                                >
+                                  <MessageCircle className="w-4 h-4" />
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   );

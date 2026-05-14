@@ -175,8 +175,8 @@ export function GlobalSearch({ role: _role }: GlobalSearchProps) {
 
       {/* Search panel */}
       {open && (
-        <div className="fixed left-1/2 top-[80px] -translate-x-1/2 w-full max-w-[600px] z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="fixed left-0 right-0 top-0 sm:left-1/2 sm:top-[80px] sm:-translate-x-1/2 sm:w-full sm:max-w-[600px] z-50 sm:px-4">
+          <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl border-0 sm:border border-slate-200 overflow-hidden min-h-screen sm:min-h-0">
             {/* Input */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
               <Search className="w-4 h-4 text-slate-400 shrink-0" />
