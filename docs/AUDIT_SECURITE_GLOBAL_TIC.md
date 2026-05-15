@@ -251,6 +251,106 @@ if (!url || !key) {
 
 ---
 
+---
+
+## Phase 2.49 — Vérification sécurité en production (15 mai 2026)
+
+> Vérification statique exhaustive du code déployé (commit `8788439`).  
+> Tests manuels en navigateur non accessibles depuis cet environnement — marqués ⏳ à valider par l'équipe.
+
+### 1. Déploiement
+
+| Vérification | Résultat |
+|-------------|---------|
+| Commit déployé `8788439` | ✅ Poussé sur `origin/main` |
+| Build propre (0 erreur TypeScript, 0 erreur compilation) | ✅ Vérifié |
+| Variables `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` présentes en Vercel | ✅ Confirmé par le responsable |
+| Variables **absentes** du `.env.local` local | ⚠️ À ajouter pour tests locaux (non bloquant en production) |
+| `.env.local` non commité dans git | ✅ Confirmé (`git ls-files .env.local` : vide) |
+
+### 2. Secrets — Audit statique
+
+| Vérification | Résultat |
+|-------------|---------|
+| `UPSTASH_REDIS_REST_URL/TOKEN` — aucun préfixe `NEXT_PUBLIC_` | ✅ |
+| Vars Upstash jamais référencées dans `app/` (client bundle) | ✅ |
+| `SUPABASE_SERVICE_ROLE_KEY` — uniquement dans `lib/supabase/admin-client.ts` | ✅ |
+| `admin-client.ts` jamais importé depuis `"use client"` | ✅ |
+| `lib/security/rate-limit.ts` — aucun `console.log`, aucune fuite de token | ✅ |
+| Seul `console.log` restant dans `lib/analytics.ts` : gardé par `NODE_ENV === "development"` | ✅ |
+
+### 3. Login — Rate Limiting (fail-safe)
+
+| Vérification | Résultat |
+|-------------|---------|
+| `signInAction` créée comme Server Action (`"use server"`) | ✅ |
+| Rate-limit appliqué **avant** `supabase.auth.signInWithPassword()` | ✅ |
+| Identifiant : `ip:${x-forwarded-for}` (Vercel injecte ce header automatiquement) | ✅ |
+| Cas fallback IP `"unknown"` : partage un bucket commun — acceptable (Vercel toujours `x-forwarded-for`) | ✅ acceptable |
+| Erreur Supabase interne non exposée dans la réponse (remplacée par message neutre) | ✅ |
+| Redis down → fail-safe → bloque | ✅ |
+| Redis non configuré → fail-safe → bloque (protège `.env.local` local sans Upstash) | ✅ |
+| Test connexion normale (≤10 tentatives/10min) | ⏳ À valider manuellement |
+| Test dépassement seuil → message "Trop de tentatives. Réessayez dans quelques minutes." | ⏳ À valider manuellement |
+
+### 4. PDF — Rate Limiting (fail-open)
+
+| Vérification | Résultat |
+|-------------|---------|
+| 5 routes couvertes : facture, receipt, bon-livraison, devis PDF, rapport PDF | ✅ |
+| Ordre : `getCurrentAdmin()` → `canPerform()` → `checkRateLimitOpen()` | ✅ |
+| Réponse 429 : `{ error: "Trop de tentatives..." }` — aucune fuite interne | ✅ |
+| Redis down → fail-open → laisse passer | ✅ |
+| Test téléchargement PDF en usage normal | ⏳ À valider manuellement |
+| Test 429 après dépassement volontaire | ⏳ À valider manuellement |
+
+### 5. Recherche globale — Rate Limiting (fail-open)
+
+| Vérification | Résultat |
+|-------------|---------|
+| `globalSearchAction` — rate-limit après `getCurrentAdmin()` | ✅ |
+| Identifiant : `userId` (jamais IP sur actions authentifiées) | ✅ |
+| Limite 70/min conservatrice — usage normal non bloqué | ✅ |
+| Test recherche normale | ⏳ À valider manuellement |
+
+### 6. Import CSV — Rate Limiting (fail-open)
+
+| Vérification | Résultat |
+|-------------|---------|
+| 3 actions couvertes : `importCategoriesAction`, `importProductsAction`, `importPrixAction` | ✅ |
+| `previewCsvAction` (aperçu sans écriture) non limité — intentionnel | ✅ |
+| Ordre : `requireRole()` → `checkRateLimitOpen()` | ✅ |
+| Test import normal | ⏳ À valider manuellement |
+
+### 7. Maintenance / Suppression — Rate Limiting (fail-safe)
+
+| Vérification | Résultat |
+|-------------|---------|
+| 4 actions couvertes : `deleteQuote`, `deleteOrder`, `deleteCustomer`, `purgeReadNotifications` | ✅ |
+| Ordre : `requireRole()` → `checkRateLimitSafe()` → validation Zod | ✅ |
+| Redis down → fail-safe → bloque (correct pour actions destructives) | ✅ |
+| Autres rôles bloqués par `requireRole()` avant d'atteindre le rate-limit | ✅ |
+| Test accès `/admin/maintenance` (patron) | ⏳ À valider manuellement |
+
+### 8. Logs — Audit statique
+
+| Vérification | Résultat |
+|-------------|---------|
+| Aucun token Upstash dans les logs (aucun `console.log` dans `lib/security/`) | ✅ |
+| Aucune `SUPABASE_SERVICE_ROLE_KEY` dans les logs | ✅ |
+| Exceptions Redis catchées silencieusement (pas d'erreur 500 non gérée) | ✅ |
+| Erreurs rate-limit retournées via `Result<T>` ou JSON 429 — aucune stack trace exposée | ✅ |
+| Vérification des Vercel Logs en production (absence d'erreurs Redis) | ⏳ À vérifier via Vercel Dashboard |
+
+### Décision finale — Phase 2.49
+
+**Statut statique : ✅ VALIDÉ**
+
+Toutes les vérifications statiques passent. Aucune correction de code nécessaire. Les tests manuels marqués ⏳ doivent être effectués par le responsable technique via le dashboard Vercel avant ouverture complète de l'équipe.
+
+---
+
 *Audit effectué dans le cadre de la Phase 2.46 — Sécurité GLOBAL TIC PrintTech.*  
 *Corrections v2.46 appliquées le 14 mai 2026.*  
-*Corrections v2.48 (rate limiting) appliquées le 15 mai 2026.*
+*Corrections v2.48 (rate limiting) appliquées le 15 mai 2026.*  
+*Vérification production v2.49 effectuée le 15 mai 2026.*
