@@ -19,7 +19,8 @@ export type Module =
   | "impayes"
   | "planning"
   | "rapports"
-  | "prospects";
+  | "prospects"
+  | "whatsapp";
 
 // Actions métier sensibles
 export type Action =
@@ -89,6 +90,7 @@ const MODULE_ACCESS: Record<Module, AdminRole[]> = {
   planning:     ["patron", "admin", "commercial", "production", "infographiste"],
   rapports:     ["patron", "admin"],
   prospects:    ["patron", "admin", "commercial"],
+  whatsapp:     ["patron", "admin", "commercial"],
 };
 
 // Matrice complète : role → actions autorisées

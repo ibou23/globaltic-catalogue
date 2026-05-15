@@ -353,8 +353,8 @@ export type ProspectPriority = "urgent" | "chaud" | "a_qualifier" | "froid" | "p
 export type ProspectSource = "formulaire" | "whatsapp" | "telephone" | "terrain" | "autre";
 export type ProspectFileType = "logo" | "document" | "image" | "autre";
 export type WhatsAppDirection = "inbound" | "outbound";
-export type WhatsAppMessageType = "text" | "image" | "document" | "template" | "interactive";
-export type WhatsAppMessageStatus = "sent" | "delivered" | "read" | "failed";
+export type WhatsAppMessageType = "text" | "image" | "document" | "audio" | "template" | "interactive" | "other";
+export type WhatsAppMessageStatus = "received" | "sent" | "delivered" | "read" | "failed";
 
 export interface Prospect {
   id: string;
@@ -402,6 +402,8 @@ export interface ProspectFile {
 
 export interface WhatsAppMessage {
   id: string;
+  phoneNumber: string | null;
+  contactName: string | null;
   prospectId: string | null;
   customerId: string | null;
   whatsappMessageId: string | null;
@@ -409,8 +411,19 @@ export interface WhatsAppMessage {
   messageType: WhatsAppMessageType;
   content: string | null;
   status: WhatsAppMessageStatus;
+  processed: boolean;
   metadata: Record<string, unknown>;
+  rawPayload: Record<string, unknown>;
   sentAt: string;
+  createdAt: string;
+}
+
+export interface WhatsAppWebhookEvent {
+  id: string;
+  eventType: string;
+  rawPayload: Record<string, unknown>;
+  processed: boolean;
+  errorMessage: string | null;
   createdAt: string;
 }
 

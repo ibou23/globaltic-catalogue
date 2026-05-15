@@ -25,6 +25,7 @@ import {
   CalendarDays,
   BarChart2,
   UserPlus,
+  MessageSquare,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Produits",       href: "/admin/produits",     icon: Package,                      module: "produits" },
   { label: "Catégories",     href: "/admin/categories",   icon: FolderOpen,                   module: "categories" },
   { label: "Prospects",      href: "/admin/prospects",    icon: UserPlus,                     module: "prospects" },
+  { label: "WhatsApp",       href: "/admin/whatsapp",     icon: MessageSquare,                module: "whatsapp" },
   { label: "Devis",          href: "/admin/devis",        icon: FileText,                     module: "devis" },
   { label: "Commandes",      href: "/admin/commandes",    icon: ShoppingCart,                 module: "commandes" },
   { label: "Clients",        href: "/admin/clients",      icon: Users,                        module: "clients" },

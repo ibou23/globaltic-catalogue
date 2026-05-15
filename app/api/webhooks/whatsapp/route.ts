@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
+import {
+  verifyMetaSignature,
+  processWebhookPayload,
+  type MetaWebhookPayload,
+} from "@/lib/whatsapp/webhook-handler";
+import { storeWebhookEvent } from "@/lib/db/whatsapp-messages";
 
-/**
- * Meta WhatsApp Cloud API — Webhook verification (GET)
- * Activé lors de la configuration du webhook dans Meta Business Suite.
- * Variables d'environnement requises (à configurer plus tard) :
- * - WHATSAPP_VERIFY_TOKEN
- * - WHATSAPP_ACCESS_TOKEN
- * - WHATSAPP_PHONE_NUMBER_ID
- * - WHATSAPP_BUSINESS_ACCOUNT_ID
- * - META_APP_SECRET
- */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
@@ -33,12 +29,9 @@ export async function GET(req: Request) {
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }
 
-/**
- * Meta WhatsApp Cloud API — Incoming messages (POST)
- * Stub prêt pour l'intégration future.
- */
-export async function POST(_req: Request) {
+export async function POST(req: Request) {
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+  const appSecret = process.env.META_APP_SECRET;
 
   if (!verifyToken) {
     return NextResponse.json(
@@ -47,9 +40,44 @@ export async function POST(_req: Request) {
     );
   }
 
-  // TODO Phase 4 : valider la signature Meta (META_APP_SECRET)
-  // TODO Phase 4 : parser le body et enregistrer dans whatsapp_messages
-  // TODO Phase 4 : relier au prospect via numéro WhatsApp
+  const rawBody = await req.text();
+
+  if (appSecret) {
+    const signature = req.headers.get("x-hub-signature-256");
+    if (!verifyMetaSignature(rawBody, signature, appSecret)) {
+      await storeWebhookEvent({
+        eventType: "invalid_signature",
+        rawPayload: { signature, bodyLength: rawBody.length },
+        processed: false,
+        errorMessage: "Signature verification failed",
+      });
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+  }
+
+  let payload: MetaWebhookPayload;
+  try {
+    payload = JSON.parse(rawBody) as MetaWebhookPayload;
+  } catch {
+    await storeWebhookEvent({
+      eventType: "parse_error",
+      rawPayload: { rawBody: rawBody.slice(0, 500) },
+      processed: false,
+      errorMessage: "Failed to parse JSON body",
+    });
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const result = await processWebhookPayload(payload);
+
+  if (result.errors.length > 0) {
+    await storeWebhookEvent({
+      eventType: "processing_errors",
+      rawPayload: { errors: result.errors, messagesProcessed: result.messagesProcessed },
+      processed: true,
+      errorMessage: result.errors.join("; "),
+    });
+  }
 
   return NextResponse.json({ status: "ok" }, { status: 200 });
 }
