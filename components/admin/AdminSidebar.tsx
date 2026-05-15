@@ -24,6 +24,7 @@ import {
   AlertCircle,
   CalendarDays,
   BarChart2,
+  UserPlus,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Vue d'ensemble", href: "/admin",              icon: LayoutDashboard, exact: true, module: "dashboard" },
   { label: "Produits",       href: "/admin/produits",     icon: Package,                      module: "produits" },
   { label: "Catégories",     href: "/admin/categories",   icon: FolderOpen,                   module: "categories" },
+  { label: "Prospects",      href: "/admin/prospects",    icon: UserPlus,                     module: "prospects" },
   { label: "Devis",          href: "/admin/devis",        icon: FileText,                     module: "devis" },
   { label: "Commandes",      href: "/admin/commandes",    icon: ShoppingCart,                 module: "commandes" },
   { label: "Clients",        href: "/admin/clients",      icon: Users,                        module: "clients" },

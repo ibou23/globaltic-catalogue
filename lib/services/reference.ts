@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-type ReferencePrefix = "DEV" | "CMD" | "FAC";
+type ReferencePrefix = "DEV" | "CMD" | "FAC" | "PRO";
 
 export async function generateReference(
   prefix: ReferencePrefix
@@ -13,7 +13,9 @@ export async function generateReference(
       ? "quotes"
       : prefix === "CMD"
         ? "orders"
-        : "invoices";
+        : prefix === "PRO"
+          ? "prospects"
+          : "invoices";
 
   const { count } = await supabase
     .from(table)

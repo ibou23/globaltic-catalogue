@@ -18,7 +18,8 @@ export type Module =
   | "factures"
   | "impayes"
   | "planning"
-  | "rapports";
+  | "rapports"
+  | "prospects";
 
 // Actions métier sensibles
 export type Action =
@@ -63,7 +64,10 @@ export type Action =
   | "task:read"
   | "task:create"
   | "task:edit"
-  | "task:delete";
+  | "task:delete"
+  | "prospect:read"
+  | "prospect:edit"
+  | "prospect:delete";
 
 // Matrice complète : role → modules accessibles
 const MODULE_ACCESS: Record<Module, AdminRole[]> = {
@@ -84,6 +88,7 @@ const MODULE_ACCESS: Record<Module, AdminRole[]> = {
   impayes:      ["patron", "admin", "commercial"],
   planning:     ["patron", "admin", "commercial", "production", "infographiste"],
   rapports:     ["patron", "admin"],
+  prospects:    ["patron", "admin", "commercial"],
 };
 
 // Matrice complète : role → actions autorisées
@@ -130,6 +135,9 @@ const ACTION_ACCESS: Record<Action, AdminRole[]> = {
   "task:create":            ["patron", "admin", "commercial", "production"],
   "task:edit":              ["patron", "admin", "commercial", "production"],
   "task:delete":            ["patron", "admin"],
+  "prospect:read":          ["patron", "admin", "commercial"],
+  "prospect:edit":          ["patron", "admin", "commercial"],
+  "prospect:delete":        ["patron", "admin"],
 };
 
 export function canAccessModule(role: AdminRole, module: Module): boolean {

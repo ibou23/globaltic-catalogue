@@ -336,6 +336,81 @@ export interface Realisation {
 
 // ─── Contrôle qualité ─────────────────────────────────────────────────────────
 
+// ─── Prospects CRM ───────────────────────────────────────────────────────────
+
+export type ProspectStatus =
+  | "nouveau"
+  | "devis_envoye"
+  | "en_negociation"
+  | "validation_conception"
+  | "commande_confirmee"
+  | "en_production"
+  | "livre"
+  | "annule";
+
+export type ProspectSource = "formulaire" | "whatsapp" | "telephone" | "terrain" | "autre";
+export type ProspectFileType = "logo" | "document" | "image" | "autre";
+export type WhatsAppDirection = "inbound" | "outbound";
+export type WhatsAppMessageType = "text" | "image" | "document" | "template" | "interactive";
+export type WhatsAppMessageStatus = "sent" | "delivered" | "read" | "failed";
+
+export interface Prospect {
+  id: string;
+  reference: string;
+  fullName: string;
+  whatsapp: string;
+  phoneSecondary: string | null;
+  email: string | null;
+  companyName: string | null;
+  companyAddress: string | null;
+  website: string | null;
+  sector: string | null;
+  productsServices: string | null;
+  preferredColors: string | null;
+  supportText: string | null;
+  requestedProducts: string[];
+  otherProduct: string | null;
+  quantity: string | null;
+  formatDimensions: string | null;
+  finish: string | null;
+  desiredDeadline: string | null;
+  deliveryZone: string | null;
+  message: string | null;
+  status: ProspectStatus;
+  internalNotes: string | null;
+  assignedTo: string | null;
+  source: ProspectSource;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProspectFile {
+  id: string;
+  prospectId: string;
+  fileType: ProspectFileType;
+  fileUrl: string;
+  fileName: string | null;
+  fileSize: number | null;
+  uploadedBy: string | null;
+  createdAt: string;
+}
+
+export interface WhatsAppMessage {
+  id: string;
+  prospectId: string | null;
+  customerId: string | null;
+  whatsappMessageId: string | null;
+  direction: WhatsAppDirection;
+  messageType: WhatsAppMessageType;
+  content: string | null;
+  status: WhatsAppMessageStatus;
+  metadata: Record<string, unknown>;
+  sentAt: string;
+  createdAt: string;
+}
+
+// ─── Contrôle qualité ─────────────────────────────────────────────────────────
+
 export type QCStatus = "non_verifie" | "en_cours" | "valide" | "a_corriger";
 
 export type QCChecklistKey =

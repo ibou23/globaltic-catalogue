@@ -37,12 +37,14 @@ let _pdfLimiter:          Ratelimit | null | undefined;
 let _searchLimiter:       Ratelimit | null | undefined;
 let _importLimiter:       Ratelimit | null | undefined;
 let _maintenanceLimiter:  Ratelimit | null | undefined;
+let _prospectFormLimiter: Ratelimit | null | undefined;
 
 function loginLimiter()       { return (_loginLimiter       ??= makeLimiter("login",       10,   600)); }
 function pdfLimiter()         { return (_pdfLimiter         ??= makeLimiter("pdf",         30,   600)); }
 function searchLimiter()      { return (_searchLimiter      ??= makeLimiter("search",      70,    60)); }
 function importLimiter()      { return (_importLimiter      ??= makeLimiter("import",      30,  3600)); }
 function maintenanceLimiter() { return (_maintenanceLimiter ??= makeLimiter("maintenance", 30,  3600)); }
+function prospectFormLimiter(){ return (_prospectFormLimiter??= makeLimiter("prospect",     5,   600)); }
 
 // ── Check helpers ─────────────────────────────────────────────────────────────
 
@@ -51,10 +53,13 @@ function maintenanceLimiter() { return (_maintenanceLimiter ??= makeLimiter("mai
  * Used for: login, maintenance/delete.
  */
 export async function checkRateLimitSafe(
-  type: "login" | "maintenance",
+  type: "login" | "maintenance" | "prospect_form",
   identifier: string
 ): Promise<string | null> {
-  const limiter = type === "login" ? loginLimiter() : maintenanceLimiter();
+  const limiter =
+    type === "login"         ? loginLimiter() :
+    type === "prospect_form" ? prospectFormLimiter() :
+                               maintenanceLimiter();
   if (!limiter) return RATE_LIMIT_MSG; // Redis non configuré → bloquer par défaut
   try {
     const result = await limiter.limit(identifier);

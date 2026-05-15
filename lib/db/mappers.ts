@@ -12,6 +12,8 @@ import type {
   Order,
   OrderFile,
   AdminProfile,
+  Prospect,
+  ProspectFile,
 } from "@/lib/types/domain";
 
 export function mapCategory(row: Record<string, unknown>): Category {
@@ -232,6 +234,51 @@ export function mapAdminProfile(row: Record<string, unknown>): AdminProfile {
     role: row.role as AdminProfile["role"],
     avatarUrl: (row.avatar_url as string) ?? null,
     isActive: row.is_active as boolean,
+    createdAt: row.created_at as string,
+  };
+}
+
+export function mapProspect(row: Record<string, unknown>): Prospect {
+  return {
+    id: row.id as string,
+    reference: row.reference as string,
+    fullName: row.full_name as string,
+    whatsapp: row.whatsapp as string,
+    phoneSecondary: (row.phone_secondary as string) ?? null,
+    email: (row.email as string) ?? null,
+    companyName: (row.company_name as string) ?? null,
+    companyAddress: (row.company_address as string) ?? null,
+    website: (row.website as string) ?? null,
+    sector: (row.sector as string) ?? null,
+    productsServices: (row.products_services as string) ?? null,
+    preferredColors: (row.preferred_colors as string) ?? null,
+    supportText: (row.support_text as string) ?? null,
+    requestedProducts: (row.requested_products as string[]) ?? [],
+    otherProduct: (row.other_product as string) ?? null,
+    quantity: (row.quantity as string) ?? null,
+    formatDimensions: (row.format_dimensions as string) ?? null,
+    finish: (row.finish as string) ?? null,
+    desiredDeadline: (row.desired_deadline as string) ?? null,
+    deliveryZone: (row.delivery_zone as string) ?? null,
+    message: (row.message as string) ?? null,
+    status: row.status as Prospect["status"],
+    internalNotes: (row.internal_notes as string) ?? null,
+    assignedTo: (row.assigned_to as string) ?? null,
+    source: row.source as Prospect["source"],
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+export function mapProspectFile(row: Record<string, unknown>): ProspectFile {
+  return {
+    id: row.id as string,
+    prospectId: row.prospect_id as string,
+    fileType: row.file_type as ProspectFile["fileType"],
+    fileUrl: row.file_url as string,
+    fileName: (row.file_name as string) ?? null,
+    fileSize: (row.file_size as number) ?? null,
+    uploadedBy: (row.uploaded_by as string) ?? null,
     createdAt: row.created_at as string,
   };
 }
