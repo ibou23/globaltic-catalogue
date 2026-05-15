@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { canAccessModule } from "@/lib/auth/permissions";
+import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 import type { AdminRole } from "@/lib/types/domain";
 
 export type SearchResultType = "commande" | "devis" | "client" | "produit" | "realisation" | "fichier";
@@ -21,7 +22,7 @@ export async function globalSearch(
 ): Promise<SearchResult[]> {
   if (!query || query.trim().length < 2) return [];
 
-  const q = query.trim();
+  const q = sanitizePostgrestSearchTerm(query);
   const supabase = await createClient();
   const results: SearchResult[] = [];
 

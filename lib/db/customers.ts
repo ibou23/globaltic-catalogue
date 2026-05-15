@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ok, err, type Result } from "@/lib/utils/result";
 import { mapCustomer } from "./mappers";
+import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 import type { Customer } from "@/lib/types/domain";
 import type { CustomerInput } from "@/lib/validators/customer";
 
@@ -82,12 +83,13 @@ export async function searchCustomers(
   query: string
 ): Promise<Result<Customer[]>> {
   const supabase = await createClient();
+  const q = sanitizePostgrestSearchTerm(query);
 
   const { data, error } = await supabase
     .from("customers")
     .select("*")
     .or(
-      `contact_name.ilike.%${query}%,company_name.ilike.%${query}%,whatsapp.ilike.%${query}%,email.ilike.%${query}%`
+      `contact_name.ilike.%${q}%,company_name.ilike.%${q}%,whatsapp.ilike.%${q}%,email.ilike.%${q}%`
     )
     .order("created_at", { ascending: false })
     .limit(20);

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ok, err, type Result } from "@/lib/utils/result";
 import { mapProduct, mapProductWithOptions } from "./mappers";
+import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 import type { Product, ProductWithOptions } from "@/lib/types/domain";
 import type { ProductInput, QuantityTierInput } from "@/lib/validators/product";
 
@@ -103,12 +104,13 @@ export async function searchProducts(
   query: string
 ): Promise<Result<Product[]>> {
   const supabase = await createClient();
+  const q = sanitizePostgrestSearchTerm(query);
 
   const { data, error } = await supabase
     .from("products")
     .select("*")
     .eq("is_active", true)
-    .or(`name.ilike.%${query}%,short_description.ilike.%${query}%,tags.cs.{${query}}`)
+    .or(`name.ilike.%${q}%,short_description.ilike.%${q}%`)
     .order("display_order", { ascending: true })
     .limit(20);
 
