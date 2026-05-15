@@ -20,14 +20,14 @@ export function Footer() {
               La plateforme technologique d'impression leader à Dakar. Nous combinons un parc machines de pointe avec une expérience digitale sans couture pour propulser votre communication visuelle.
             </p>
             <div className="flex items-center gap-4 pt-2">
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-brand-primary hover:text-white transition-all duration-300 border border-white/10">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-brand-primary hover:text-white transition-all duration-300 border border-white/10">
+              <a href="https://www.facebook.com/globalticgroup" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-brand-primary hover:text-white transition-all duration-300 border border-white/10">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-brand-primary hover:text-white transition-all duration-300 border border-white/10">
+              <a href="https://www.linkedin.com/in/ibrahima-diop-global-tic/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-brand-primary hover:text-white transition-all duration-300 border border-white/10">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+              </a>
+              <a href="https://www.globalticgroup.com/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-brand-primary hover:text-white transition-all duration-300 border border-white/10">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
               </a>
             </div>
           </div>
@@ -37,7 +37,7 @@ export function Footer() {
             <h4 className="text-white font-bold mb-6 font-heading tracking-wide">Catalogue</h4>
             <ul className="space-y-4 text-sm">
               <li><Link href="/catalogue/numerique-et-grand-format" className="hover:text-white transition-colors flex items-center group"><span className="w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-2 mr-0 group-hover:mr-2"></span> Numérique et Grand Format</Link></li>
-              <li><Link href="/catalogue/impression-offset" className="hover:text-white transition-colors flex items-center group"><span className="w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-2 mr-0 group-hover:mr-2"></span> Impression Offset</Link></li>
+              <li><Link href="/catalogue/papeterie" className="hover:text-white transition-colors flex items-center group"><span className="w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-2 mr-0 group-hover:mr-2"></span> Papeterie & Offset</Link></li>
               <li><Link href="/catalogue/packaging" className="hover:text-white transition-colors flex items-center group"><span className="w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-2 mr-0 group-hover:mr-2"></span> Packaging</Link></li>
               <li><Link href="/catalogue" className="text-brand-primary hover:text-brand-primary-light transition-colors flex items-center mt-2 font-semibold">Voir tout <ArrowRight className="ml-1 h-3 w-3" /></Link></li>
             </ul>
@@ -48,10 +48,10 @@ export function Footer() {
             <h4 className="text-white font-bold mb-6 font-heading tracking-wide">L'Entreprise</h4>
             <ul className="space-y-4 text-sm">
               <li><Link href="/realisations" className="hover:text-white transition-colors">Nos Réalisations</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Notre Vision</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Parc Technologique</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Carrières</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Blog & Ressources</Link></li>
+              <li><span className="text-slate-500 cursor-default">Notre Vision</span></li>
+              <li><span className="text-slate-500 cursor-default">Parc Technologique</span></li>
+              <li><span className="text-slate-500 cursor-default">Carrières</span></li>
+              <li><span className="text-slate-500 cursor-default">Blog & Ressources</span></li>
             </ul>
           </div>
 
@@ -100,9 +100,9 @@ export function Footer() {
             © {new Date().getFullYear()} GLOBAL TIC. Tous droits réservés.
           </p>
           <div className="flex gap-6 text-xs text-slate-500">
-            <Link href="#" className="hover:text-slate-300 transition-colors">Mentions légales</Link>
-            <Link href="#" className="hover:text-slate-300 transition-colors">Politique de confidentialité</Link>
-            <Link href="#" className="hover:text-slate-300 transition-colors">CGV</Link>
+            <span className="cursor-default">Mentions légales</span>
+            <span className="cursor-default">Politique de confidentialité</span>
+            <span className="cursor-default">CGV</span>
           </div>
         </div>
       </div>
