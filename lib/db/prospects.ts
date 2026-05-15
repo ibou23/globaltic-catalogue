@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import { ok, err, type Result } from "@/lib/utils/result";
 import { mapProspect } from "./mappers";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
@@ -34,7 +35,9 @@ export async function createProspect(
   input: ProspectPublicInput,
   reference: string
 ): Promise<Result<Prospect>> {
-  const supabase = await createClient();
+  // Service_role bypass RLS — sécurisé car appelé uniquement depuis Server Action
+  // avec validation Zod + rate limiting en amont
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("prospects")
