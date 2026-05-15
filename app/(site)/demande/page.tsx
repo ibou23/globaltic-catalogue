@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { DemandeForm } from "@/components/site/DemandeForm";
 import type { Metadata } from "next";
 
@@ -11,7 +12,7 @@ export default function DemandePage() {
     <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10">
-          <img src="/logo.png" alt="GLOBAL TIC" className="h-12 mx-auto mb-4" />
+          <Image src="/logo.png" alt="GLOBAL TIC" width={160} height={48} className="h-12 w-auto mx-auto mb-4" />
           <h1 className="text-2xl sm:text-3xl font-black text-slate-800">
             Formulaire de commande
           </h1>

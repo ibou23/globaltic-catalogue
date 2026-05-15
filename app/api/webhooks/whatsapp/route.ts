@@ -37,7 +37,7 @@ export async function GET(req: Request) {
  * Meta WhatsApp Cloud API — Incoming messages (POST)
  * Stub prêt pour l'intégration future.
  */
-export async function POST(req: Request) {
+export async function POST(_req: Request) {
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
 
   if (!verifyToken) {

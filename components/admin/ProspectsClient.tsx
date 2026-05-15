@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Search,
   Eye,
@@ -46,10 +45,9 @@ interface ProspectsClientProps {
   role: AdminRole;
 }
 
-export function ProspectsClient({ prospects, totalCount, activeFilter, role }: ProspectsClientProps) {
+export function ProspectsClient({ prospects, totalCount, activeFilter, role: _role }: ProspectsClientProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProspectStatus | "">("");
-  const router = useRouter();
 
   const filtered = prospects.filter((p) => {
     const q = search.toLowerCase();
