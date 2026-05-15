@@ -80,8 +80,11 @@ export async function updateProspect(
 
   const updates: Record<string, unknown> = {};
   if (input.status !== undefined) updates.status = input.status;
+  if (input.priority !== undefined) updates.priority = input.priority;
   if (input.internal_notes !== undefined) updates.internal_notes = input.internal_notes;
   if (input.assigned_to !== undefined) updates.assigned_to = input.assigned_to;
+  if (input.contacted_at !== undefined) updates.contacted_at = input.contacted_at;
+  if (input.converted_customer_id !== undefined) updates.converted_customer_id = input.converted_customer_id;
 
   const { data, error } = await supabase
     .from("prospects")

@@ -84,6 +84,8 @@ export async function markAllNotificationsRead(adminId: string): Promise<Result<
 
 // Rôles qui reçoivent une notification selon l'événement
 const EVENT_TARGET_ROLES: Record<string, AdminRole[]> = {
+  prospect_recu:           ["patron", "admin", "commercial"],
+  prospect_urgent:         ["patron", "admin", "commercial"],
   devis_cree:              ["patron", "admin", "commercial"],
   devis_accepte:           ["patron", "admin", "commercial"],
   commande_creee:          ["patron", "admin", "production"],

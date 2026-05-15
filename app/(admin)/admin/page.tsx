@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getDashboardStats } from "@/lib/db/stats";
+import { getProspectStats } from "@/lib/db/prospect-stats";
 
 export const dynamic = "force-dynamic";
 import { getCurrentAdmin } from "@/lib/db/admin";
@@ -25,6 +26,7 @@ import {
   FolderOpen,
   ArrowRight,
   CheckSquare,
+  UserPlus,
 } from "lucide-react";
 import type { AdminRole } from "@/lib/types/domain";
 import { canAccessModule } from "@/lib/auth/permissions";
@@ -105,12 +107,13 @@ function canSeeFinance(role: AdminRole): boolean {
 }
 
 export default async function AdminOverviewPage() {
-  const [adminResult, statsResult, todayTasksResult, overdueTasksResult, impayesStatsResult] = await Promise.all([
+  const [adminResult, statsResult, todayTasksResult, overdueTasksResult, impayesStatsResult, prospectStatsResult] = await Promise.all([
     getCurrentAdmin(),
     getDashboardStats(),
     getTasksDueToday(),
     getOverdueTasks(),
     getImpayesStats(),
+    getProspectStats(),
   ]);
 
   const admin = adminResult.data;
@@ -133,6 +136,7 @@ export default async function AdminOverviewPage() {
   const todayTasks    = todayTasksResult.data  ?? [];
   const overdueTasks  = overdueTasksResult.data ?? [];
   const impayesStats  = impayesStatsResult.data ?? null;
+  const prospectStats = prospectStatsResult.data ?? null;
 
   // Liens uniquement si le rôle a accès au module cible
   const href = {
@@ -344,6 +348,35 @@ export default async function AdminOverviewPage() {
                 </Link>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── PROSPECTS ── */}
+      {canAccessModule(role, "prospects") && prospectStats && (prospectStats.toProcess > 0 || prospectStats.urgent > 0 || prospectStats.newToday > 0) && (
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-brand-primary" />
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                Prospects
+                {prospectStats.newToday > 0 && (
+                  <span className="ml-2 text-blue-500">· {prospectStats.newToday} nouveau{prospectStats.newToday > 1 ? "x" : ""} aujourd&apos;hui</span>
+                )}
+              </h3>
+            </div>
+            <Link
+              href="/admin/prospects"
+              className="flex items-center gap-1 text-[10px] font-bold text-brand-primary/70 hover:text-brand-primary transition-colors"
+            >
+              Voir tout <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5">
+            <StatCard label="À traiter" value={prospectStats.toProcess} icon={UserPlus} color="blue" href="/admin/prospects" />
+            <StatCard label="Urgents" value={prospectStats.urgent} icon={Zap} color="rose" href="/admin/prospects" />
+            <StatCard label="À relancer" value={prospectStats.toFollowUp} icon={Clock} color="amber" href="/admin/prospects" />
+            <StatCard label="Convertis" value={prospectStats.converted} icon={CheckCircle2} color="green" href="/admin/prospects" />
           </div>
         </div>
       )}

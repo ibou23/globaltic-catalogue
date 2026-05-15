@@ -8,6 +8,7 @@ export const taskSchema = z.object({
   status:      z.enum(["a_faire", "en_cours", "terminee", "annulee"]).default("a_faire"),
   due_date:    z.string().nullable().optional(),
   customer_id: z.string().uuid().nullable().optional(),
+  prospect_id: z.string().uuid().nullable().optional(),
   quote_id:    z.string().uuid().nullable().optional(),
   order_id:    z.string().uuid().nullable().optional(),
   assigned_to: z.string().uuid().nullable().optional(),

@@ -17,11 +17,30 @@ import {
   Clock,
   Trash2,
   Download,
+  UserCheck,
+  ClipboardList,
+  Flame,
+  Zap,
+  Snowflake,
+  HelpCircle,
+  XCircle,
 } from "lucide-react";
-import { updateProspectAction, deleteProspectAction, getProspectFileUrlAction } from "@/lib/actions/prospects";
-import { PROSPECT_STATUSES } from "@/lib/validators/prospect";
+import {
+  updateProspectAction,
+  deleteProspectAction,
+  getProspectFileUrlAction,
+  markProspectContactedAction,
+  convertProspectToCustomerAction,
+  createProspectTaskAction,
+} from "@/lib/actions/prospects";
+import { PROSPECT_STATUSES, PROSPECT_PRIORITIES } from "@/lib/validators/prospect";
+import {
+  PROSPECT_MESSAGE_LABELS,
+  getProspectWhatsAppUrl,
+  type ProspectMessageType,
+} from "@/lib/whatsapp/prospect-messages";
 import { siteConfig } from "@/lib/config/site";
-import type { Prospect, ProspectFile, ProspectStatus } from "@/lib/types/domain";
+import type { Prospect, ProspectFile, ProspectStatus, ProspectPriority } from "@/lib/types/domain";
 
 const STATUS_CONFIG: Record<ProspectStatus, { label: string; color: string }> = {
   nouveau:              { label: "Nouveau",              color: "bg-blue-100 text-blue-700 border-blue-200" },
@@ -32,6 +51,14 @@ const STATUS_CONFIG: Record<ProspectStatus, { label: string; color: string }> = 
   en_production:        { label: "En production",       color: "bg-orange-100 text-orange-700 border-orange-200" },
   livre:                { label: "Livré",               color: "bg-green-100 text-green-700 border-green-200" },
   annule:               { label: "Annulé",              color: "bg-red-100 text-red-700 border-red-200" },
+};
+
+const PRIORITY_CONFIG: Record<ProspectPriority, { label: string; color: string; icon: typeof Flame }> = {
+  urgent:      { label: "Urgent",      color: "bg-red-100 text-red-700 border-red-200",    icon: Zap },
+  chaud:       { label: "Chaud",       color: "bg-orange-100 text-orange-700 border-orange-200", icon: Flame },
+  a_qualifier: { label: "À qualifier", color: "bg-slate-100 text-slate-600 border-slate-200", icon: HelpCircle },
+  froid:       { label: "Froid",       color: "bg-blue-50 text-blue-500 border-blue-200",   icon: Snowflake },
+  perdu:       { label: "Perdu",       color: "bg-gray-100 text-gray-500 border-gray-200",  icon: XCircle },
 };
 
 function formatDate(dateStr: string): string {
@@ -55,8 +82,10 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<ProspectStatus>(prospect.status);
+  const [priority, setPriority] = useState<ProspectPriority>(prospect.priority);
   const [notes, setNotes] = useState(prospect.internalNotes ?? "");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [converted, setConverted] = useState(!!prospect.convertedCustomerId);
 
   const waNumber = prospect.whatsapp.replace(/[^0-9]/g, "") || siteConfig.whatsapp;
   const waLink = `https://wa.me/${waNumber}`;
@@ -108,6 +137,59 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
     });
   }
 
+  function handlePriorityChange(newPriority: ProspectPriority) {
+    setPriority(newPriority);
+    startTransition(async () => {
+      const result = await updateProspectAction(prospect.id, { priority: newPriority });
+      if (result.error) {
+        setSaveMessage(result.error);
+        setPriority(prospect.priority);
+      } else {
+        setSaveMessage("Priorité mise à jour");
+        setTimeout(() => setSaveMessage(null), 2000);
+      }
+    });
+  }
+
+  function handleMarkContacted() {
+    startTransition(async () => {
+      const result = await markProspectContactedAction(prospect.id);
+      if (result.error) {
+        setSaveMessage(result.error);
+      } else {
+        setSaveMessage("Marqué comme contacté");
+        setTimeout(() => setSaveMessage(null), 2000);
+      }
+    });
+  }
+
+  function handleConvert() {
+    if (!confirm("Créer un client à partir de ce prospect ?")) return;
+    startTransition(async () => {
+      const result = await convertProspectToCustomerAction(prospect.id);
+      if (result.error) {
+        setSaveMessage(result.error);
+      } else {
+        setConverted(true);
+        setSaveMessage("Client créé avec succès");
+        setTimeout(() => setSaveMessage(null), 3000);
+      }
+    });
+  }
+
+  function handleCreateTask() {
+    startTransition(async () => {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const result = await createProspectTaskAction(prospect.id, "appeler_client", `Relancer ${prospect.fullName}`, tomorrow);
+      if (result.error) {
+        setSaveMessage(result.error);
+      } else {
+        setSaveMessage("Tâche de relance créée");
+        setTimeout(() => setSaveMessage(null), 2000);
+      }
+    });
+  }
+
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Header */}
@@ -124,15 +206,58 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
             <p className="text-xs text-slate-400 font-mono">{prospect.reference}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-10 px-4 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-            <MessageCircle className="w-4 h-4" /> WhatsApp
-          </a>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* WhatsApp dropdown */}
+          <div className="relative group">
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-10 px-4 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              <MessageCircle className="w-4 h-4" /> WhatsApp
+            </a>
+            <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl border border-slate-100 shadow-lg py-1 z-50 hidden group-hover:block">
+              {(Object.keys(PROSPECT_MESSAGE_LABELS) as ProspectMessageType[]).map(type => (
+                <a
+                  key={type}
+                  href={getProspectWhatsAppUrl(type, prospect)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block px-4 py-2.5 text-xs text-slate-700 hover:bg-green-50 hover:text-green-700"
+                >
+                  {PROSPECT_MESSAGE_LABELS[type]}
+                </a>
+              ))}
+            </div>
+          </div>
+          {canEdit && !prospect.contactedAt && (
+            <button
+              onClick={handleMarkContacted}
+              disabled={isPending}
+              className="h-10 px-4 rounded-xl bg-indigo-50 text-indigo-600 text-sm font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <Phone className="w-4 h-4" /> Contacté
+            </button>
+          )}
+          {canEdit && !converted && (
+            <button
+              onClick={handleConvert}
+              disabled={isPending}
+              className="h-10 px-4 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-bold hover:bg-emerald-100 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <UserCheck className="w-4 h-4" /> Convertir client
+            </button>
+          )}
+          {canEdit && (
+            <button
+              onClick={handleCreateTask}
+              disabled={isPending}
+              className="h-10 px-4 rounded-xl bg-amber-50 text-amber-600 text-sm font-bold hover:bg-amber-100 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <ClipboardList className="w-4 h-4" /> Tâche relance
+            </button>
+          )}
           {canDelete && (
             <button
               onClick={handleDelete}
@@ -170,6 +295,33 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
                     : "bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100"
                 }`}
               >
+                {config.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Priorité */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-6">
+        <h2 className="text-sm font-bold text-slate-800 mb-4">Priorité commerciale</h2>
+        <div className="flex flex-wrap gap-2">
+          {PROSPECT_PRIORITIES.map((p) => {
+            const config = PRIORITY_CONFIG[p];
+            const PIcon = config.icon;
+            const active = priority === p;
+            return (
+              <button
+                key={p}
+                onClick={() => canEdit && handlePriorityChange(p)}
+                disabled={!canEdit || isPending}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:cursor-not-allowed flex items-center gap-1.5 ${
+                  active
+                    ? `${config.color} ring-2 ring-offset-1 ring-current`
+                    : "bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100"
+                }`}
+              >
+                <PIcon className="w-3.5 h-3.5" />
                 {config.label}
               </button>
             );

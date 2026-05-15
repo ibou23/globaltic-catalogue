@@ -5,6 +5,7 @@ import { createProspect } from "@/lib/db/prospects";
 import { uploadProspectFile } from "@/lib/db/prospect-files";
 import { generateReference } from "@/lib/services/reference";
 import { checkRateLimitSafe } from "@/lib/security/rate-limit";
+import { notifyNewProspect } from "@/lib/services/prospect-notify";
 import { headers } from "next/headers";
 import { err, type Result } from "@/lib/utils/result";
 import type { Prospect, ProspectFileType } from "@/lib/types/domain";
@@ -40,6 +41,8 @@ export async function submitProspectFormAction(
   const result = await createProspect(parsed.data, reference);
 
   if (!result.data) return result;
+
+  notifyNewProspect(result.data).catch(() => {});
 
   if (files) {
     const prospect = result.data;

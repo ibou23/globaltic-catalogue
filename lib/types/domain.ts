@@ -306,6 +306,7 @@ export interface Task {
   dueDate:     string | null;
   closedAt:    string | null;
   customerId:  string | null;
+  prospectId:  string | null;
   quoteId:     string | null;
   orderId:     string | null;
   createdBy:   string | null;
@@ -348,6 +349,7 @@ export type ProspectStatus =
   | "livre"
   | "annule";
 
+export type ProspectPriority = "urgent" | "chaud" | "a_qualifier" | "froid" | "perdu";
 export type ProspectSource = "formulaire" | "whatsapp" | "telephone" | "terrain" | "autre";
 export type ProspectFileType = "logo" | "document" | "image" | "autre";
 export type WhatsAppDirection = "inbound" | "outbound";
@@ -377,8 +379,11 @@ export interface Prospect {
   deliveryZone: string | null;
   message: string | null;
   status: ProspectStatus;
+  priority: ProspectPriority;
   internalNotes: string | null;
   assignedTo: string | null;
+  contactedAt: string | null;
+  convertedCustomerId: string | null;
   source: ProspectSource;
   createdAt: string;
   updatedAt: string;

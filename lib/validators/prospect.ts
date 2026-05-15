@@ -52,10 +52,15 @@ export const prospectPublicSchema = z.object({
   message: z.string().max(2000).nullable().optional(),
 });
 
+export const PROSPECT_PRIORITIES = ["urgent", "chaud", "a_qualifier", "froid", "perdu"] as const;
+
 export const prospectUpdateSchema = z.object({
   status: z.enum(PROSPECT_STATUSES).optional(),
+  priority: z.enum(PROSPECT_PRIORITIES).optional(),
   internal_notes: z.string().max(5000).nullable().optional(),
   assigned_to: z.string().uuid().nullable().optional(),
+  contacted_at: z.string().nullable().optional(),
+  converted_customer_id: z.string().uuid().nullable().optional(),
 });
 
 export type ProspectPublicInput = z.infer<typeof prospectPublicSchema>;
