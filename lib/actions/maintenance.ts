@@ -8,6 +8,7 @@ import { deleteQuote } from "@/lib/db/quotes";
 import { deleteOrder } from "@/lib/db/orders";
 import { deleteCustomer, getCustomerLinkedCount } from "@/lib/db/customers";
 import { logMaintenanceEvent, deleteReadNotifications } from "@/lib/db/activity-log";
+import { checkRateLimitSafe } from "@/lib/security/rate-limit";
 import { err, ok, type Result } from "@/lib/utils/result";
 
 const CONFIRM_WORD = "SUPPRIMER";
@@ -37,6 +38,9 @@ export async function deleteQuoteAction(formData: unknown): Promise<Result<null>
   const admin = await getCurrentAdmin();
   const denied = requireRole(admin.data?.role, "devis:force_delete");
   if (denied) return err(denied);
+
+  const rateLimitError = await checkRateLimitSafe("maintenance", admin.data!.userId);
+  if (rateLimitError) return err(rateLimitError);
 
   const parsed = deleteQuoteSchema.safeParse(formData);
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Données invalides");
@@ -70,6 +74,9 @@ export async function deleteOrderAction(formData: unknown): Promise<Result<null>
   const denied = requireRole(admin.data?.role, "commande:force_delete");
   if (denied) return err(denied);
 
+  const rateLimitError = await checkRateLimitSafe("maintenance", admin.data!.userId);
+  if (rateLimitError) return err(rateLimitError);
+
   const parsed = deleteOrderSchema.safeParse(formData);
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Données invalides");
 
@@ -93,6 +100,9 @@ export async function deleteCustomerAction(formData: unknown): Promise<Result<nu
   const admin = await getCurrentAdmin();
   const denied = requireRole(admin.data?.role, "client:delete");
   if (denied) return err(denied);
+
+  const rateLimitError = await checkRateLimitSafe("maintenance", admin.data!.userId);
+  if (rateLimitError) return err(rateLimitError);
 
   const parsed = deleteCustomerSchema.safeParse(formData);
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Données invalides");
@@ -130,6 +140,9 @@ export async function purgeReadNotificationsAction(): Promise<Result<number>> {
   const admin = await getCurrentAdmin();
   const denied = requireRole(admin.data?.role, "notifications:purge");
   if (denied) return err(denied);
+
+  const rateLimitError = await checkRateLimitSafe("maintenance", admin.data!.userId);
+  if (rateLimitError) return err(rateLimitError);
 
   if (!admin.data?.userId) return err("Session invalide");
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { signInAction } from "@/lib/actions/auth";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, Loader2, ArrowRight, Printer } from "lucide-react";
 import { motion } from "framer-motion";
@@ -13,20 +13,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const result = await signInAction(email, password);
 
-    if (error) {
-      setError("Identifiants invalides. Veuillez réessayer.");
+    if (result.error) {
+      setError(result.error);
       setLoading(false);
     } else {
       router.push("/admin");

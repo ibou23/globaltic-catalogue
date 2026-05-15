@@ -1,21 +1,23 @@
 # Audit de sécurité — GLOBAL TIC PrintTech
 
 **Plateforme :** GLOBAL TIC PrintTech Admin  
-**Version :** 2.46  
+**Version :** 2.48  
 **Date de l'audit :** 14 mai 2026  
+**Dernière mise à jour :** 15 mai 2026  
 **Auditeur :** Claude Sonnet 4.6  
-**Statut :** Corrections hautes et moyennes appliquées
+**Statut :** Corrections hautes, moyennes et rate limiting appliqués
 
 ---
 
 ## Évaluation globale
 
 ```
-🟡 ACCEPTABLE — Problèmes hauts corrigés, pas de risque immédiat d'exposition de données
+🟢 BON — Problèmes hauts et moyens corrigés, rate limiting actif
 ```
 
 Avant corrections : **🟠 À AMÉLIORER**  
-Après corrections : **🟡 ACCEPTABLE**
+Après corrections v2.46 : **🟡 ACCEPTABLE**  
+Après corrections v2.48 : **🟢 BON**
 
 ---
 
@@ -27,7 +29,7 @@ Après corrections : **🟡 ACCEPTABLE**
 | 2 | HAUTE | Injection PostgREST dans `.or()` / ilike | ✅ Corrigé |
 | 3 | MOYENNE | Absence de headers HTTP de sécurité | ✅ Corrigé |
 | 4 | MOYENNE | Validation de démarrage vars env | ✅ Corrigé |
-| 5 | MOYENNE | Absence de rate limiting | ⏳ Phase séparée |
+| 5 | MOYENNE | Absence de rate limiting | ✅ Corrigé — Phase 2.48 |
 | 6 | BASSE | dangerouslySetInnerHTML résiduel | ⏳ À surveiller |
 | 7 | BASSE | CVE postcss moderate (via Next.js) | ⏳ Attendre mise à jour Next.js |
 
@@ -150,7 +152,7 @@ if (!url || !key) {
 
 ---
 
-## Résultats du build après corrections
+## Résultats du build après corrections v2.46
 
 ```
 ✅ Compiled successfully in 20.1s
@@ -160,18 +162,22 @@ if (!url || !key) {
 ✅ Proxy (Middleware) actif — proxy.ts reconnu
 ```
 
-Routes vérifiées :
-- `/admin` — ✅ Dynamic, protégé par layout + middleware
-- `/api/admin/commandes/[id]/facture` — ✅ Dynamic
-- `/api/admin/commandes/[id]/receipt` — ✅ Dynamic
-- `/api/admin/devis/[id]/pdf` — ✅ Dynamic
-- `/api/admin/rapports/pdf` — ✅ Dynamic
+---
+
+## Résultats du build après corrections v2.48 (rate limiting)
+
+```
+✅ Compiled successfully in 7.4s
+✅ TypeScript — 0 erreur
+✅ 8/8 pages statiques générées
+✅ Toutes les routes dynamiques compilées
+✅ Proxy (Middleware) actif — proxy.ts reconnu
+```
 
 ---
 
 ## Ce qui n'a PAS été modifié (intentionnellement)
 
-- **Rate limiting** — prévu dans une phase séparée
 - **Content-Security-Policy** — à traiter dans une phase dédiée (risque de casser Supabase/analytics)
 - **CVE postcss** — dépend d'une future mise à jour Next.js, `npm audit fix --force` casserait Next.js
 - **dangerouslySetInnerHTML** dans `app/(site)/layout.tsx` — données 100% statiques, risque résiduel nul aujourd'hui
@@ -194,11 +200,51 @@ Routes vérifiées :
 
 ---
 
+## Conclusion #5 — Rate Limiting — MOYENNE
+
+**Statut : ✅ Corrigé — Phase 2.48**
+
+**Approche :** Upstash Redis + `@upstash/ratelimit` (Sliding Window). Compatible Vercel serverless — pas d'état en mémoire partagée entre instances.
+
+**Limiteurs implémentés :**
+
+| Zone | Identifiant | Fenêtre | Max | Politique |
+|------|-------------|---------|-----|-----------|
+| Login | IP (`x-forwarded-for`) | 10 min | 10 | Fail-safe |
+| PDF (5 routes) | userId | 10 min | 30 | Fail-open |
+| Recherche globale | userId | 1 min | 70 | Fail-open |
+| Import CSV (3 actions) | userId | 1 heure | 30 | Fail-open |
+| Maintenance/suppression (4 actions) | userId | 1 heure | 30 | Fail-safe |
+
+**Variables d'environnement requises (server-only) :**
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+**Comportement si Redis non configuré :**
+- Fail-safe (login, maintenance) → bloque (sécurité maximale)
+- Fail-open (PDF, search, import) → laisse passer (ne bloque pas l'équipe)
+
+**Note — Export CSV :** Aucun export CSV server-side n'existe dans la codebase. Les téléchargements de templates CSV sont des blobs statiques générés côté client — non concernés.
+
+**Fichiers modifiés :**
+- `lib/security/rate-limit.ts` — CRÉÉ
+- `lib/actions/auth.ts` — `signInAction` créée (login via Server Action + rate limit IP)
+- `app/(admin)/login/page.tsx` — utilise `signInAction` au lieu de `supabase.auth.signInWithPassword()` direct
+- `app/api/admin/commandes/[id]/facture/route.ts` — `checkRateLimitOpen("pdf")`
+- `app/api/admin/commandes/[id]/receipt/route.ts` — `checkRateLimitOpen("pdf")`
+- `app/api/admin/commandes/[id]/bon-livraison/route.ts` — `checkRateLimitOpen("pdf")`
+- `app/api/admin/devis/[id]/pdf/route.ts` — `checkRateLimitOpen("pdf")`
+- `app/api/admin/rapports/pdf/route.ts` — `checkRateLimitOpen("pdf")`
+- `lib/actions/global-search.ts` — `checkRateLimitOpen("search")`
+- `lib/actions/csv-import.ts` — `checkRateLimitOpen("import")` sur les 3 actions d'import
+- `lib/actions/maintenance.ts` — `checkRateLimitSafe("maintenance")` sur les 4 actions de suppression
+
+---
+
 ## Points restants (non bloquants)
 
 | Point | Sévérité | Action recommandée |
 |-------|----------|-------------------|
-| Rate limiting | MOYENNE | Implémenter via Vercel Dashboard ou Upstash |
 | Content-Security-Policy | MOYENNE | Phase dédiée, tester avec Supabase/analytics |
 | postcss CVE moderate | BASSE | Attendre Next.js > 16.3.0 |
 | dangerouslySetInnerHTML | BASSE | Ne pas dynamiser sans sanitisation |
@@ -206,4 +252,5 @@ Routes vérifiées :
 ---
 
 *Audit effectué dans le cadre de la Phase 2.46 — Sécurité GLOBAL TIC PrintTech.*  
-*Corrections appliquées le 14 mai 2026.*
+*Corrections v2.46 appliquées le 14 mai 2026.*  
+*Corrections v2.48 (rate limiting) appliquées le 15 mai 2026.*

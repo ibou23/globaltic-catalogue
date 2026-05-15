@@ -4,6 +4,7 @@ import { getCurrentAdmin } from "@/lib/db/admin";
 import { requireRole } from "@/lib/auth/permissions";
 import { importCategories, importProducts, importPrix, type ImportSummary } from "@/lib/db/csv-import";
 import { csvProductRowSchema, csvCategoryRowSchema, csvPrixRowSchema } from "@/lib/validators/csv-import";
+import { checkRateLimitOpen } from "@/lib/security/rate-limit";
 import { err, ok, type Result } from "@/lib/utils/result";
 import { revalidatePath } from "next/cache";
 
@@ -25,6 +26,9 @@ export async function importCategoriesAction(
   const admin = await getCurrentAdmin();
   const denied = requireRole(admin.data?.role, "import:categories");
   if (denied) return err(denied);
+
+  const rateLimitError = await checkRateLimitOpen("import", admin.data!.userId);
+  if (rateLimitError) return err(rateLimitError);
 
   const validated = [];
   const errors: string[] = [];
@@ -59,6 +63,9 @@ export async function importProductsAction(
   const denied = requireRole(admin.data?.role, "import:produits");
   if (denied) return err(denied);
 
+  const rateLimitError = await checkRateLimitOpen("import", admin.data!.userId);
+  if (rateLimitError) return err(rateLimitError);
+
   const validated = [];
   const errors: string[] = [];
 
@@ -92,6 +99,9 @@ export async function importPrixAction(
   const admin = await getCurrentAdmin();
   const denied = requireRole(admin.data?.role, "import:prix");
   if (denied) return err(denied);
+
+  const rateLimitError = await checkRateLimitOpen("import", admin.data!.userId);
+  if (rateLimitError) return err(rateLimitError);
 
   const validated = [];
   const errors: string[] = [];

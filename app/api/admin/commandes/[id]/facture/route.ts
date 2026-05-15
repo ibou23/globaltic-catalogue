@@ -10,6 +10,7 @@ import { getInvoiceByOrderId, createInvoice } from "@/lib/db/invoices";
 import { generateReference } from "@/lib/services/reference";
 import { logOrderEvent } from "@/lib/db/activity-log";
 import { FacturePDF } from "@/components/pdf/FacturePDF";
+import { checkRateLimitOpen } from "@/lib/security/rate-limit";
 import path from "path";
 import fs from "fs";
 import type { InvoiceStatus } from "@/lib/types/domain";
@@ -24,6 +25,11 @@ export async function GET(
   }
   if (!canPerform(admin.data.role, "facture:generate")) {
     return NextResponse.json({ error: "Vous n'avez pas les droits nécessaires" }, { status: 403 });
+  }
+
+  const rateLimitError = await checkRateLimitOpen("pdf", admin.data.userId);
+  if (rateLimitError) {
+    return NextResponse.json({ error: rateLimitError }, { status: 429 });
   }
 
   const { id } = await params;

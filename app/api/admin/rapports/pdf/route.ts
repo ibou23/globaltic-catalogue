@@ -6,6 +6,7 @@ import { canAccessModule } from "@/lib/auth/permissions";
 import { getBusinessConfig } from "@/lib/db/business-config";
 import { getReportData } from "@/lib/db/reports";
 import { RapportPDF } from "@/components/pdf/RapportPDF";
+import { checkRateLimitOpen } from "@/lib/security/rate-limit";
 import path from "path";
 import fs from "fs";
 
@@ -16,6 +17,11 @@ export async function GET(req: Request) {
   }
   if (!canAccessModule(admin.data.role, "rapports")) {
     return NextResponse.json({ error: "Vous n'avez pas les droits nécessaires" }, { status: 403 });
+  }
+
+  const rateLimitError = await checkRateLimitOpen("pdf", admin.data.userId);
+  if (rateLimitError) {
+    return NextResponse.json({ error: rateLimitError }, { status: 429 });
   }
 
   const { searchParams } = new URL(req.url);
