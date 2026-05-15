@@ -4,6 +4,8 @@ import { canAccessModule } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { CategoriesClient } from "@/components/admin/CategoriesClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminCategoriesPage() {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;

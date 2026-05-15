@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getDashboardStats } from "@/lib/db/stats";
+
+export const dynamic = "force-dynamic";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { getTasksDueToday, getOverdueTasks } from "@/lib/db/tasks";
 import { getImpayesStats } from "@/lib/db/impayes";

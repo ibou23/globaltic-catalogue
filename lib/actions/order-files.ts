@@ -99,6 +99,8 @@ export async function updateOrderFileStatusAction(
 ): Promise<Result<OrderFile>> {
   const admin = await getCurrentAdmin();
   if (!admin.data) return err("Accès non autorisé");
+  const denied = requireRole(admin.data.role, "commande:bat");
+  if (denied) return err(denied);
   return updateOrderFileStatus(fileId, status);
 }
 

@@ -4,6 +4,8 @@ import { canAccessModule } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { UtilisateursClient } from "@/components/admin/UtilisateursClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminUtilisateursPage() {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
