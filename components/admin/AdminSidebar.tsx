@@ -42,25 +42,33 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  // Pilotage
   { label: "Vue d'ensemble", href: "/admin",              icon: LayoutDashboard, exact: true, module: "dashboard" },
-  { label: "Produits",       href: "/admin/produits",     icon: Package,                      module: "produits" },
-  { label: "Catégories",     href: "/admin/categories",   icon: FolderOpen,                   module: "categories" },
+  // Acquisition
   { label: "Prospects",      href: "/admin/prospects",    icon: UserPlus,                     module: "prospects" },
   { label: "WhatsApp",       href: "/admin/whatsapp",     icon: MessageSquare,                module: "whatsapp" },
+  { label: "Clients",        href: "/admin/clients",      icon: Users,                        module: "clients" },
+  // Commercial
   { label: "Devis",          href: "/admin/devis",        icon: FileText,                     module: "devis" },
   { label: "Commandes",      href: "/admin/commandes",    icon: ShoppingCart,                 module: "commandes" },
-  { label: "Clients",        href: "/admin/clients",      icon: Users,                        module: "clients" },
-  { label: "Réalisations",   href: "/admin/realisations", icon: Image,                        module: "realisations" },
-  { label: "Utilisateurs",   href: "/admin/utilisateurs", icon: UserCog,                      module: "utilisateurs" },
-  { label: "Imports CSV",    href: "/admin/imports",      icon: Upload,                       module: "imports" },
-  { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
-  { label: "Tâches",         href: "/admin/taches",       icon: CheckSquare,                  module: "taches" },
-  { label: "Factures",       href: "/admin/factures",     icon: FileText,                     module: "factures" },
-  { label: "Impayés",        href: "/admin/impayes",      icon: AlertCircle,                  module: "impayes" },
+  // Production
   { label: "Planning",       href: "/admin/planning",     icon: CalendarDays,                 module: "planning" },
+  { label: "Tâches",         href: "/admin/taches",       icon: CheckSquare,                  module: "taches" },
+  // Finance
+  { label: "Impayés",        href: "/admin/impayes",      icon: AlertCircle,                  module: "impayes" },
+  { label: "Factures",       href: "/admin/factures",     icon: FileText,                     module: "factures" },
   { label: "Rapports",       href: "/admin/rapports",     icon: BarChart2,                    module: "rapports" },
+  // Catalogue
+  { label: "Produits",       href: "/admin/produits",     icon: Package,                      module: "produits" },
+  { label: "Catégories",     href: "/admin/categories",   icon: FolderOpen,                   module: "categories" },
+  { label: "Réalisations",   href: "/admin/realisations", icon: Image,                        module: "realisations" },
+  // Données
+  { label: "Imports CSV",    href: "/admin/imports",      icon: Upload,                       module: "imports" },
+  // Administration
+  { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
+  { label: "Utilisateurs",   href: "/admin/utilisateurs", icon: UserCog,                      module: "utilisateurs" },
+  { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                       module: "maintenance" },
   { label: "Aide",           href: "/admin/aide",         icon: HelpCircle,                   module: "aide" },
-  { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                        module: "maintenance" },
 ];
 
 interface AdminSidebarProps {
