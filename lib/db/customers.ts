@@ -115,17 +115,21 @@ export async function updateCustomerNotes(
 
 export async function getCustomerLinkedCount(
   id: string
-): Promise<{ quotes: number; orders: number }> {
+): Promise<{ quotes: number; orders: number; invoices: number; tasks: number }> {
   const supabase = await createClient();
 
-  const [quotesResult, ordersResult] = await Promise.all([
+  const [quotesResult, ordersResult, invoicesResult, tasksResult] = await Promise.all([
     supabase.from("quotes").select("id", { count: "exact", head: true }).eq("customer_id", id),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("customer_id", id),
+    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("customer_id", id),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("customer_id", id),
   ]);
 
   return {
     quotes: quotesResult.count ?? 0,
     orders: ordersResult.count ?? 0,
+    invoices: invoicesResult.count ?? 0,
+    tasks: tasksResult.count ?? 0,
   };
 }
 

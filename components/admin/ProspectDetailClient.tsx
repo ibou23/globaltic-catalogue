@@ -24,6 +24,7 @@ import {
   Snowflake,
   HelpCircle,
   XCircle,
+  Pencil,
 } from "lucide-react";
 import {
   updateProspectAction,
@@ -32,7 +33,9 @@ import {
   markProspectContactedAction,
   convertProspectToCustomerAction,
   createProspectTaskAction,
+  getProspectLinkedEntitiesAction,
 } from "@/lib/actions/prospects";
+import { ConfirmWithWord } from "@/components/admin/ConfirmWithWord";
 import { PROSPECT_STATUSES, PROSPECT_PRIORITIES } from "@/lib/validators/prospect";
 import {
   PROSPECT_MESSAGE_LABELS,
@@ -86,6 +89,8 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
   const [notes, setNotes] = useState(prospect.internalNotes ?? "");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [converted, setConverted] = useState(!!prospect.convertedCustomerId);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteWarning, setDeleteWarning] = useState<string | undefined>(undefined);
 
   const waNumber = prospect.whatsapp.replace(/[^0-9]/g, "") || siteConfig.whatsapp;
   const waLink = `https://wa.me/${waNumber}`;
@@ -116,16 +121,24 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
     });
   }
 
-  function handleDelete() {
-    if (!confirm("Supprimer définitivement ce prospect ?")) return;
-    startTransition(async () => {
-      const result = await deleteProspectAction(prospect.id);
-      if (result.error) {
-        setSaveMessage(result.error);
-      } else {
-        router.push("/admin/prospects");
-      }
-    });
+  async function handleDeleteStart() {
+    setDeleteWarning(undefined);
+    setShowDeleteModal(true);
+    const result = await getProspectLinkedEntitiesAction(prospect.id);
+    if (result.data) {
+      const parts: string[] = [];
+      if (result.data.convertedCustomerId) parts.push("un client converti (ne sera PAS supprimé)");
+      if (result.data.tasks > 0) parts.push(`${result.data.tasks} tâche(s) liée(s)`);
+      if (parts.length > 0) setDeleteWarning(`Ce prospect est lié à : ${parts.join(", ")}.`);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    const result = await deleteProspectAction(prospect.id);
+    if (!result.error) {
+      router.push("/admin/prospects");
+    }
+    return result;
   }
 
   function handleOpenFile(file: ProspectFile) {
@@ -240,6 +253,14 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
               <Phone className="w-4 h-4" /> Contacté
             </button>
           )}
+          {canEdit && (
+            <Link
+              href={`/admin/prospects/${prospect.id}/modifier`}
+              className="h-10 px-4 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold hover:bg-slate-200 transition-colors flex items-center gap-2"
+            >
+              <Pencil className="w-4 h-4" /> Modifier
+            </Link>
+          )}
           {canEdit && !converted && (
             <button
               onClick={handleConvert}
@@ -260,7 +281,7 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
           )}
           {canDelete && (
             <button
-              onClick={handleDelete}
+              onClick={handleDeleteStart}
               disabled={isPending}
               className="h-10 px-4 rounded-xl bg-red-50 text-red-600 text-sm font-bold hover:bg-red-100 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
@@ -269,6 +290,17 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
           )}
         </div>
       </div>
+
+      {/* Modal suppression forte */}
+      {showDeleteModal && (
+        <ConfirmWithWord
+          title="Supprimer ce prospect"
+          description={`Voulez-vous supprimer définitivement "${prospect.fullName}" ?`}
+          warning={deleteWarning}
+          onConfirm={handleConfirmDelete}
+          onClose={() => setShowDeleteModal(false)}
+        />
+      )}
 
       {/* Feedback */}
       {saveMessage && (

@@ -44,6 +44,7 @@ export default async function AdminClientDetailPage({
   const adminProfiles = profilesResult.data ?? [];
 
   const canEdit        = canPerform(admin.role, "client:edit");
+  const canDelete      = canPerform(admin.role, "client:delete");
   const canSeeFinances = canPerform(admin.role, "commande:edit_payment") || canPerform(admin.role, "receipt:generate");
   const canCreateTask  = canPerform(admin.role, "task:create");
 
@@ -56,6 +57,7 @@ export default async function AdminClientDetailPage({
       adminProfiles={adminProfiles}
       role={admin.role}
       canEdit={canEdit}
+      canDelete={canDelete}
       canSeeFinances={canSeeFinances}
       canCreateTask={canCreateTask}
     />

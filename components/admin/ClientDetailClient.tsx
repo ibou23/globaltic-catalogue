@@ -31,13 +31,15 @@ import {
   Meh,
   Frown,
   AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import type { Customer, QuoteEnriched, OrderEnriched, AdminRole, TaskEnriched, AdminProfile } from "@/lib/types/domain";
 import { formatPrice, formatDate, formatDateShort } from "@/lib/utils/format";
 import { canPerform } from "@/lib/auth/permissions";
-import { updateCustomerNotesAction } from "@/lib/actions/customers";
+import { updateCustomerNotesAction, deleteCustomerAction, getCustomerLinkedCountAction } from "@/lib/actions/customers";
 import { updateTaskStatusAction } from "@/lib/actions/tasks";
 import { TaskForm } from "@/components/admin/TaskForm";
+import { ConfirmWithWord } from "@/components/admin/ConfirmWithWord";
 import { siteConfig } from "@/lib/config/site";
 
 // ─── Labels ─────────────────────────────────────────────────────────────────
@@ -223,6 +225,7 @@ interface ClientDetailClientProps {
   adminProfiles: AdminProfile[];
   role: AdminRole;
   canEdit: boolean;
+  canDelete: boolean;
   canSeeFinances: boolean;
   canCreateTask: boolean;
 }
@@ -241,6 +244,7 @@ export function ClientDetailClient({
   adminProfiles,
   role,
   canEdit,
+  canDelete,
   canSeeFinances,
   canCreateTask,
 }: ClientDetailClientProps) {
@@ -253,6 +257,8 @@ export function ClientDetailClient({
   const [notesError, setNotesError] = useState<string | null>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskPending, startTaskTransition] = useTransition();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteWarning, setDeleteWarning] = useState<string | undefined>(undefined);
 
   const tier = TIER_LABELS[customer.loyaltyTier] ?? TIER_LABELS.nouveau;
   const waBase = buildWaLink(customer.whatsapp);
@@ -297,6 +303,35 @@ export function ClientDetailClient({
     });
   }
 
+  async function handleDeleteStart() {
+    setDeleteWarning(undefined);
+    setShowDeleteModal(true);
+    const result = await getCustomerLinkedCountAction(customer.id);
+    if (result.data) {
+      const { quotes: q, orders: o, invoices, tasks: t } = result.data;
+      const total = q + o + invoices + t;
+      if (total > 0) {
+        const parts: string[] = [];
+        if (o > 0) parts.push(`${o} commande(s)`);
+        if (q > 0) parts.push(`${q} devis`);
+        if (invoices > 0) parts.push(`${invoices} facture(s)`);
+        if (t > 0) parts.push(`${t} tâche(s)`);
+        setDeleteWarning(
+          `Ce client possède des données commerciales (${parts.join(", ")}). ` +
+          `Vous pouvez corriger ses informations, mais pas le supprimer.`
+        );
+      }
+    }
+  }
+
+  async function handleConfirmDelete() {
+    const result = await deleteCustomerAction(customer.id);
+    if (!result.error) {
+      router.push("/admin/clients");
+    }
+    return result;
+  }
+
   const TABS: { key: Tab; label: string; count?: number }[] = [
     { key: "resume",     label: "Résumé" },
     { key: "devis",      label: "Devis",     count: totalQuotes },
@@ -315,6 +350,16 @@ export function ClientDetailClient({
           customers={[customer]}
           prefill={{ customerId: customer.id }}
           onClose={() => { setShowTaskForm(false); router.refresh(); }}
+        />
+      )}
+
+      {showDeleteModal && (
+        <ConfirmWithWord
+          title="Supprimer ce client"
+          description={`Voulez-vous supprimer définitivement "${customer.contactName}" ?`}
+          warning={deleteWarning}
+          onConfirm={handleConfirmDelete}
+          onClose={() => setShowDeleteModal(false)}
         />
       )}
 
@@ -384,6 +429,14 @@ export function ClientDetailClient({
                 >
                   <Pencil className="w-3.5 h-3.5" /> Modifier
                 </Link>
+              )}
+              {canDelete && (
+                <button
+                  onClick={handleDeleteStart}
+                  className="h-9 px-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Supprimer
+                </button>
               )}
             </div>
           </div>

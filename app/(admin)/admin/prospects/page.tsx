@@ -1,6 +1,7 @@
 import { getProspects } from "@/lib/db/prospects";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { checkModuleAccess } from "@/lib/auth/check-access";
+import { canPerform } from "@/lib/auth/permissions";
 import { getUntreatedProspectsAlert } from "@/lib/services/auto-tasks";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { ProspectsClient } from "@/components/admin/ProspectsClient";
@@ -54,7 +55,10 @@ export default async function AdminProspectsPage({
       totalCount={allProspects.length}
       activeFilter={activeFilter}
       role={admin.role}
+      canEdit={canPerform(admin.role, "prospect:edit")}
+      canDelete={canPerform(admin.role, "prospect:delete")}
       untreatedAlert={untreatedAlert}
     />
   );
 }
+

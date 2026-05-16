@@ -47,6 +47,7 @@ export default async function AdminClientsPage({
       totalCount={allCustomers.length}
       activeFilter={activeFilter}
       canEdit={canPerform(admin.role, "client:edit")}
+      canDelete={canPerform(admin.role, "client:delete")}
     />
   );
 }

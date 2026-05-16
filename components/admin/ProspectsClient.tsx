@@ -18,6 +18,11 @@ import {
   XCircle,
   UserCheck,
   ClipboardList,
+  Pencil,
+  Trash2,
+  MoreVertical,
+  Copy,
+  Check,
 } from "lucide-react";
 import type { Prospect, ProspectStatus, ProspectPriority, AdminRole } from "@/lib/types/domain";
 import { siteConfig } from "@/lib/config/site";
@@ -31,7 +36,10 @@ import {
   updateProspectAction,
   convertProspectToCustomerAction,
   createProspectTaskAction,
+  deleteProspectAction,
+  getProspectLinkedEntitiesAction,
 } from "@/lib/actions/prospects";
+import { ConfirmWithWord } from "@/components/admin/ConfirmWithWord";
 
 const STATUS_CONFIG: Record<ProspectStatus, { label: string; color: string }> = {
   nouveau:              { label: "Nouveau",              color: "bg-blue-100 text-blue-700" },
@@ -93,16 +101,25 @@ interface ProspectsClientProps {
   totalCount: number;
   activeFilter?: { label: string; count: number; resetHref: string };
   role: AdminRole;
+  canEdit?: boolean;
+  canDelete?: boolean;
   untreatedAlert?: UntreatedProspectAlert | null;
 }
 
-export function ProspectsClient({ prospects, totalCount, activeFilter, role: _role, untreatedAlert }: ProspectsClientProps) {
+const FORM_URL = "https://imprimerie.globalticgroup.com/demande";
+const WA_FORM_MESSAGE = `Bonjour,\n\nMerci pour votre intérêt.\n\nVous pouvez remplir notre formulaire de demande de devis ici :\n${FORM_URL}\n\nNotre équipe vous recontactera rapidement.\n\nGLOBAL TIC`;
+
+export function ProspectsClient({ prospects, totalCount, activeFilter, role: _role, canEdit, canDelete, untreatedAlert }: ProspectsClientProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProspectStatus | "">("");
   const [priorityFilter, setPriorityFilter] = useState<ProspectPriority | "">("");
   const [activeTab, setActiveTab] = useState<InboxTab>("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [localProspects, setLocalProspects] = useState(prospects);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Prospect | null>(null);
+  const [deleteWarning, setDeleteWarning] = useState<string | undefined>(undefined);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const tabFilter = (p: Prospect): boolean => {
     switch (activeTab) {
@@ -183,12 +200,65 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
     setActionLoading(null);
   }
 
-  const formUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/demande`
-    : "/demande";
+  async function handleDeleteStart(p: Prospect) {
+    setDeleteTarget(p);
+    setDeleteWarning(undefined);
+    const result = await getProspectLinkedEntitiesAction(p.id);
+    if (result.data) {
+      const parts: string[] = [];
+      if (result.data.convertedCustomerId) parts.push("un client converti (ne sera PAS supprimé)");
+      if (result.data.tasks > 0) parts.push(`${result.data.tasks} tâche(s) liée(s)`);
+      if (parts.length > 0) setDeleteWarning(`Ce prospect est lié à : ${parts.join(", ")}.`);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return { error: "Aucun prospect sélectionné" };
+    const result = await deleteProspectAction(deleteTarget.id);
+    if (!result.error) {
+      setLocalProspects(prev => prev.filter(p => p.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    }
+    return result;
+  }
+
+  function handleCopyFormLink() {
+    const text = FORM_URL;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2500);
+      });
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    }
+  }
+
+  function handleCopyWaMessage() {
+    const text = WA_FORM_MESSAGE;
+    navigator.clipboard?.writeText(text);
+  }
 
   return (
     <div className="space-y-5">
+      {/* Modal suppression */}
+      {deleteTarget && (
+        <ConfirmWithWord
+          title="Supprimer ce prospect"
+          description={`Voulez-vous supprimer définitivement "${deleteTarget.fullName}" ?`}
+          warning={deleteWarning}
+          onConfirm={handleConfirmDelete}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -205,13 +275,24 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
             )}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => { navigator.clipboard.writeText(formUrl); }}
-            className="h-10 px-4 rounded-xl bg-brand-primary text-white text-sm font-bold hover:bg-brand-primary-dark transition-colors flex items-center gap-2"
+            onClick={handleCopyFormLink}
+            className={`h-10 px-4 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 ${
+              linkCopied
+                ? "bg-emerald-500 text-white"
+                : "bg-brand-primary text-white hover:bg-brand-primary-dark"
+            }`}
           >
-            <UserPlus className="w-4 h-4" />
-            Copier lien formulaire
+            {linkCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {linkCopied ? "Lien copié !" : "Copier lien formulaire"}
+          </button>
+          <button
+            onClick={handleCopyWaMessage}
+            title="Copier le message WhatsApp avec le lien"
+            className="h-10 px-3 rounded-xl bg-green-100 text-green-700 hover:bg-green-200 text-sm font-bold transition-colors flex items-center gap-1.5"
+          >
+            <MessageCircle className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -359,6 +440,22 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
                     <Phone className="w-3 h-3" /> Contacté
                   </button>
                 )}
+                {canEdit && (
+                  <Link
+                    href={`/admin/prospects/${p.id}/modifier`}
+                    className="h-8 px-3 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold flex items-center gap-1 transition-colors hover:bg-slate-200"
+                  >
+                    <Pencil className="w-3 h-3" /> Modifier
+                  </Link>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => handleDeleteStart(p)}
+                    className="h-8 px-3 rounded-lg bg-red-50 text-red-600 text-[11px] font-bold flex items-center gap-1 transition-colors hover:bg-red-100"
+                  >
+                    <Trash2 className="w-3 h-3" /> Supprimer
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -488,6 +585,24 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
                         >
                           <ClipboardList className="w-3.5 h-3.5" />
                         </button>
+                        {canEdit && (
+                          <Link
+                            href={`/admin/prospects/${p.id}/modifier`}
+                            title="Modifier"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Link>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDeleteStart(p)}
+                            title="Supprimer"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

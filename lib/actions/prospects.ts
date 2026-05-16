@@ -1,12 +1,13 @@
 "use server";
 
 import { prospectUpdateSchema } from "@/lib/validators/prospect";
-import { getProspectById, updateProspect, deleteProspect } from "@/lib/db/prospects";
+import { getProspectById, updateProspect, deleteProspect, getProspectLinkedEntities } from "@/lib/db/prospects";
 import { deleteProspectFile, getProspectFileSignedUrl } from "@/lib/db/prospect-files";
 import { createCustomer } from "@/lib/db/customers";
 import { createTask } from "@/lib/db/tasks";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { requireActionDynamic } from "@/lib/auth/check-access";
+import { logAdminEvent } from "@/lib/db/activity-log";
 import { err, ok, type Result } from "@/lib/utils/result";
 import type { Prospect, Customer, Task } from "@/lib/types/domain";
 
@@ -28,7 +29,16 @@ export async function updateProspectAction(
   const existing = await getProspectById(id);
   if (!existing.data) return err("Prospect introuvable");
 
-  return updateProspect(id, parsed.data);
+  const result = await updateProspect(id, parsed.data);
+
+  if (result.data && admin.data) {
+    await logAdminEvent(admin.data.userId, "prospect_modifie", id, {
+      prospectName: result.data.fullName,
+      fields: Object.keys(parsed.data),
+    });
+  }
+
+  return result;
 }
 
 export async function deleteProspectAction(
@@ -43,7 +53,38 @@ export async function deleteProspectAction(
   const existing = await getProspectById(id);
   if (!existing.data) return err("Prospect introuvable");
 
-  return deleteProspect(id);
+  // Vérifier les entités liées
+  const linked = await getProspectLinkedEntities(id);
+
+  if (linked.convertedCustomerId) {
+    // Le prospect a été converti en client — on autorise la suppression
+    // mais on ne touche PAS au client converti (FK SET NULL)
+  }
+
+  const result = await deleteProspect(id);
+
+  if (!result.error && admin.data) {
+    await logAdminEvent(admin.data.userId, "prospect_supprime", id, {
+      prospectName: existing.data.fullName,
+      hadConvertedCustomer: !!linked.convertedCustomerId,
+      linkedTasks: linked.tasks,
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Retourne les infos sur les entités liées à un prospect (pour avertissement UI).
+ */
+export async function getProspectLinkedEntitiesAction(
+  id: string
+): Promise<Result<{ convertedCustomerId: string | null; tasks: number }>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+
+  const linked = await getProspectLinkedEntities(id);
+  return ok(linked);
 }
 
 export async function deleteProspectFileAction(

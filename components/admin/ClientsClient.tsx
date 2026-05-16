@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Plus, Search, MessageCircle, Copy, Check, FileText, ShoppingCart, Eye } from "lucide-react";
+import { Users, Plus, Search, MessageCircle, Copy, Check, FileText, ShoppingCart, Eye, Pencil, Trash2 } from "lucide-react";
 import type { Customer } from "@/lib/types/domain";
 import { formatDateShort } from "@/lib/utils/format";
 import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
+import { ConfirmWithWord } from "@/components/admin/ConfirmWithWord";
 import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
+import { deleteCustomerAction, getCustomerLinkedCountAction } from "@/lib/actions/customers";
 
 const TIER_LABELS: Record<string, { label: string; color: string }> = {
   nouveau:  { label: "Nouveau",  color: "bg-slate-100 text-slate-600" },
@@ -26,6 +28,7 @@ interface ClientsClientProps {
   totalCount?: number;
   activeFilter?: ActiveFilter;
   canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 function buildWhatsAppLink(whatsapp: string): string {
@@ -33,12 +36,15 @@ function buildWhatsAppLink(whatsapp: string): string {
   return `https://wa.me/${number}`;
 }
 
-export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: ClientsClientProps) {
+export function ClientsClient({ customers, totalCount, activeFilter, canEdit, canDelete }: ClientsClientProps) {
   const [search, setSearch] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [localCustomers, setLocalCustomers] = useState(customers);
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+  const [deleteWarning, setDeleteWarning] = useState<string | undefined>(undefined);
 
   const filtered = search.trim()
-    ? customers.filter((c) => {
+    ? localCustomers.filter((c) => {
         const q = search.toLowerCase();
         return (
           c.contactName.toLowerCase().includes(q) ||
@@ -46,7 +52,7 @@ export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: 
           c.whatsapp.includes(q)
         );
       })
-    : customers;
+    : localCustomers;
 
   function handleCopyPhone(customer: Customer) {
     navigator.clipboard.writeText(customer.whatsapp).then(() => {
@@ -55,8 +61,50 @@ export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: 
     });
   }
 
+  async function handleDeleteStart(c: Customer) {
+    setDeleteTarget(c);
+    setDeleteWarning(undefined);
+    const result = await getCustomerLinkedCountAction(c.id);
+    if (result.data) {
+      const { quotes, orders, invoices, tasks } = result.data;
+      const total = quotes + orders + invoices + tasks;
+      if (total > 0) {
+        const parts: string[] = [];
+        if (orders > 0) parts.push(`${orders} commande(s)`);
+        if (quotes > 0) parts.push(`${quotes} devis`);
+        if (invoices > 0) parts.push(`${invoices} facture(s)`);
+        if (tasks > 0) parts.push(`${tasks} tâche(s)`);
+        setDeleteWarning(
+          `Ce client possède déjà des données commerciales (${parts.join(", ")}). ` +
+          `Vous pouvez corriger ses informations, mais pas le supprimer.`
+        );
+      }
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return { error: "Aucun client sélectionné" };
+    const result = await deleteCustomerAction(deleteTarget.id);
+    if (!result.error) {
+      setLocalCustomers(prev => prev.filter(c => c.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    }
+    return result;
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
+
+      {/* Modal suppression */}
+      {deleteTarget && (
+        <ConfirmWithWord
+          title="Supprimer ce client"
+          description={`Voulez-vous supprimer définitivement "${deleteTarget.contactName}" ?`}
+          warning={deleteWarning}
+          onConfirm={handleConfirmDelete}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
 
       {/* En-tête */}
       <div className="flex items-center justify-between">
@@ -171,6 +219,24 @@ export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: 
                     >
                       <ShoppingCart className="w-3.5 h-3.5" />
                     </Link>
+                    {canEdit && (
+                      <Link
+                        href={`/admin/clients/${c.id}/modifier`}
+                        className="w-9 h-9 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors shrink-0"
+                        title="Modifier"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Link>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteStart(c)}
+                        className="w-9 h-9 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors shrink-0"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -250,6 +316,24 @@ export function ClientsClient({ customers, totalCount, activeFilter, canEdit }: 
                           >
                             <ShoppingCart className="w-3.5 h-3.5" />
                           </Link>
+                          {canEdit && (
+                            <Link
+                              href={`/admin/clients/${c.id}/modifier`}
+                              title="Modifier"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDeleteStart(c)}
+                              title="Supprimer"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
