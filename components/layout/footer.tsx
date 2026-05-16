@@ -48,7 +48,7 @@ export function Footer() {
             <h4 className="text-white font-bold mb-6 font-heading tracking-wide">L'Entreprise</h4>
             <ul className="space-y-4 text-sm">
               <li><Link href="/realisations" className="hover:text-white transition-colors">Nos Réalisations</Link></li>
-              <li><span className="text-slate-500 cursor-default">Notre Vision</span></li>
+              <li><Link href="/demande" className="hover:text-white transition-colors">Demander un devis</Link></li>
               <li><span className="text-slate-500 cursor-default">Parc Technologique</span></li>
               <li><span className="text-slate-500 cursor-default">Carrières</span></li>
               <li><span className="text-slate-500 cursor-default">Blog & Ressources</span></li>
