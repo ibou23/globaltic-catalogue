@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Search,
   Filter,
-  Download,
   Copy,
   Check,
   Eye,
@@ -18,6 +17,8 @@ import {
   HelpCircle,
   XCircle,
   FileSpreadsheet,
+  ClipboardList,
+  Table2,
 } from "lucide-react";
 import type { ProspectStatus, ProspectPriority, AdminProfile } from "@/lib/types/domain";
 import type { ProspectWithFileFlag } from "@/lib/db/prospects";
@@ -55,11 +56,11 @@ const PRIORITY_LABELS: Record<ProspectPriority, string> = {
 };
 
 const PRIORITY_CONFIG: Record<ProspectPriority, { label: string; color: string; icon: typeof Flame }> = {
-  urgent:      { label: "Urgent",      color: "bg-red-100 text-red-700",      icon: Zap },
+  urgent:      { label: "Urgent",      color: "bg-red-100 text-red-700",       icon: Zap },
   chaud:       { label: "Chaud",       color: "bg-orange-100 text-orange-700", icon: Flame },
   a_qualifier: { label: "À qualifier", color: "bg-slate-100 text-slate-600",   icon: HelpCircle },
-  froid:       { label: "Froid",       color: "bg-blue-50 text-blue-500",     icon: Snowflake },
-  perdu:       { label: "Perdu",       color: "bg-gray-100 text-gray-500",    icon: XCircle },
+  froid:       { label: "Froid",       color: "bg-blue-50 text-blue-500",      icon: Snowflake },
+  perdu:       { label: "Perdu",       color: "bg-gray-100 text-gray-500",     icon: XCircle },
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -76,6 +77,24 @@ const PERIOD_OPTIONS: { key: PeriodFilter; label: string }[] = [
   { key: "7j",  label: "7 jours" },
   { key: "30j", label: "30 jours" },
   { key: "90j", label: "90 jours" },
+];
+
+// Short column headers for display; full labels used as title tooltips
+const COL_LABELS: string[] = [
+  "Horodateur", "Réf.", "Nom", "Entreprise", "Secteur", "Adresse", "Site web",
+  "WhatsApp", "Tél. 2", "Email", "Produit(s)", "Autre produit", "Qté", "Format",
+  "Finition", "Couleurs", "Texte support", "Activité", "Fichier", "Délai",
+  "Zone livraison", "Budget", "Message", "Notes int.", "Source", "Statut",
+  "Priorité", "Commercial", "Relance", "Fiche",
+];
+
+// Minimum pixel widths per column
+const COL_MIN_WIDTHS: number[] = [
+  92, 88, 130, 120, 100, 120, 110,
+  120, 100, 130, 160, 110, 68, 120,
+  90, 130, 160, 160, 68, 100, 110,
+  90, 160, 160, 95, 120, 95, 120,
+  110, 72,
 ];
 
 function periodCutoff(period: PeriodFilter): Date | null {
@@ -108,13 +127,11 @@ function cellDisplay(value: string | null | undefined): string {
   return value?.trim() || "—";
 }
 
-// Nettoie une valeur pour le CSV : supprime les retours à la ligne internes
 function cleanForCsv(value: string | null | undefined): string {
   if (!value) return "";
   return value.trim().replace(/\r?\n/g, " | ").replace(/\s+/g, " ");
 }
 
-// Encapsule une cellule CSV si nécessaire
 function escapeCsv(value: string): string {
   if (value.includes(";") || value.includes('"') || value.includes("\n")) {
     return `"${value.replace(/"/g, '""')}"`;
@@ -147,20 +164,20 @@ function buildBriefText(p: ProspectWithFileFlag, assignedName: string): string {
     : p.otherProduct ?? "—";
   lines.push(`Produit(s) : ${produits}`);
   if (p.otherProduct && p.requestedProducts.length > 0) lines.push(`Autre      : ${p.otherProduct}`);
-  if (p.quantity)        lines.push(`Quantité   : ${p.quantity}`);
-  if (p.formatDimensions)lines.push(`Format     : ${p.formatDimensions}`);
-  if (p.finish)          lines.push(`Finition   : ${p.finish}`);
+  if (p.quantity)         lines.push(`Quantité   : ${p.quantity}`);
+  if (p.formatDimensions) lines.push(`Format     : ${p.formatDimensions}`);
+  if (p.finish)           lines.push(`Finition   : ${p.finish}`);
   lines.push(``);
   lines.push(`── ÉLÉMENTS GRAPHIQUES ─────────────────`);
-  if (p.preferredColors) lines.push(`Couleurs   : ${p.preferredColors}`);
-  if (p.supportText)     lines.push(`Texte      : ${p.supportText}`);
-  if (p.productsServices)lines.push(`Activité   : ${p.productsServices}`);
+  if (p.preferredColors)  lines.push(`Couleurs   : ${p.preferredColors}`);
+  if (p.supportText)      lines.push(`Texte      : ${p.supportText}`);
+  if (p.productsServices) lines.push(`Activité   : ${p.productsServices}`);
   lines.push(`Fichier(s) : ${p.hasFiles ? "✓ Oui — voir fiche" : "Non fourni"}`);
   lines.push(``);
   lines.push(`── DÉLAI & LIVRAISON ───────────────────`);
-  if (p.desiredDeadline) lines.push(`Délai      : ${p.desiredDeadline}`);
-  if (p.deliveryZone)    lines.push(`Zone       : ${p.deliveryZone}`);
-  if (p.estimatedBudget) lines.push(`Budget     : ${p.estimatedBudget}`);
+  if (p.desiredDeadline)  lines.push(`Délai      : ${p.desiredDeadline}`);
+  if (p.deliveryZone)     lines.push(`Zone       : ${p.deliveryZone}`);
+  if (p.estimatedBudget)  lines.push(`Budget     : ${p.estimatedBudget}`);
   lines.push(``);
   if (p.message || p.internalNotes) {
     lines.push(`── NOTES ───────────────────────────────`);
@@ -171,8 +188,8 @@ function buildBriefText(p: ProspectWithFileFlag, assignedName: string): string {
   lines.push(`── SUIVI ───────────────────────────────`);
   lines.push(`Statut     : ${STATUS_LABELS[p.status]}`);
   lines.push(`Priorité   : ${PRIORITY_LABELS[p.priority]}`);
-  if (assignedName)      lines.push(`Commercial : ${assignedName}`);
-  if (p.nextFollowup)    lines.push(`Relance    : ${p.nextFollowup}`);
+  if (assignedName)    lines.push(`Commercial : ${assignedName}`);
+  if (p.nextFollowup)  lines.push(`Relance    : ${p.nextFollowup}`);
   lines.push(`Date       : ${formatDateTime(p.createdAt)}`);
   lines.push(``);
   lines.push(`GLOBAL TIC — Dakar`);
@@ -268,12 +285,10 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
   const [statusFilter, setStatusFilter] = useState<ProspectStatus | "">("");
   const [priorityFilter, setPriorityFilter] = useState<ProspectPriority | "">("");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("all");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [exportFeedback, setExportFeedback] = useState(false);
 
-  // Map userId → fullName pour résoudre les commerciaux
   const adminMap = new Map(adminProfiles.map((a) => [a.userId, a.fullName]));
-
   const cutoff = periodCutoff(periodFilter);
 
   const filtered = prospects.filter((p) => {
@@ -292,10 +307,25 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
     return matchSearch && matchStatus && matchPriority && matchPeriod;
   });
 
-  function handleCopy(id: string, text: string) {
+  function handleCopy(key: string, text: string) {
     navigator.clipboard?.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  }
+
+  function handleCopyRow(p: ProspectWithFileFlag) {
+    const assignedName = adminMap.get(p.assignedTo ?? "") ?? "";
+    const text = buildCsvRow(p, assignedName, window.location.origin).join("\t");
+    handleCopy(`row-${p.id}`, text);
+  }
+
+  function handleCopyTable() {
+    const baseUrl = window.location.origin;
+    const rows = filtered.map((p) => {
+      const assignedName = adminMap.get(p.assignedTo ?? "") ?? "";
+      return buildCsvRow(p, assignedName, baseUrl).join("\t");
+    });
+    handleCopy("__table__", [CSV_HEADERS.join("\t"), ...rows].join("\n"));
   }
 
   function triggerDownload(content: string, filename: string, mimeType: string) {
@@ -315,13 +345,11 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
   function handleExportCsv() {
     const today = new Date().toISOString().slice(0, 10);
     const baseUrl = window.location.origin;
-    // Séparateur point-virgule : compatibilité Excel francophone
     const sep = ";";
     const rows = filtered.map((p) => {
       const assignedName = adminMap.get(p.assignedTo ?? "") ?? "";
       return buildCsvRow(p, assignedName, baseUrl).map(escapeCsv).join(sep);
     });
-    // BOM UTF-8 + séparateur déclaré pour Excel
     const csvContent = "﻿" + CSV_HEADERS.map(escapeCsv).join(sep) + "\n" + rows.join("\n");
     triggerDownload(
       csvContent,
@@ -353,6 +381,20 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            onClick={handleCopyTable}
+            title="Copier le tableau visible (format tableur)"
+            className={`h-10 px-4 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shrink-0 ${
+              copiedKey === "__table__"
+                ? "bg-emerald-500 text-white"
+                : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-800"
+            }`}
+          >
+            {copiedKey === "__table__"
+              ? <><Check className="w-4 h-4" /> Copié !</>
+              : <><Table2 className="w-4 h-4" /> Copier le tableau</>
+            }
+          </button>
+          <button
             onClick={handleExportCsv}
             className={`h-10 px-4 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shrink-0 ${
               exportFeedback
@@ -372,7 +414,8 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
       <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 text-xs text-blue-700 font-medium">
         <span className="font-bold">Conseil :</span> Le fichier CSV exporté utilise le séparateur{" "}
         <span className="font-mono font-bold">;</span> et l'encodage UTF-8 — compatible avec Excel
-        (double-clic direct). Contient {CSV_HEADERS.length} colonnes par prospect.
+        (double-clic direct). Contient {CSV_HEADERS.length} colonnes par prospect.{" "}
+        <span className="text-blue-500">Cliquez une cellule pour la copier.</span>
       </div>
 
       {/* Filtres */}
@@ -427,120 +470,238 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
         </div>
       </div>
 
-      {/* Tableau desktop */}
-      <div className="hidden sm:block bg-white rounded-2xl border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs whitespace-nowrap">
+      {/* ── Tableau Excel desktop ─────────────────────────────────────────── */}
+      <div className="hidden sm:block rounded-xl border border-slate-200 overflow-hidden bg-white">
+        <div className="overflow-auto" style={{ maxHeight: "68vh" }}>
+          <table className="border-separate border-spacing-0 text-xs whitespace-nowrap">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/70">
-                <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-wider sticky left-0 bg-slate-50/70">Date</th>
-                <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Prospect</th>
-                <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Produits</th>
-                <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Qté</th>
-                <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Format</th>
-                <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Finition</th>
-                <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Couleurs</th>
-                <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Texte</th>
-                <th className="text-left px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Délai</th>
-                <th className="text-center px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Fichier</th>
-                <th className="text-center px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Statut</th>
-                <th className="text-center px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Priorité</th>
-                <th className="text-center px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Actions</th>
+              <tr>
+                {/* Actions column header — sticky top-left corner */}
+                <th
+                  className="sticky top-0 left-0 z-30 bg-slate-100 px-2 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+                  style={{ minWidth: 112, borderTop: "1px solid #e2e8f0", borderLeft: "1px solid #e2e8f0", borderRight: "1px solid #e2e8f0", borderBottom: "2px solid #cbd5e1" }}
+                >
+                  Actions
+                </th>
+                {/* 30 data column headers — sticky top */}
+                {COL_LABELS.map((label, i) => (
+                  <th
+                    key={i}
+                    title={CSV_HEADERS[i]}
+                    className="sticky top-0 z-20 bg-slate-100 px-2 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left"
+                    style={{
+                      minWidth: COL_MIN_WIDTHS[i],
+                      borderTop: "1px solid #e2e8f0",
+                      borderRight: "1px solid #e2e8f0",
+                      borderBottom: "2px solid #cbd5e1",
+                    }}
+                  >
+                    <span className="block truncate" style={{ maxWidth: COL_MIN_WIDTHS[i] }}>
+                      {label}
+                    </span>
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filtered.map((p) => {
-                const status   = STATUS_CONFIG[p.status];
-                const prio     = PRIORITY_CONFIG[p.priority];
-                const PrioIcon = prio.icon;
+            <tbody>
+              {filtered.map((p, rowIdx) => {
                 const assignedName = adminMap.get(p.assignedTo ?? "") ?? "";
-                const copyBriefId = `brief-${p.id}`;
-                const copyWaId    = `wa-${p.id}`;
+                const rowBg = rowIdx % 2 === 0 ? "#ffffff" : "#f8fafc";
+                const waKey     = `wa-${p.id}`;
+                const briefKey  = `brief-${p.id}`;
+                const rowKey    = `row-${p.id}`;
+
+                // Cell display values (30 columns, same order as CSV_HEADERS)
+                const cellValues: (string | null)[] = [
+                  formatDateTime(p.createdAt),
+                  p.reference,
+                  p.fullName,
+                  p.companyName,
+                  p.sector,
+                  p.companyAddress,
+                  p.website,
+                  p.whatsapp,
+                  p.phoneSecondary,
+                  p.email,
+                  p.requestedProducts.length > 0 ? p.requestedProducts.join(", ") : p.otherProduct,
+                  p.otherProduct,
+                  p.quantity,
+                  p.formatDimensions,
+                  p.finish,
+                  p.preferredColors,
+                  p.supportText,
+                  p.productsServices,
+                  p.hasFiles ? "Oui" : "Non",
+                  p.desiredDeadline,
+                  p.deliveryZone,
+                  p.estimatedBudget,
+                  p.message,
+                  p.internalNotes,
+                  SOURCE_LABELS[p.source] ?? p.source,
+                  STATUS_LABELS[p.status],
+                  PRIORITY_LABELS[p.priority],
+                  assignedName || null,
+                  p.nextFollowup,
+                  "Voir fiche",
+                ];
+
                 return (
-                  <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-3 text-slate-500 sticky left-0 bg-white">
-                      {formatDate(p.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-bold text-slate-800 max-w-[140px] truncate">{p.fullName}</p>
-                      {p.companyName && (
-                        <p className="text-slate-400 max-w-[140px] truncate">{p.companyName}</p>
-                      )}
-                      <p className="text-slate-400 font-mono">{p.whatsapp}</p>
-                      {assignedName && (
-                        <p className="text-slate-300 mt-0.5">{assignedName}</p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="max-w-[180px] text-slate-700 truncate">
-                        {p.requestedProducts.length > 0
-                          ? p.requestedProducts.join(", ")
-                          : cellDisplay(p.otherProduct)}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{cellDisplay(p.quantity)}</td>
-                    <td className="px-4 py-3 text-slate-600 max-w-[100px] truncate">{cellDisplay(p.formatDimensions)}</td>
-                    <td className="px-4 py-3 text-slate-600 max-w-[100px] truncate">{cellDisplay(p.finish)}</td>
-                    <td className="px-4 py-3 text-slate-600 max-w-[120px] truncate">{cellDisplay(p.preferredColors)}</td>
-                    <td className="px-4 py-3 text-slate-600 max-w-[150px] truncate">{cellDisplay(p.supportText)}</td>
-                    <td className="px-4 py-3 text-slate-600">{cellDisplay(p.desiredDeadline)}</td>
-                    <td className="px-4 py-3 text-center">
-                      {p.hasFiles ? (
-                        <span className="inline-flex items-center gap-1 text-brand-primary font-bold">
-                          <Paperclip className="w-3 h-3" /> Oui
-                        </span>
-                      ) : (
-                        <span className="text-slate-300">Non</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${status.color}`}>
-                        {status.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${prio.color}`}>
-                        <PrioIcon className="w-3 h-3" />
-                        {prio.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
+                  <tr key={p.id}>
+                    {/* Sticky actions cell */}
+                    <td
+                      className="sticky left-0 z-10 px-1.5 py-1"
+                      style={{
+                        background: rowBg,
+                        borderLeft: "1px solid #e2e8f0",
+                        borderRight: "1px solid #e2e8f0",
+                        borderBottom: "1px solid #e2e8f0",
+                        minWidth: 112,
+                      }}
+                    >
+                      <div className="flex items-center gap-0.5">
                         <Link
                           href={`/admin/prospects/${p.id}`}
                           title="Voir la fiche"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white transition-colors"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white transition-colors"
                         >
                           <Eye className="w-3 h-3" />
                         </Link>
                         <button
-                          onClick={() => handleCopy(copyWaId, p.whatsapp)}
+                          onClick={() => handleCopy(waKey, p.whatsapp)}
                           title="Copier WhatsApp"
-                          className={`inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors ${
-                            copiedId === copyWaId
+                          className={`inline-flex items-center justify-center w-6 h-6 rounded transition-colors ${
+                            copiedKey === waKey
                               ? "bg-emerald-100 text-emerald-600"
                               : "bg-green-100 text-green-600 hover:bg-green-200"
                           }`}
                         >
-                          {copiedId === copyWaId
+                          {copiedKey === waKey
                             ? <Check className="w-3 h-3" />
                             : <MessageCircle className="w-3 h-3" />}
                         </button>
                         <button
-                          onClick={() => handleCopy(copyBriefId, buildBriefText(p, assignedName))}
-                          title="Copier le brief complet"
-                          className={`inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors ${
-                            copiedId === copyBriefId
+                          onClick={() => handleCopy(briefKey, buildBriefText(p, assignedName))}
+                          title="Copier le brief"
+                          className={`inline-flex items-center justify-center w-6 h-6 rounded transition-colors ${
+                            copiedKey === briefKey
                               ? "bg-emerald-100 text-emerald-600"
                               : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                           }`}
                         >
-                          {copiedId === copyBriefId
+                          {copiedKey === briefKey
                             ? <Check className="w-3 h-3" />
                             : <Copy className="w-3 h-3" />}
                         </button>
+                        <button
+                          onClick={() => handleCopyRow(p)}
+                          title="Copier la ligne"
+                          className={`inline-flex items-center justify-center w-6 h-6 rounded transition-colors ${
+                            copiedKey === rowKey
+                              ? "bg-emerald-100 text-emerald-600"
+                              : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                          }`}
+                        >
+                          {copiedKey === rowKey
+                            ? <Check className="w-3 h-3" />
+                            : <ClipboardList className="w-3 h-3" />}
+                        </button>
                       </div>
                     </td>
+
+                    {/* 30 data cells */}
+                    {cellValues.map((cellText, colIdx) => {
+                      const cellKey = `cell-${p.id}-${colIdx}`;
+                      const isCopied = copiedKey === cellKey;
+                      const text = cellText ?? "";
+
+                      const renderContent = () => {
+                        if (isCopied) {
+                          return (
+                            <span className="text-emerald-600 font-bold flex items-center gap-0.5">
+                              <Check className="w-3 h-3" />Copié
+                            </span>
+                          );
+                        }
+                        if (colIdx === 7) {
+                          // WhatsApp — clickable link
+                          return text ? (
+                            <a
+                              href={`https://wa.me/${text.replace(/\D/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-600 hover:underline font-mono"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {text}
+                            </a>
+                          ) : <span className="text-slate-300">—</span>;
+                        }
+                        if (colIdx === 18) {
+                          // Fichier fourni — badge
+                          return p.hasFiles ? (
+                            <span className="inline-flex items-center gap-0.5 text-brand-primary font-bold">
+                              <Paperclip className="w-3 h-3" />Oui
+                            </span>
+                          ) : <span className="text-slate-300">—</span>;
+                        }
+                        if (colIdx === 25) {
+                          // Statut — badge
+                          const sc = STATUS_CONFIG[p.status];
+                          return (
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${sc.color}`}>
+                              {sc.label}
+                            </span>
+                          );
+                        }
+                        if (colIdx === 26) {
+                          // Priorité — badge with icon
+                          const pc = PRIORITY_CONFIG[p.priority];
+                          const PI = pc.icon;
+                          return (
+                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold ${pc.color}`}>
+                              <PI className="w-3 h-3" />{pc.label}
+                            </span>
+                          );
+                        }
+                        if (colIdx === 29) {
+                          // Fiche dashboard — link
+                          return (
+                            <Link
+                              href={`/admin/prospects/${p.id}`}
+                              className="text-brand-primary hover:underline font-bold text-[10px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              ↗ Fiche
+                            </Link>
+                          );
+                        }
+                        return text ? (
+                          <span className="block truncate" style={{ maxWidth: COL_MIN_WIDTHS[colIdx] - 16 }}>
+                            {text}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        );
+                      };
+
+                      return (
+                        <td
+                          key={colIdx}
+                          title={text || undefined}
+                          className="px-2 py-1.5 text-slate-700 cursor-pointer transition-colors hover:bg-blue-50/50 select-text"
+                          style={{
+                            background: isCopied ? "#ecfdf5" : rowBg,
+                            borderRight: "1px solid #e2e8f0",
+                            borderBottom: "1px solid #e2e8f0",
+                            minWidth: COL_MIN_WIDTHS[colIdx],
+                            maxWidth: COL_MIN_WIDTHS[colIdx],
+                          }}
+                          onClick={() => text && handleCopy(cellKey, text)}
+                        >
+                          {renderContent()}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
@@ -569,7 +730,7 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
         )}
       </div>
 
-      {/* Vue mobile */}
+      {/* ── Vue mobile ───────────────────────────────────────────────────── */}
       <div className="sm:hidden space-y-3">
         <p className="text-xs text-slate-400 font-semibold px-1">
           {filtered.length} résultat{filtered.length !== 1 ? "s" : ""}
@@ -594,12 +755,12 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
                 <p className="text-xs text-slate-600 font-semibold">{p.requestedProducts.join(", ")}</p>
               )}
               <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                {p.quantity        && <span className="text-slate-500">Qté : <span className="font-bold text-slate-700">{p.quantity}</span></span>}
+                {p.quantity         && <span className="text-slate-500">Qté : <span className="font-bold text-slate-700">{p.quantity}</span></span>}
                 {p.formatDimensions && <span className="text-slate-500">Format : <span className="font-bold text-slate-700">{p.formatDimensions}</span></span>}
-                {p.preferredColors && <span className="text-slate-500 col-span-2">Couleurs : <span className="font-bold text-slate-700">{p.preferredColors}</span></span>}
-                {p.desiredDeadline && <span className="text-slate-500">Délai : <span className="font-bold text-slate-700">{p.desiredDeadline}</span></span>}
-                {assignedName      && <span className="text-slate-500">Commercial : <span className="font-bold text-slate-700">{assignedName}</span></span>}
-                {p.hasFiles        && <span className="text-brand-primary font-bold col-span-2">✓ Fichier(s) fourni(s)</span>}
+                {p.preferredColors  && <span className="text-slate-500 col-span-2">Couleurs : <span className="font-bold text-slate-700">{p.preferredColors}</span></span>}
+                {p.desiredDeadline  && <span className="text-slate-500">Délai : <span className="font-bold text-slate-700">{p.desiredDeadline}</span></span>}
+                {assignedName       && <span className="text-slate-500">Commercial : <span className="font-bold text-slate-700">{assignedName}</span></span>}
+                {p.hasFiles         && <span className="text-brand-primary font-bold col-span-2">✓ Fichier(s) fourni(s)</span>}
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <Link
@@ -611,23 +772,23 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
                 <button
                   onClick={() => handleCopy(copyWaId, p.whatsapp)}
                   className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                    copiedId === copyWaId
+                    copiedKey === copyWaId
                       ? "bg-emerald-100 text-emerald-600"
                       : "bg-green-100 text-green-600 hover:bg-green-200"
                   }`}
                   title="Copier WhatsApp"
                 >
-                  {copiedId === copyWaId ? <Check className="w-3.5 h-3.5" /> : <MessageCircle className="w-3.5 h-3.5" />}
+                  {copiedKey === copyWaId ? <Check className="w-3.5 h-3.5" /> : <MessageCircle className="w-3.5 h-3.5" />}
                 </button>
                 <button
                   onClick={() => handleCopy(copyBriefId, buildBriefText(p, assignedName))}
                   className={`flex-1 h-8 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition-colors ${
-                    copiedId === copyBriefId
+                    copiedKey === copyBriefId
                       ? "bg-emerald-100 text-emerald-600"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
-                  {copiedId === copyBriefId
+                  {copiedKey === copyBriefId
                     ? <><Check className="w-3 h-3" /> Copié</>
                     : <><Copy className="w-3 h-3" /> Brief</>}
                 </button>
