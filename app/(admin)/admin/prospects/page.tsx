@@ -1,6 +1,7 @@
 import { getProspects } from "@/lib/db/prospects";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { checkModuleAccess } from "@/lib/auth/check-access";
+import { getUntreatedProspectsAlert } from "@/lib/services/auto-tasks";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { ProspectsClient } from "@/components/admin/ProspectsClient";
 import type { ProspectStatus } from "@/lib/types/domain";
@@ -29,7 +30,10 @@ export default async function AdminProspectsPage({
     ? (params.status as ProspectStatus)
     : undefined;
 
-  const result = await getProspects();
+  const [result, untreatedAlert] = await Promise.all([
+    getProspects(),
+    getUntreatedProspectsAlert(),
+  ]);
   const allProspects = result.data ?? [];
 
   let prospects = allProspects;
@@ -50,6 +54,7 @@ export default async function AdminProspectsPage({
       totalCount={allProspects.length}
       activeFilter={activeFilter}
       role={admin.role}
+      untreatedAlert={untreatedAlert}
     />
   );
 }

@@ -7,6 +7,7 @@ import { updateDeliverySchema } from "@/lib/validators/order";
 import { logOrderEvent } from "@/lib/db/activity-log";
 import { getActiveAdminProfiles } from "@/lib/db/admin-users";
 import { createAdminNotifications } from "@/lib/db/notifications";
+import { createSatisfactionTask } from "@/lib/services/auto-tasks";
 import { err, type Result } from "@/lib/utils/result";
 import type { Order, DeliveryStatus } from "@/lib/types/domain";
 
@@ -82,6 +83,15 @@ export async function updateDeliveryAction(
       entityId:   orderId,
       link:       "/admin/commandes",
       adminProfiles: profiles,
+    });
+  }
+
+  if (status === "livree") {
+    createSatisfactionTask({
+      orderId,
+      orderRef,
+      customerId: result.data.customerId,
+      assignedTo: uid ?? "",
     });
   }
 

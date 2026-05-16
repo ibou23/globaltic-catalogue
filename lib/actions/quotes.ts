@@ -7,6 +7,7 @@ import { getCurrentAdmin } from "@/lib/db/admin";
 import { requireActionDynamic } from "@/lib/auth/check-access";
 import { getActiveAdminProfiles } from "@/lib/db/admin-users";
 import { createAdminNotifications } from "@/lib/db/notifications";
+import { createQuoteFollowUpTasks } from "@/lib/services/auto-tasks";
 import { err, type Result } from "@/lib/utils/result";
 import type { Quote } from "@/lib/types/domain";
 
@@ -70,6 +71,16 @@ export async function updateQuoteStatusAction(
   }
 
   const result = await updateQuoteStatus(parsed.data.id, parsed.data.status);
+
+  if (result.data && parsed.data.status === "envoye") {
+    createQuoteFollowUpTasks({
+      quoteId: result.data.id,
+      quoteRef: result.data.reference,
+      customerId: result.data.customerId,
+      assignedTo: admin.data?.userId ?? "",
+      isUrgent: result.data.isUrgent,
+    });
+  }
 
   if (result.data && parsed.data.status === "accepte") {
     const profiles = await getActiveAdminProfiles();

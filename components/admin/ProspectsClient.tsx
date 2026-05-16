@@ -83,14 +83,20 @@ function isOverdue(p: Prospect): boolean {
   return age > 24 * 60 * 60 * 1000 && !p.contactedAt;
 }
 
+interface UntreatedProspectAlert {
+  count: number;
+  oldestMinutes: number;
+}
+
 interface ProspectsClientProps {
   prospects: Prospect[];
   totalCount: number;
   activeFilter?: { label: string; count: number; resetHref: string };
   role: AdminRole;
+  untreatedAlert?: UntreatedProspectAlert | null;
 }
 
-export function ProspectsClient({ prospects, totalCount, activeFilter, role: _role }: ProspectsClientProps) {
+export function ProspectsClient({ prospects, totalCount, activeFilter, role: _role, untreatedAlert }: ProspectsClientProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProspectStatus | "">("");
   const [priorityFilter, setPriorityFilter] = useState<ProspectPriority | "">("");
@@ -209,6 +215,25 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
           </button>
         </div>
       </div>
+
+      {/* Alerte prospects non traités > 2h */}
+      {untreatedAlert && untreatedAlert.count > 0 && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+            <Zap className="w-4 h-4 text-red-600" />
+          </div>
+          <div className="text-sm">
+            <span className="font-bold text-red-700">
+              {untreatedAlert.count} prospect{untreatedAlert.count > 1 ? "s" : ""} non contact{untreatedAlert.count > 1 ? "és" : "é"}
+            </span>
+            <span className="text-red-600 ml-1">
+              depuis plus de {untreatedAlert.oldestMinutes >= 60
+                ? `${Math.floor(untreatedAlert.oldestMinutes / 60)}h${untreatedAlert.oldestMinutes % 60 > 0 ? `${untreatedAlert.oldestMinutes % 60}min` : ""}`
+                : `${untreatedAlert.oldestMinutes}min`}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto pb-1">

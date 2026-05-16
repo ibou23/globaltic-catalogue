@@ -10,6 +10,7 @@ import { logOrderEvent } from "@/lib/db/activity-log";
 import { getActiveAdminProfiles } from "@/lib/db/admin-users";
 import { createAdminNotifications } from "@/lib/db/notifications";
 import { syncInvoicePayment } from "@/lib/db/invoices";
+import { createSatisfactionTask } from "@/lib/services/auto-tasks";
 import { err, type Result } from "@/lib/utils/result";
 import type { Order } from "@/lib/types/domain";
 
@@ -174,6 +175,15 @@ export async function updateOrderAction(
       }
     }
 
+    if (previous.status !== order.status && order.status === "livre") {
+      createSatisfactionTask({
+        orderId: id,
+        orderRef: order.reference,
+        customerId: order.customerId,
+        assignedTo: uid ?? "",
+      });
+    }
+
     if (previous.status !== order.status) {
       const statusNotifs: Partial<Record<string, { eventKey: string; title: string; body: string }>> = {
         bat_en_cours:   { eventKey: "bat_en_cours",          title: "BAT à préparer",        body: `Commande ${ref} — préparation du BAT en cours` },
@@ -208,6 +218,15 @@ export async function quickUpdateOrderStatusAction(
 
   if (result.data) {
     logOrderEvent(adminCheck.data?.userId ?? null, id, "statut_change", { vers: status });
+
+    if (status === "livre") {
+      createSatisfactionTask({
+        orderId: id,
+        orderRef: result.data.reference,
+        customerId: result.data.customerId,
+        assignedTo: adminCheck.data?.userId ?? "",
+      });
+    }
   }
 
   return result;

@@ -6,6 +6,7 @@ import { createAdminNotifications } from "@/lib/db/notifications";
 import { logOrderEvent } from "@/lib/db/activity-log";
 import { requireActionDynamic } from "@/lib/auth/check-access";
 import { mapOrder } from "@/lib/db/mappers";
+import { createLoyaltyTask } from "@/lib/services/auto-tasks";
 import { ok, err, type Result } from "@/lib/utils/result";
 import type { Order, ClosureStatus } from "@/lib/types/domain";
 import { z } from "zod";
@@ -100,6 +101,15 @@ export async function saveClosureAction(
       entityId:   orderId,
       link:       `/admin/commandes`,
       adminProfiles: profiles,
+    });
+  }
+
+  if (input.satisfaction === "satisfait") {
+    createLoyaltyTask({
+      orderId,
+      orderRef,
+      customerId: order.customerId,
+      assignedTo: admin?.userId ?? "",
     });
   }
 
