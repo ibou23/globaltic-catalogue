@@ -78,7 +78,7 @@ interface SectionHeaderProps {
 
 function SectionHeader({ title, href }: SectionHeaderProps) {
   return (
-    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
       <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{title}</h3>
       {href && (
         <Link
@@ -90,6 +90,12 @@ function SectionHeader({ title, href }: SectionHeaderProps) {
         </Link>
       )}
     </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{children}</p>
   );
 }
 
@@ -165,7 +171,7 @@ export default async function AdminOverviewPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
       {/* Header */}
       <div>
@@ -181,9 +187,9 @@ export default async function AdminOverviewPage() {
       {(role === "patron" || role === "admin") && (
         <>
           {/* KPIs financiers */}
-          <div>
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Finance</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <section className="space-y-3">
+            <SectionLabel>Finance</SectionLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <StatCard
                 label="CA devis acceptés"
                 value={formatPrice(stats.caDevisAcceptes)}
@@ -213,73 +219,85 @@ export default async function AdminOverviewPage() {
                 href={href.solde}
               />
             </div>
-          </div>
+          </section>
 
           {/* KPIs activité */}
-          <div>
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Activité</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              <StatCard label="Produits"    value={stats.totalProducts}     icon={Package}      color="blue"   href={href.produits} />
-              <StatCard label="Catégories"  value={stats.totalCategories}   icon={FolderOpen}   color="purple" href={href.categories} />
-              <StatCard label="Devis"       value={stats.totalQuotes}       icon={FileText}     color="amber"  href={href.devis} />
-              <StatCard label="Commandes"   value={stats.totalOrders}       icon={ShoppingCart} color="green"  href={href.commandes} />
-              <StatCard label="Clients"     value={stats.totalCustomers}    icon={Users}        color="cyan"   href={href.clients} />
-              <StatCard label="Réalisations" value={stats.totalRealisations} icon={Image}       color="rose"   href={href.realisations} />
+          <section className="space-y-3">
+            <SectionLabel>Activité</SectionLabel>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <StatCard label="Produits"      value={stats.totalProducts}      icon={Package}      color="blue"   href={href.produits} />
+              <StatCard label="Catégories"    value={stats.totalCategories}    icon={FolderOpen}   color="purple" href={href.categories} />
+              <StatCard label="Devis"         value={stats.totalQuotes}        icon={FileText}     color="amber"  href={href.devis} />
+              <StatCard label="Commandes"     value={stats.totalOrders}        icon={ShoppingCart} color="green"  href={href.commandes} />
+              <StatCard label="Clients"       value={stats.totalCustomers}     icon={Users}        color="cyan"   href={href.clients} />
+              <StatCard label="Réalisations"  value={stats.totalRealisations}  icon={Image}        color="rose"   href={href.realisations} />
             </div>
-          </div>
+          </section>
 
           {/* KPIs commandes */}
-          <div>
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Statut des commandes</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <StatCard label="En cours"          value={stats.activeOrders}       icon={Activity} color="blue"   href={href.commandes} />
-              <StatCard label="BAT"               value={stats.ordersBat}          icon={Zap}      color="purple" href={href.commandesBat} />
-              <StatCard label="En production"     value={stats.ordersInProduction} icon={Printer}  color="amber"  href={href.production} />
-              <StatCard label="Prêtes / Livraison" value={stats.ordersPret}        icon={Truck}    color="green"  href={href.pret} />
+          <section className="space-y-3">
+            <SectionLabel>Statut des commandes</SectionLabel>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <StatCard label="En cours"            value={stats.activeOrders}       icon={Activity} color="blue"   href={href.commandes} />
+              <StatCard label="BAT"                 value={stats.ordersBat}          icon={Zap}      color="purple" href={href.commandesBat} />
+              <StatCard label="En production"       value={stats.ordersInProduction} icon={Printer}  color="amber"  href={href.production} />
+              <StatCard label="Prêtes / Livraison"  value={stats.ordersPret}         icon={Truck}    color="green"  href={href.pret} />
             </div>
-          </div>
+          </section>
         </>
       )}
 
       {/* ── VUE COMMERCIAL ── */}
       {role === "commercial" && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total devis"      value={stats.totalQuotes}    icon={FileText}    color="amber" href={href.devis} />
-            <StatCard label="Devis en attente" value={stats.pendingQuotes}  icon={Clock}       color="rose"  href={href.devis} />
-            <StatCard label="Devis acceptés"   value={stats.acceptedQuotes} icon={CheckCircle2} color="green" href={href.devisAcceptes} />
-            <StatCard label="Clients"          value={stats.totalCustomers} icon={Users}       color="cyan"  href={href.clients} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard label="CA devis acceptés" value={formatPrice(stats.caDevisAcceptes)} icon={TrendingUp} color="green"  href={href.devisAcceptes} />
-            <StatCard label="Montant encaissé"  value={formatPrice(stats.montantEncaisse)} icon={Wallet}     color="blue"   href={href.encaisse} />
-            <StatCard label="Solde à encaisser" value={formatPrice(stats.soldeRestant)}    icon={Clock}      color="amber"  href={href.solde} />
-          </div>
+          <section className="space-y-3">
+            <SectionLabel>Suivi commercial</SectionLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatCard label="Total devis"      value={stats.totalQuotes}    icon={FileText}     color="amber" href={href.devis} />
+              <StatCard label="Devis en attente" value={stats.pendingQuotes}  icon={Clock}        color="rose"  href={href.devis} />
+              <StatCard label="Devis acceptés"   value={stats.acceptedQuotes} icon={CheckCircle2} color="green" href={href.devisAcceptes} />
+              <StatCard label="Clients"          value={stats.totalCustomers} icon={Users}        color="cyan"  href={href.clients} />
+            </div>
+          </section>
+          <section className="space-y-3">
+            <SectionLabel>Finance</SectionLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <StatCard label="CA devis acceptés" value={formatPrice(stats.caDevisAcceptes)} icon={TrendingUp} color="green"  href={href.devisAcceptes} />
+              <StatCard label="Montant encaissé"  value={formatPrice(stats.montantEncaisse)} icon={Wallet}     color="blue"   href={href.encaisse} />
+              <StatCard label="Solde à encaisser" value={formatPrice(stats.soldeRestant)}    icon={Clock}      color="amber"  href={href.solde} />
+            </div>
+          </section>
         </>
       )}
 
       {/* ── VUE PRODUCTION ── */}
       {role === "production" && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard label="Commandes actives"  value={stats.activeOrders}       icon={Activity} color="blue"   href={href.commandes} />
-          <StatCard label="BAT en cours"       value={stats.ordersBat}          icon={Zap}      color="purple" href={href.commandesBat} />
-          <StatCard label="En production"      value={stats.ordersInProduction} icon={Printer}  color="amber"  href={href.production} />
-          <StatCard label="Prêtes / Livraison" value={stats.ordersPret}         icon={Truck}    color="green"  href={href.pret} />
-        </div>
+        <section className="space-y-3">
+          <SectionLabel>Production</SectionLabel>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatCard label="Commandes actives"  value={stats.activeOrders}       icon={Activity} color="blue"   href={href.commandes} />
+            <StatCard label="BAT en cours"       value={stats.ordersBat}          icon={Zap}      color="purple" href={href.commandesBat} />
+            <StatCard label="En production"      value={stats.ordersInProduction} icon={Printer}  color="amber"  href={href.production} />
+            <StatCard label="Prêtes / Livraison" value={stats.ordersPret}         icon={Truck}    color="green"  href={href.pret} />
+          </div>
+        </section>
       )}
 
       {/* ── VUE INFOGRAPHISTE ── */}
       {role === "infographiste" && (
-        <div className="grid grid-cols-2 gap-4">
-          <StatCard label="BAT en cours / validés" value={stats.ordersBat}    icon={Zap}      color="purple" href={href.commandesBat} />
-          <StatCard label="Commandes actives"      value={stats.activeOrders} icon={Activity} color="blue"   href={href.commandes} />
-        </div>
+        <section className="space-y-3">
+          <SectionLabel>Maquettes</SectionLabel>
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard label="BAT en cours / validés" value={stats.ordersBat}    icon={Zap}      color="purple" href={href.commandesBat} />
+            <StatCard label="Commandes actives"      value={stats.activeOrders} icon={Activity} color="blue"   href={href.commandes} />
+          </div>
+        </section>
       )}
 
       {/* ── COMMANDES URGENTES ── */}
       {(role === "patron" || role === "admin" || role === "production") && stats.urgentOrders.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-amber-200 flex items-center justify-between">
+        <section className="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-amber-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600" />
               <h3 className="text-[11px] font-black text-amber-700 uppercase tracking-widest">
@@ -301,7 +319,7 @@ export default async function AdminOverviewPage() {
               <Link
                 key={order.id}
                 href="/admin/commandes"
-                className="px-6 py-3.5 flex items-center justify-between hover:bg-amber-100/50 transition-colors group"
+                className="px-5 py-3 flex items-center justify-between hover:bg-amber-100/50 transition-colors group"
               >
                 <div>
                   <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{order.reference}</p>
@@ -318,12 +336,12 @@ export default async function AdminOverviewPage() {
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* ── ALERTE IMPAYÉS ── */}
       {showFinance && impayesStats && impayesStats.totalBalance > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <section className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
@@ -349,13 +367,13 @@ export default async function AdminOverviewPage() {
               )}
             </div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* ── PROSPECTS ── */}
       {canAccessModule(role, "prospects") && prospectStats && (prospectStats.toProcess > 0 || prospectStats.urgent > 0 || prospectStats.newToday > 0) && (
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <section className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <UserPlus className="w-4 h-4 text-brand-primary" />
               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
@@ -372,19 +390,19 @@ export default async function AdminOverviewPage() {
               Voir tout <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
             <StatCard label="À traiter" value={prospectStats.toProcess} icon={UserPlus} color="blue" href="/admin/prospects" />
             <StatCard label="Urgents" value={prospectStats.urgent} icon={Zap} color="rose" href="/admin/prospects" />
             <StatCard label="À relancer" value={prospectStats.toFollowUp} icon={Clock} color="amber" href="/admin/prospects" />
             <StatCard label="Convertis" value={prospectStats.converted} icon={CheckCircle2} color="green" href="/admin/prospects" />
           </div>
-        </div>
+        </section>
       )}
 
       {/* ── TÂCHES DU JOUR / EN RETARD ── */}
       {canAccessModule(role, "taches") && (overdueTasks.length > 0 || todayTasks.length > 0) && (
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <section className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckSquare className="w-4 h-4 text-brand-primary" />
               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
@@ -408,7 +426,7 @@ export default async function AdminOverviewPage() {
                 <Link
                   key={task.id}
                   href="/admin/taches"
-                  className="px-6 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                  className="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors group"
                 >
                   <div className="min-w-0">
                     <p className={`text-sm font-bold group-hover:text-brand-primary transition-colors truncate ${isOverdue ? "text-red-600" : "text-slate-700"}`}>
@@ -432,24 +450,24 @@ export default async function AdminOverviewPage() {
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
       {/* ── LISTES RÉCENTES ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Dernières commandes */}
         {role !== "infographiste" && (
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <section className="bg-white rounded-2xl border border-slate-100 overflow-hidden flex flex-col">
             <SectionHeader title="Dernières commandes" href={href.commandes} />
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-50 flex-1">
               {stats.recentOrders.length === 0 ? (
                 <EmptyRow icon={ShoppingCart} label="Aucune commande" />
               ) : stats.recentOrders.map((order) => (
                 <Link
                   key={order.id}
                   href="/admin/commandes"
-                  className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                  className="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors group"
                 >
                   <div>
                     <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{order.reference}</p>
@@ -471,21 +489,21 @@ export default async function AdminOverviewPage() {
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Derniers devis */}
         {(role === "patron" || role === "admin" || role === "commercial") && (
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <section className="bg-white rounded-2xl border border-slate-100 overflow-hidden flex flex-col">
             <SectionHeader title="Derniers devis" href={href.devis} />
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-50 flex-1">
               {stats.recentQuotes.length === 0 ? (
                 <EmptyRow icon={FileText} label="Aucun devis" />
               ) : stats.recentQuotes.map((quote) => (
                 <Link
                   key={quote.id}
                   href="/admin/devis"
-                  className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                  className="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors group"
                 >
                   <div>
                     <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{quote.reference}</p>
@@ -500,21 +518,21 @@ export default async function AdminOverviewPage() {
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Nouveaux clients */}
         {(role === "patron" || role === "admin" || role === "commercial") && (
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <section className="bg-white rounded-2xl border border-slate-100 overflow-hidden flex flex-col">
             <SectionHeader title="Nouveaux clients" href={href.clients} />
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-50 flex-1">
               {stats.recentCustomers.length === 0 ? (
                 <EmptyRow icon={Users} label="Aucun client" />
               ) : stats.recentCustomers.map((c) => (
                 <Link
                   key={c.id}
                   href="/admin/clients"
-                  className="px-6 py-3.5 hover:bg-slate-50 transition-colors group block"
+                  className="px-5 py-3 hover:bg-slate-50 transition-colors group block"
                 >
                   <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{c.contactName}</p>
                   {c.companyName && (
@@ -527,20 +545,20 @@ export default async function AdminOverviewPage() {
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Activité récente */}
         {(role === "patron" || role === "admin") && (
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <section className="bg-white rounded-2xl border border-slate-100 overflow-hidden flex flex-col">
             <SectionHeader title="Activité récente" />
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-50 flex-1">
               {stats.recentActivity.length === 0 ? (
                 <EmptyRow icon={Activity} label="Aucune activité" />
               ) : stats.recentActivity.map((entry) => {
                 const label = ACTION_LABELS[entry.action] ?? entry.action;
                 return (
-                  <div key={entry.id} className="px-6 py-3 flex items-start gap-3 hover:bg-slate-50/50 transition-colors">
+                  <div key={entry.id} className="px-5 py-2.5 flex items-start gap-3 hover:bg-slate-50/50 transition-colors">
                     <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-primary shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-slate-700">{label}</p>
@@ -561,14 +579,14 @@ export default async function AdminOverviewPage() {
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Vue infographiste : commandes BAT */}
         {role === "infographiste" && (
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <section className="bg-white rounded-2xl border border-slate-100 overflow-hidden flex flex-col">
             <SectionHeader title="Commandes BAT à traiter" href={href.commandes} />
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-50 flex-1">
               {stats.urgentOrders.filter(o => ["bat_en_cours", "bat_valide", "confirmee"].includes(o.status)).length === 0 ? (
                 <EmptyRow icon={Zap} label="Aucun BAT en attente" />
               ) : stats.urgentOrders
@@ -577,7 +595,7 @@ export default async function AdminOverviewPage() {
                 <Link
                   key={order.id}
                   href="/admin/commandes"
-                  className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                  className="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors group"
                 >
                   <div>
                     <p className="text-sm font-bold text-slate-700 group-hover:text-brand-primary transition-colors">{order.reference}</p>
@@ -587,7 +605,7 @@ export default async function AdminOverviewPage() {
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
       </div>

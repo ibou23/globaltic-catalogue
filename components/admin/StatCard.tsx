@@ -44,18 +44,18 @@ export function StatCard({ label, value, icon: Icon, trend, color, href }: StatC
 
   const inner = (
     <div className={cn(
-      "bg-white rounded-2xl border border-slate-100 p-5 transition-all duration-300 group relative overflow-hidden",
+      "bg-white rounded-2xl border border-slate-100 p-4 transition-all duration-300 group relative overflow-hidden h-full",
       href
         ? "cursor-pointer hover:shadow-lg hover:shadow-slate-200/60 hover:border-slate-200 hover:-translate-y-0.5"
         : "hover:shadow-lg hover:shadow-slate-200/50"
     )}>
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-          <p className="text-3xl font-black text-slate-800 mt-2 font-heading tracking-tight">{value}</p>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-tight">{label}</p>
+          <p className="text-2xl font-black text-slate-800 mt-1.5 font-heading tracking-tight">{value}</p>
           {trend && (
             <p className={cn(
-              "text-xs font-bold mt-2 flex items-center gap-1",
+              "text-xs font-bold mt-1.5 flex items-center gap-1",
               trend.positive ? "text-emerald-600" : "text-red-500"
             )}>
               <span>{trend.positive ? "↑" : "↓"}</span>
@@ -65,16 +65,15 @@ export function StatCard({ label, value, icon: Icon, trend, color, href }: StatC
         </div>
 
         <div className={cn(
-          "w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shrink-0",
+          "w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shrink-0",
           colors.icon
         )}>
-          <Icon className="w-6 h-6" />
+          <Icon className="w-5 h-5" />
         </div>
       </div>
 
-      {/* Indicateur "Voir" visible au hover uniquement si lien présent */}
       {href && (
-        <div className="absolute bottom-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="absolute bottom-2.5 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <span className={cn("text-[10px] font-bold", colors.arrow)}>Voir</span>
           <ArrowUpRight className={cn("w-3 h-3", colors.arrow)} />
         </div>
