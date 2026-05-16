@@ -76,7 +76,7 @@ export async function updateProspect(
   id: string,
   input: ProspectUpdateInput
 ): Promise<Result<Prospect>> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const updates: Record<string, unknown> = {};
   // Contact
@@ -125,7 +125,7 @@ export async function updateProspect(
 }
 
 export async function deleteProspect(id: string): Promise<Result<null>> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase.from("prospects").delete().eq("id", id);
   if (error) return err(error.message);

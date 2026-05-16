@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -34,7 +34,7 @@ interface ProspectEditFormProps {
 
 export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Contact
@@ -76,9 +76,10 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsSubmitting(true);
 
     const payload = {
       full_name: fullName.trim(),
@@ -106,15 +107,18 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
       assigned_to: assignedTo || null,
     };
 
-    startTransition(async () => {
+    try {
       const result = await updateProspectAction(prospect.id, payload);
       if (result.error) {
         setError(result.error);
       } else {
         router.push(`/admin/prospects/${prospect.id}`);
-        router.refresh();
       }
-    });
+    } catch {
+      setError("Une erreur inattendue s'est produite. Veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const inputClass =
@@ -450,10 +454,10 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
             </Link>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isSubmitting}
               className="h-10 px-6 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-primary-dark hover:shadow-lg hover:shadow-brand-primary/25 transition-all disabled:opacity-50"
             >
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Enregistrer
             </button>
           </div>
