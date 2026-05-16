@@ -15,18 +15,25 @@ export async function GET(req: Request) {
 
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
 
+  console.log("[WhatsApp Webhook] Verification request received", {
+    mode,
+    hasChallenge: !!challenge,
+    tokenMatches: token === verifyToken,
+    verifyTokenConfigured: !!verifyToken,
+  });
+
   if (!verifyToken) {
-    return NextResponse.json(
-      { error: "Webhook not configured" },
-      { status: 503 }
-    );
+    return new Response("Webhook not configured", { status: 503 });
   }
 
   if (mode === "subscribe" && token === verifyToken) {
-    return new NextResponse(challenge, { status: 200 });
+    return new Response(challenge ?? "", {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 
-  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  return new Response("Forbidden", { status: 403 });
 }
 
 export async function POST(req: Request) {
