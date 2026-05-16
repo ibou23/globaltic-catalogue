@@ -23,6 +23,7 @@ import {
   MoreVertical,
   Copy,
   Check,
+  Table2,
 } from "lucide-react";
 import type { Prospect, ProspectStatus, ProspectPriority, AdminRole } from "@/lib/types/domain";
 import { siteConfig } from "@/lib/config/site";
@@ -103,13 +104,14 @@ interface ProspectsClientProps {
   role: AdminRole;
   canEdit?: boolean;
   canDelete?: boolean;
+  canAccessBrief?: boolean;
   untreatedAlert?: UntreatedProspectAlert | null;
 }
 
 const FORM_URL = "https://imprimerie.globalticgroup.com/demande";
 const WA_FORM_MESSAGE = `Bonjour,\n\nMerci pour votre intérêt.\n\nVous pouvez remplir notre formulaire de demande de devis ici :\n${FORM_URL}\n\nNotre équipe vous recontactera rapidement.\n\nGLOBAL TIC`;
 
-export function ProspectsClient({ prospects, totalCount, activeFilter, role: _role, canEdit, canDelete, untreatedAlert }: ProspectsClientProps) {
+export function ProspectsClient({ prospects, totalCount, activeFilter, role: _role, canEdit, canDelete, canAccessBrief, untreatedAlert }: ProspectsClientProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProspectStatus | "">("");
   const [priorityFilter, setPriorityFilter] = useState<ProspectPriority | "">("");
@@ -294,6 +296,16 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
           >
             <MessageCircle className="w-4 h-4" />
           </button>
+          {canAccessBrief && (
+            <Link
+              href="/admin/prospects/tableau"
+              title="Vue tableau briefs (infographistes)"
+              className="h-10 px-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-bold transition-colors flex items-center gap-1.5"
+            >
+              <Table2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Tableau</span>
+            </Link>
+          )}
         </div>
       </div>
 

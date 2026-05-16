@@ -1,6 +1,6 @@
 import { getProspects } from "@/lib/db/prospects";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { checkModuleAccess } from "@/lib/auth/check-access";
+import { checkModuleAccess, checkActionPermission } from "@/lib/auth/check-access";
 import { canPerform } from "@/lib/auth/permissions";
 import { getUntreatedProspectsAlert } from "@/lib/services/auto-tasks";
 import { AccessDenied } from "@/components/admin/AccessDenied";
@@ -35,6 +35,8 @@ export default async function AdminProspectsPage({
     getProspects(),
     getUntreatedProspectsAlert(),
   ]);
+
+  const canAccessBrief = await checkActionPermission(admin.role, "prospect:brief");
   const allProspects = result.data ?? [];
 
   let prospects = allProspects;
@@ -57,6 +59,7 @@ export default async function AdminProspectsPage({
       role={admin.role}
       canEdit={canPerform(admin.role, "prospect:edit")}
       canDelete={canPerform(admin.role, "prospect:delete")}
+      canAccessBrief={canAccessBrief}
       untreatedAlert={untreatedAlert}
     />
   );

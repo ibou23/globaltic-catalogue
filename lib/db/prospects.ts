@@ -6,6 +6,8 @@ import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 import type { Prospect } from "@/lib/types/domain";
 import type { ProspectPublicInput, ProspectUpdateInput } from "@/lib/validators/prospect";
 
+export type ProspectWithFileFlag = Prospect & { hasFiles: boolean };
+
 export async function getProspects(): Promise<Result<Prospect[]>> {
   const supabase = await createClient();
 
@@ -167,4 +169,32 @@ export async function searchProspects(query: string): Promise<Result<Prospect[]>
 
   if (error) return err(error.message);
   return ok((data as Record<string, unknown>[]).map(mapProspect));
+}
+
+export async function getProspectsWithFileFlags(): Promise<Result<ProspectWithFileFlag[]>> {
+  const supabase = await createClient();
+
+  const { data: prospectsData, error: prospectsError } = await supabase
+    .from("prospects")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (prospectsError) return err(prospectsError.message);
+
+  const { data: fileCounts, error: fileCountsError } = await supabase
+    .from("prospect_files")
+    .select("prospect_id");
+
+  if (fileCountsError) return err(fileCountsError.message);
+
+  const prospectIdsWithFiles = new Set(
+    (fileCounts as { prospect_id: string }[]).map((r) => r.prospect_id)
+  );
+
+  return ok(
+    (prospectsData as Record<string, unknown>[]).map((row) => ({
+      ...mapProspect(row),
+      hasFiles: prospectIdsWithFiles.has(row.id as string),
+    }))
+  );
 }

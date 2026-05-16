@@ -55,7 +55,7 @@ interface Props {
 type Tab = "menu" | "access" | "actions" | "critical";
 
 const ACTION_GROUPS: { label: string; actions: string[] }[] = [
-  { label: "Prospects", actions: ["prospect:read", "prospect:edit", "prospect:delete"] },
+  { label: "Prospects", actions: ["prospect:read", "prospect:edit", "prospect:delete", "prospect:brief"] },
   { label: "Clients", actions: ["client:create", "client:edit", "client:delete"] },
   { label: "Devis", actions: ["devis:create", "devis:edit", "devis:delete", "devis:convert", "devis:force_delete"] },
   { label: "Commandes", actions: ["commande:edit_status", "commande:edit_payment", "commande:force_delete"] },
@@ -70,7 +70,7 @@ const ACTION_GROUPS: { label: string; actions: string[] }[] = [
 ];
 
 const ACTION_LABELS: Record<string, string> = {
-  "prospect:read": "Voir", "prospect:edit": "Modifier", "prospect:delete": "Supprimer",
+  "prospect:read": "Voir", "prospect:edit": "Modifier", "prospect:delete": "Supprimer", "prospect:brief": "Tableau Briefs",
   "client:create": "Créer", "client:edit": "Modifier", "client:delete": "Supprimer",
   "devis:create": "Créer", "devis:edit": "Modifier", "devis:delete": "Supprimer",
   "devis:convert": "Convertir en commande", "devis:force_delete": "Suppression forcée",

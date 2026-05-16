@@ -69,7 +69,8 @@ export type Action =
   | "task:delete"
   | "prospect:read"
   | "prospect:edit"
-  | "prospect:delete";
+  | "prospect:delete"
+  | "prospect:brief";
 
 // Matrice complète : role → modules accessibles
 const MODULE_ACCESS: Record<Module, AdminRole[]> = {
@@ -90,7 +91,7 @@ const MODULE_ACCESS: Record<Module, AdminRole[]> = {
   impayes:      ["patron", "admin", "commercial"],
   planning:     ["patron", "admin", "commercial", "production", "infographiste"],
   rapports:     ["patron", "admin"],
-  prospects:    ["patron", "admin", "commercial"],
+  prospects:    ["patron", "admin", "commercial", "infographiste"],
   whatsapp:     ["patron", "admin", "commercial"],
   permissions:  ["patron"],
 };
@@ -142,6 +143,7 @@ export const DEFAULT_ACTION_ACCESS: Record<Action, AdminRole[]> = {
   "prospect:read":          ["patron", "admin", "commercial"],
   "prospect:edit":          ["patron", "admin", "commercial"],
   "prospect:delete":        ["patron", "admin"],
+  "prospect:brief":         ["patron", "admin", "commercial", "infographiste"],
 };
 
 // Permissions par défaut (hardcoded, fallback si table vide)
