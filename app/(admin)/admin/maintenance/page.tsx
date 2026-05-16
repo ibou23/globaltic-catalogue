@@ -1,5 +1,5 @@
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { MaintenanceClient } from "@/components/admin/MaintenanceClient";
 import { getQuotesEnriched } from "@/lib/db/quotes";
@@ -13,7 +13,7 @@ export default async function AdminMaintenancePage() {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "maintenance")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "maintenance"))) {
     return <AccessDenied message="Cette page est réservée au patron." />;
   }
 

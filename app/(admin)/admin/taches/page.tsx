@@ -1,6 +1,6 @@
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { getAdminProfiles } from "@/lib/db/admin";
-import { canAccessModule } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { TachesClient } from "@/components/admin/TachesClient";
 import { getAllTasks, getOverdueTasks, getTasksDueToday } from "@/lib/db/tasks";
@@ -12,7 +12,7 @@ export default async function AdminTachesPage() {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "taches")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "taches"))) {
     return <AccessDenied />;
   }
 

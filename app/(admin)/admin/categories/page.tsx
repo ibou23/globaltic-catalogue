@@ -1,6 +1,6 @@
 import { getAllCategories } from "@/lib/db/categories";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { CategoriesClient } from "@/components/admin/CategoriesClient";
 
@@ -10,7 +10,7 @@ export default async function AdminCategoriesPage() {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "categories")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "categories"))) {
     return <AccessDenied />;
   }
 

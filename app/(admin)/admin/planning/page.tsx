@@ -1,5 +1,6 @@
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule, canPerform } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
+import { canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { getOrdersEnriched } from "@/lib/db/orders";
 import { getQualityChecksByOrderIds } from "@/lib/db/quality-checks";
@@ -22,7 +23,7 @@ export default async function AdminPlanningPage() {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "planning")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "planning"))) {
     return <AccessDenied />;
   }
 

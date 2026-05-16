@@ -1,6 +1,6 @@
 import { getProspects } from "@/lib/db/prospects";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { ProspectsClient } from "@/components/admin/ProspectsClient";
 import type { ProspectStatus } from "@/lib/types/domain";
@@ -20,7 +20,7 @@ export default async function AdminProspectsPage({
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "prospects")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "prospects"))) {
     return <AccessDenied />;
   }
 

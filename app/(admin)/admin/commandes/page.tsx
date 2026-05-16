@@ -2,7 +2,8 @@ import { getOrdersEnriched } from "@/lib/db/orders";
 import { getInvoicesByOrderIds } from "@/lib/db/invoices";
 import { getQualityChecksByOrderIds } from "@/lib/db/quality-checks";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule, canPerform } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
+import { canPerform } from "@/lib/auth/permissions";
 import { getConfigValue } from "@/lib/db/business-config";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { CommandesClient } from "@/components/admin/CommandesClient";
@@ -36,7 +37,7 @@ export default async function AdminCommandesPage({
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "commandes")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "commandes"))) {
     return <AccessDenied />;
   }
 

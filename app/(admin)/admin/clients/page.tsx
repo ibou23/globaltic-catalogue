@@ -1,6 +1,7 @@
 import { getCustomers } from "@/lib/db/customers";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule, canPerform } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
+import { canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { ClientsClient } from "@/components/admin/ClientsClient";
 
@@ -14,7 +15,7 @@ export default async function AdminClientsPage({
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "clients")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "clients"))) {
     return <AccessDenied />;
   }
 

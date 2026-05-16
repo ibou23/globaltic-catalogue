@@ -4,6 +4,8 @@ import { getCurrentAdmin } from "@/lib/db/admin";
 import { redirect } from "next/navigation";
 import { BookOpen } from "lucide-react";
 import { AideClient } from "@/components/admin/AideClient";
+import { checkModuleAccess } from "@/lib/auth/check-access";
+import { AccessDenied } from "@/components/admin/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,10 @@ export default async function AdminAidePage() {
   const adminResult = await getCurrentAdmin();
   if (!adminResult.data) {
     redirect("/login");
+  }
+
+  if (!(await checkModuleAccess(adminResult.data.role, "aide"))) {
+    return <AccessDenied message="Vous n'avez pas accès à cette page." />;
   }
 
   const filePath = path.join(process.cwd(), "docs", "GUIDE_ADMIN_GLOBAL_TIC.md");

@@ -1,6 +1,7 @@
 import { getQuotesEnriched } from "@/lib/db/quotes";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule, canPerform } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
+import { canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { DevisClient } from "@/components/admin/DevisClient";
 import type { QuoteStatus } from "@/lib/types/domain";
@@ -25,7 +26,7 @@ export default async function AdminDevisPage({
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "devis")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "devis"))) {
     return <AccessDenied />;
   }
 

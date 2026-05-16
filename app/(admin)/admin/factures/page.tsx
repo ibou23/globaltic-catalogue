@@ -1,5 +1,6 @@
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { canAccessModule, canPerform } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
+import { canPerform } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { getInvoices } from "@/lib/db/invoices";
 import { FacturesClient } from "@/components/admin/FacturesClient";
@@ -10,7 +11,7 @@ export default async function AdminFacturesPage() {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "factures")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "factures"))) {
     return <AccessDenied />;
   }
 

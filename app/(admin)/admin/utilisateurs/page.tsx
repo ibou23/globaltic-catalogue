@@ -1,6 +1,6 @@
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { getAllAdminProfiles } from "@/lib/db/admin-users";
-import { canAccessModule } from "@/lib/auth/permissions";
+import { checkModuleAccess } from "@/lib/auth/check-access";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { UtilisateursClient } from "@/components/admin/UtilisateursClient";
 
@@ -10,7 +10,7 @@ export default async function AdminUtilisateursPage() {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
 
-  if (!admin || !canAccessModule(admin.role, "utilisateurs")) {
+  if (!admin || !(await checkModuleAccess(admin.role, "utilisateurs"))) {
     return <AccessDenied />;
   }
 
