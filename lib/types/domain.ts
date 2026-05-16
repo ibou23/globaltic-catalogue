@@ -384,6 +384,8 @@ export interface Prospect {
   assignedTo: string | null;
   contactedAt: string | null;
   convertedCustomerId: string | null;
+  estimatedBudget: string | null;
+  nextFollowup: string | null;
   source: ProspectSource;
   createdAt: string;
   updatedAt: string;

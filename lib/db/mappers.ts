@@ -267,6 +267,8 @@ export function mapProspect(row: Record<string, unknown>): Prospect {
     assignedTo: (row.assigned_to as string) ?? null,
     contactedAt: (row.contacted_at as string) ?? null,
     convertedCustomerId: (row.converted_customer_id as string) ?? null,
+    estimatedBudget: (row.estimated_budget as string) ?? null,
+    nextFollowup: (row.next_followup as string) ?? null,
     source: row.source as Prospect["source"],
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,

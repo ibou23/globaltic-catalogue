@@ -1,5 +1,5 @@
 import { getProspectsWithFileFlags } from "@/lib/db/prospects";
-import { getCurrentAdmin } from "@/lib/db/admin";
+import { getCurrentAdmin, getAdminProfiles } from "@/lib/db/admin";
 import { checkModuleAccess, checkActionPermission } from "@/lib/auth/check-access";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { ProspectBriefClient } from "@/components/admin/ProspectBriefClient";
@@ -19,12 +19,15 @@ export default async function AdminProspectsBriefPage() {
     return <AccessDenied />;
   }
 
-  const result = await getProspectsWithFileFlags();
-  const prospects = result.data ?? [];
+  const [prospectsResult, profilesResult] = await Promise.all([
+    getProspectsWithFileFlags(),
+    getAdminProfiles(),
+  ]);
 
   return (
     <ProspectBriefClient
-      prospects={prospects}
+      prospects={prospectsResult.data ?? []}
+      adminProfiles={profilesResult.data ?? []}
       canEdit={await checkActionPermission(admin.role, "prospect:edit")}
     />
   );
