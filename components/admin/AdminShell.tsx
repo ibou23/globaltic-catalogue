@@ -8,10 +8,12 @@ import { AdminTopbar } from "@/components/admin/AdminTopbar";
 interface AdminShellProps {
   admin: AdminProfile;
   unreadCount: number;
+  menuOrder?: { moduleKey: string; sortOrder: number }[];
+  roleOverrides?: { role: string; moduleKey: string; canAccess: boolean }[];
   children: React.ReactNode;
 }
 
-export function AdminShell({ admin, unreadCount, children }: AdminShellProps) {
+export function AdminShell({ admin, unreadCount, menuOrder, roleOverrides, children }: AdminShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -20,6 +22,8 @@ export function AdminShell({ admin, unreadCount, children }: AdminShellProps) {
         role={admin.role}
         isMobileOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        menuOrder={menuOrder}
+        roleOverrides={roleOverrides}
       />
       <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
         <AdminTopbar

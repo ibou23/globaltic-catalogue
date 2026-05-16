@@ -20,7 +20,8 @@ export type Module =
   | "planning"
   | "rapports"
   | "prospects"
-  | "whatsapp";
+  | "whatsapp"
+  | "permissions";
 
 // Actions métier sensibles
 export type Action =
@@ -91,6 +92,7 @@ const MODULE_ACCESS: Record<Module, AdminRole[]> = {
   rapports:     ["patron", "admin"],
   prospects:    ["patron", "admin", "commercial"],
   whatsapp:     ["patron", "admin", "commercial"],
+  permissions:  ["patron"],
 };
 
 // Matrice complète : role → actions autorisées
@@ -142,7 +144,39 @@ const ACTION_ACCESS: Record<Action, AdminRole[]> = {
   "prospect:delete":        ["patron", "admin"],
 };
 
+// Permissions par défaut (hardcoded, fallback si table vide)
+export const DEFAULT_MODULE_ACCESS = MODULE_ACCESS;
+
 export function canAccessModule(role: AdminRole, module: Module): boolean {
+  return MODULE_ACCESS[module].includes(role);
+}
+
+// Modules critiques : seul le patron peut accorder l'accès
+export const CRITICAL_MODULES: Module[] = [
+  "parametres", "utilisateurs", "maintenance", "rapports", "impayes", "factures",
+];
+
+export function isCriticalModule(module: Module): boolean {
+  return CRITICAL_MODULES.includes(module);
+}
+
+// Vérifie l'accès module en tenant compte des surcharges DB
+export function canAccessModuleDynamic(
+  role: AdminRole,
+  module: Module,
+  overrides: { role: string; moduleKey: string; canAccess: boolean }[]
+): boolean {
+  // Le patron a toujours accès à tout
+  if (role === "patron") return true;
+
+  // Chercher une surcharge pour ce rôle + module
+  const override = overrides.find(
+    (o) => o.role === role && o.moduleKey === module
+  );
+
+  if (override !== undefined) return override.canAccess;
+
+  // Fallback vers la matrice hardcoded
   return MODULE_ACCESS[module].includes(role);
 }
 

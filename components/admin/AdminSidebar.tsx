@@ -26,11 +26,12 @@ import {
   BarChart2,
   UserPlus,
   MessageSquare,
+  Shield,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { signOutAction } from "@/lib/actions/auth";
-import { canAccessModule, type Module } from "@/lib/auth/permissions";
+import { canAccessModule, canAccessModuleDynamic, type Module } from "@/lib/auth/permissions";
 import type { AdminRole } from "@/lib/types/domain";
 
 interface NavItem {
@@ -66,18 +67,26 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Imports CSV",    href: "/admin/imports",      icon: Upload,                       module: "imports" },
   // Administration
   { label: "Paramètres",     href: "/admin/parametres",   icon: Settings,                     module: "parametres" },
+  { label: "Permissions",    href: "/admin/permissions",  icon: Shield,                       module: "permissions" },
   { label: "Utilisateurs",   href: "/admin/utilisateurs", icon: UserCog,                      module: "utilisateurs" },
   { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                       module: "maintenance" },
   { label: "Aide",           href: "/admin/aide",         icon: HelpCircle,                   module: "aide" },
 ];
 
+interface MenuOrderEntry {
+  moduleKey: string;
+  sortOrder: number;
+}
+
 interface AdminSidebarProps {
   role: AdminRole;
   isMobileOpen?: boolean;
   onClose?: () => void;
+  menuOrder?: MenuOrderEntry[];
+  roleOverrides?: { role: string; moduleKey: string; canAccess: boolean }[];
 }
 
-export function AdminSidebar({ role, isMobileOpen = false, onClose }: AdminSidebarProps) {
+export function AdminSidebar({ role, isMobileOpen = false, onClose, menuOrder, roleOverrides }: AdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -87,7 +96,19 @@ export function AdminSidebar({ role, isMobileOpen = false, onClose }: AdminSideb
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  const visibleItems = NAV_ITEMS.filter((item) => canAccessModule(role, item.module));
+  const visibleItems = NAV_ITEMS
+    .filter((item) => {
+      if (roleOverrides && roleOverrides.length > 0) {
+        return canAccessModuleDynamic(role, item.module, roleOverrides);
+      }
+      return canAccessModule(role, item.module);
+    })
+    .sort((a, b) => {
+      if (!menuOrder || menuOrder.length === 0) return 0;
+      const orderA = menuOrder.find((o) => o.moduleKey === a.module)?.sortOrder ?? 99;
+      const orderB = menuOrder.find((o) => o.moduleKey === b.module)?.sortOrder ?? 99;
+      return orderA - orderB;
+    });
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href;
