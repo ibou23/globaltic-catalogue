@@ -269,3 +269,10 @@ Meta exige que le numéro soit vérifié et que le Business soit approuvé pour 
 | `META_APP_SECRET` | Meta → Paramètres → Base → Clé secrète | Vercel uniquement |
 | `WHATSAPP_ACCESS_TOKEN` | Meta → WhatsApp → Configuration API | Vercel uniquement |
 | `WHATSAPP_PHONE_NUMBER_ID` | Meta → WhatsApp → Mise en route | Vercel uniquement |
+
+---
+
+## Étape suivante
+
+Pour basculer du numéro de test vers le vrai numéro GLOBAL TIC, suivre le guide :
+[BASCULE_NUMERO_WHATSAPP_GLOBAL_TIC.md](./BASCULE_NUMERO_WHATSAPP_GLOBAL_TIC.md)
