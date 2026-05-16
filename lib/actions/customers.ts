@@ -9,14 +9,14 @@ import {
 } from "@/lib/db/customers";
 import { ok, err, type Result } from "@/lib/utils/result";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import type { Customer } from "@/lib/types/domain";
 
 export async function createCustomerAction(
   formData: unknown
 ): Promise<Result<Customer>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "client:create");
+  const denied = await requireActionDynamic(admin.data?.role, "client:create");
   if (denied) return err(denied);
 
   const parsed = customerSchema.safeParse(formData);
@@ -37,7 +37,7 @@ export async function updateCustomerAction(
   formData: unknown
 ): Promise<Result<Customer>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "client:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "client:edit");
   if (denied) return err(denied);
 
   const parsed = customerSchema.partial().safeParse(formData);
@@ -53,7 +53,7 @@ export async function updateCustomerNotesAction(
   notes: string
 ): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "client:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "client:edit");
   if (denied) return err(denied);
 
   const trimmed = notes.trim().slice(0, 2000);
@@ -65,7 +65,7 @@ export async function findOrCreateCustomerAction(
   formData: unknown
 ): Promise<Result<Customer>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "client:create");
+  const denied = await requireActionDynamic(admin.data?.role, "client:create");
   if (denied) return err(denied);
 
   const parsed = customerSchema.safeParse(formData);

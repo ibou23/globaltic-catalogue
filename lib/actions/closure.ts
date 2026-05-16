@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentAdmin, getAdminProfiles } from "@/lib/db/admin";
 import { createAdminNotifications } from "@/lib/db/notifications";
 import { logOrderEvent } from "@/lib/db/activity-log";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { mapOrder } from "@/lib/db/mappers";
 import { ok, err, type Result } from "@/lib/utils/result";
 import type { Order, ClosureStatus } from "@/lib/types/domain";
@@ -27,7 +27,7 @@ export async function saveClosureAction(
 ): Promise<Result<Order>> {
   const adminResult = await getCurrentAdmin();
   const admin = adminResult.data;
-  const permError = requireRole(admin?.role, "commande:edit_status");
+  const permError = await requireActionDynamic(admin?.role, "commande:edit_status");
   if (permError) return err(permError);
 
   const parsed = closureSchema.safeParse(formData);

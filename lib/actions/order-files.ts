@@ -8,7 +8,7 @@ import {
   getSignedUrl,
 } from "@/lib/db/order-files";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { getOrderById } from "@/lib/db/orders";
 import { logOrderEvent } from "@/lib/db/activity-log";
 import { getActiveAdminProfiles } from "@/lib/db/admin-users";
@@ -34,7 +34,7 @@ export async function uploadOrderFileAction(
 ): Promise<Result<OrderFile>> {
   const admin = await getCurrentAdmin();
   if (!admin.data) return err("Accès non autorisé");
-  const deniedUpload = requireRole(admin.data.role, "commande:upload_file");
+  const deniedUpload = await requireActionDynamic(admin.data.role, "commande:upload_file");
   if (deniedUpload) return err(deniedUpload);
 
   const orderResult = await getOrderById(orderId);
@@ -81,7 +81,7 @@ export async function deleteOrderFileAction(
 ): Promise<Result<true>> {
   const admin = await getCurrentAdmin();
   if (!admin.data) return err("Accès non autorisé");
-  const deniedDelete = requireRole(admin.data.role, "commande:delete_file");
+  const deniedDelete = await requireActionDynamic(admin.data.role, "commande:delete_file");
   if (deniedDelete) return err(deniedDelete);
 
   const result = await deleteOrderFile(fileId);
@@ -99,7 +99,7 @@ export async function updateOrderFileStatusAction(
 ): Promise<Result<OrderFile>> {
   const admin = await getCurrentAdmin();
   if (!admin.data) return err("Accès non autorisé");
-  const denied = requireRole(admin.data.role, "commande:bat");
+  const denied = await requireActionDynamic(admin.data.role, "commande:bat");
   if (denied) return err(denied);
   return updateOrderFileStatus(fileId, status);
 }

@@ -4,7 +4,7 @@ import { createQuoteSchema, updateQuoteStatusSchema, updateQuoteSchema } from "@
 import { createQuote, updateQuote, updateQuoteStatus } from "@/lib/db/quotes";
 import { generateReference } from "@/lib/services/reference";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { getActiveAdminProfiles } from "@/lib/db/admin-users";
 import { createAdminNotifications } from "@/lib/db/notifications";
 import { err, type Result } from "@/lib/utils/result";
@@ -14,7 +14,7 @@ export async function createQuoteAction(
   formData: unknown
 ): Promise<Result<Quote>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "devis:create");
+  const denied = await requireActionDynamic(admin.data?.role, "devis:create");
   if (denied) return err(denied);
 
   const parsed = createQuoteSchema.safeParse(formData);
@@ -46,7 +46,7 @@ export async function updateQuoteAction(
   formData: unknown
 ): Promise<Result<Quote>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "devis:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "devis:edit");
   if (denied) return err(denied);
 
   if (!id) return err("Identifiant du devis manquant");
@@ -61,7 +61,7 @@ export async function updateQuoteStatusAction(
   formData: unknown
 ): Promise<Result<Quote>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "devis:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "devis:edit");
   if (denied) return err(denied);
 
   const parsed = updateQuoteStatusSchema.safeParse(formData);

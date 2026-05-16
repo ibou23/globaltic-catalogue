@@ -10,13 +10,13 @@ import {
 import { ok, err, type Result } from "@/lib/utils/result";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { getAdminProfiles } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { createAdminNotifications } from "@/lib/db/notifications";
 import type { Task } from "@/lib/types/domain";
 
 export async function createTaskAction(formData: unknown): Promise<Result<Task>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "task:create");
+  const denied = await requireActionDynamic(admin.data?.role, "task:create");
   if (denied) return err(denied);
   if (!admin.data) return err("Accès non autorisé");
 
@@ -62,7 +62,7 @@ export async function updateTaskAction(
   formData: unknown
 ): Promise<Result<Task>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "task:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "task:edit");
   if (denied) return err(denied);
 
   const parsed = taskSchema.partial().safeParse(formData);
@@ -75,7 +75,7 @@ export async function updateTaskAction(
 
 export async function updateTaskStatusAction(formData: unknown): Promise<Result<Task>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "task:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "task:edit");
   if (denied) return err(denied);
 
   const parsed = updateTaskStatusSchema.safeParse(formData);
@@ -88,7 +88,7 @@ export async function updateTaskStatusAction(formData: unknown): Promise<Result<
 
 export async function deleteTaskAction(id: string): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "task:delete");
+  const denied = await requireActionDynamic(admin.data?.role, "task:delete");
   if (denied) return err(denied);
 
   return deleteTask(id);

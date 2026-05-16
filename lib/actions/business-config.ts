@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { updateBusinessConfig } from "@/lib/db/business-config";
 import { err, type Result } from "@/lib/utils/result";
 import {
@@ -18,7 +18,7 @@ import {
 async function getAdmin() {
   const r = await getCurrentAdmin();
   if (!r.data) return { admin: null, denied: "Non authentifié" };
-  const denied = requireRole(r.data.role, "parametres:edit");
+  const denied = await requireActionDynamic(r.data.role, "parametres:edit");
   return { admin: r.data, denied };
 }
 

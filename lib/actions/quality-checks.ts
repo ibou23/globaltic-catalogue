@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { upsertQualityCheck, getQualityCheckByOrderId } from "@/lib/db/quality-checks";
 import { logOrderEvent } from "@/lib/db/activity-log";
 import { getActiveAdminProfiles } from "@/lib/db/admin-users";
@@ -22,7 +22,7 @@ export async function saveQualityCheckAction(
   const adminCheck = await getCurrentAdmin();
   const admin = adminCheck.data;
   // production, patron, admin peuvent valider le QC
-  const denied = requireRole(admin?.role, "commande:edit_status");
+  const denied = await requireActionDynamic(admin?.role, "commande:edit_status");
   if (denied) return err(denied);
 
   const now = new Date().toISOString();

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { getOrderByQuoteId } from "@/lib/db/orders";
 import { deleteQuote } from "@/lib/db/quotes";
 import { deleteOrder } from "@/lib/db/orders";
@@ -36,7 +36,7 @@ const deleteCustomerSchema = z.object({
 
 export async function deleteQuoteAction(formData: unknown): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "devis:force_delete");
+  const denied = await requireActionDynamic(admin.data?.role, "devis:force_delete");
   if (denied) return err(denied);
 
   const rateLimitError = await checkRateLimitSafe("maintenance", admin.data!.userId);
@@ -71,7 +71,7 @@ export async function deleteQuoteAction(formData: unknown): Promise<Result<null>
 
 export async function deleteOrderAction(formData: unknown): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "commande:force_delete");
+  const denied = await requireActionDynamic(admin.data?.role, "commande:force_delete");
   if (denied) return err(denied);
 
   const rateLimitError = await checkRateLimitSafe("maintenance", admin.data!.userId);
@@ -98,7 +98,7 @@ export async function deleteOrderAction(formData: unknown): Promise<Result<null>
 
 export async function deleteCustomerAction(formData: unknown): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "client:delete");
+  const denied = await requireActionDynamic(admin.data?.role, "client:delete");
   if (denied) return err(denied);
 
   const rateLimitError = await checkRateLimitSafe("maintenance", admin.data!.userId);
@@ -138,7 +138,7 @@ export async function deleteCustomerAction(formData: unknown): Promise<Result<nu
 
 export async function purgeReadNotificationsAction(): Promise<Result<number>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "notifications:purge");
+  const denied = await requireActionDynamic(admin.data?.role, "notifications:purge");
   if (denied) return err(denied);
 
   const rateLimitError = await checkRateLimitSafe("maintenance", admin.data!.userId);

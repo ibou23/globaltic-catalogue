@@ -1,8 +1,9 @@
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { getMenuConfig, getRoleModuleAccess } from "@/lib/db/menu-config";
+import { getRoleActionPermissions } from "@/lib/db/action-permissions";
 import { AccessDenied } from "@/components/admin/AccessDenied";
 import { PermissionsClient } from "@/components/admin/PermissionsClient";
-import { DEFAULT_MODULE_ACCESS } from "@/lib/auth/permissions";
+import { DEFAULT_MODULE_ACCESS, DEFAULT_ACTION_ACCESS } from "@/lib/auth/permissions";
 import type { AdminRole } from "@/lib/types/domain";
 
 export const dynamic = "force-dynamic";
@@ -17,20 +18,29 @@ export default async function AdminPermissionsPage() {
     return <AccessDenied message="Seul le patron peut gérer les permissions." />;
   }
 
-  const [menuResult, accessResult] = await Promise.all([
+  const [menuResult, accessResult, actionResult] = await Promise.all([
     getMenuConfig(),
     getRoleModuleAccess(),
+    getRoleActionPermissions(),
   ]);
 
   const menuConfig = menuResult.data ?? [];
   const roleAccess = accessResult.data ?? [];
+  const actionPermissions = actionResult.data ?? [];
 
-  // Construire la matrice par défaut
   const defaultAccess: Record<string, Record<string, boolean>> = {};
   for (const [module, roles] of Object.entries(DEFAULT_MODULE_ACCESS)) {
     defaultAccess[module] = {};
     for (const role of ALL_ROLES) {
       defaultAccess[module][role] = roles.includes(role);
+    }
+  }
+
+  const defaultActions: Record<string, Record<string, boolean>> = {};
+  for (const [action, roles] of Object.entries(DEFAULT_ACTION_ACCESS)) {
+    defaultActions[action] = {};
+    for (const role of ALL_ROLES) {
+      defaultActions[action][role] = roles.includes(role);
     }
   }
 
@@ -40,6 +50,8 @@ export default async function AdminPermissionsPage() {
       roleAccess={roleAccess}
       defaultAccess={defaultAccess}
       roles={ALL_ROLES}
+      actionPermissions={actionPermissions}
+      defaultActions={defaultActions}
     />
   );
 }

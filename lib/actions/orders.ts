@@ -5,7 +5,7 @@ import { createOrder, updateOrder, getOrderByQuoteId, getOrderById, updateOrderS
 import { getQuoteById } from "@/lib/db/quotes";
 import { generateReference } from "@/lib/services/reference";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { logOrderEvent } from "@/lib/db/activity-log";
 import { getActiveAdminProfiles } from "@/lib/db/admin-users";
 import { createAdminNotifications } from "@/lib/db/notifications";
@@ -17,7 +17,7 @@ export async function convertQuoteToOrderAction(
   quoteId: string
 ): Promise<Result<Order>> {
   const adminCheck = await getCurrentAdmin();
-  const denied = requireRole(adminCheck.data?.role, "devis:convert");
+  const denied = await requireActionDynamic(adminCheck.data?.role, "devis:convert");
   if (denied) return err(denied);
 
   if (!quoteId) return err("Identifiant du devis manquant");
@@ -81,7 +81,7 @@ export async function updateOrderAction(
   formData: unknown
 ): Promise<Result<Order>> {
   const adminCheck = await getCurrentAdmin();
-  const deniedStatus = requireRole(adminCheck.data?.role, "commande:edit_status");
+  const deniedStatus = await requireActionDynamic(adminCheck.data?.role, "commande:edit_status");
   if (deniedStatus) return err(deniedStatus);
 
   if (!id) return err("Identifiant de la commande manquant");
@@ -102,7 +102,7 @@ export async function updateOrderAction(
       parsed.data.payment_note !== previous.paymentNote ||
       parsed.data.payment_status !== previous.paymentStatus;
     if (paymentChanged) {
-      const deniedPayment = requireRole(adminCheck.data?.role, "commande:edit_payment");
+      const deniedPayment = await requireActionDynamic(adminCheck.data?.role, "commande:edit_payment");
       if (deniedPayment) return err(deniedPayment);
     }
   }
@@ -200,7 +200,7 @@ export async function quickUpdateOrderStatusAction(
   status: Order["status"]
 ): Promise<Result<Order>> {
   const adminCheck = await getCurrentAdmin();
-  const denied = requireRole(adminCheck.data?.role, "commande:edit_status");
+  const denied = await requireActionDynamic(adminCheck.data?.role, "commande:edit_status");
   if (denied) return err(denied);
   if (!id) return err("Identifiant manquant");
 

@@ -9,14 +9,14 @@ import {
 } from "@/lib/db/categories";
 import { err, type Result } from "@/lib/utils/result";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import type { Category } from "@/lib/types/domain";
 
 export async function createCategoryAction(
   formData: unknown
 ): Promise<Result<Category>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "categorie:create");
+  const denied = await requireActionDynamic(admin.data?.role, "categorie:create");
   if (denied) return err(denied);
 
   const parsed = categorySchema.safeParse(formData);
@@ -40,7 +40,7 @@ export async function updateCategoryAction(
   formData: unknown
 ): Promise<Result<Category>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "categorie:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "categorie:edit");
   if (denied) return err(denied);
 
   const parsed = categorySchema.partial().safeParse(formData);
@@ -63,7 +63,7 @@ export async function deleteCategoryAction(
   id: string
 ): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "categorie:delete");
+  const denied = await requireActionDynamic(admin.data?.role, "categorie:delete");
   if (denied) return err(denied);
 
   const result = await deleteCategory(id);

@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { updateOrderDelivery } from "@/lib/db/orders";
 import { updateDeliverySchema } from "@/lib/validators/order";
 import { logOrderEvent } from "@/lib/db/activity-log";
@@ -17,7 +17,7 @@ export async function updateDeliveryAction(
 ): Promise<Result<Order>> {
   const adminCheck = await getCurrentAdmin();
   const admin = adminCheck.data;
-  const denied = requireRole(admin?.role, "commande:edit_status");
+  const denied = await requireActionDynamic(admin?.role, "commande:edit_status");
   if (denied) return err(denied);
 
   const parsed = updateDeliverySchema.safeParse(formData);

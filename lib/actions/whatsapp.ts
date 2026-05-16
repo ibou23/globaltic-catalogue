@@ -5,7 +5,7 @@ import { createProspect } from "@/lib/db/prospects";
 import { createTask } from "@/lib/db/tasks";
 import { generateReference } from "@/lib/services/reference";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { err, ok, type Result } from "@/lib/utils/result";
 import type { Prospect, Task } from "@/lib/types/domain";
 
@@ -13,7 +13,7 @@ export async function markWhatsAppMessageProcessedAction(
   id: string
 ): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
 
   return markMessageProcessed(id);
@@ -23,7 +23,7 @@ export async function unmarkWhatsAppMessageProcessedAction(
   id: string
 ): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
 
   const { createClient } = await import("@/lib/supabase/server");
@@ -44,7 +44,7 @@ export async function createProspectFromMessageAction(
   content: string | null
 ): Promise<Result<Prospect>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
 
   const reference = await generateReference("PRO");
@@ -75,7 +75,7 @@ export async function linkMessageToProspectAction(
   prospectId: string
 ): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
 
   const { createClient } = await import("@/lib/supabase/server");
@@ -94,7 +94,7 @@ export async function linkMessageToCustomerAction(
   customerId: string
 ): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
 
   const { createClient } = await import("@/lib/supabase/server");
@@ -116,7 +116,7 @@ export async function createTaskFromMessageAction(
   prospectId: string | null
 ): Promise<Result<Task>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
   if (!admin.data) return err("Accès non autorisé");
 

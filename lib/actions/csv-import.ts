@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { importCategories, importProducts, importPrix, type ImportSummary } from "@/lib/db/csv-import";
 import { csvProductRowSchema, csvCategoryRowSchema, csvPrixRowSchema } from "@/lib/validators/csv-import";
 import { checkRateLimitOpen } from "@/lib/security/rate-limit";
@@ -24,7 +24,7 @@ export async function importCategoriesAction(
   rows: RawRow[]
 ): Promise<Result<ImportSummary>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "import:categories");
+  const denied = await requireActionDynamic(admin.data?.role, "import:categories");
   if (denied) return err(denied);
 
   const rateLimitError = await checkRateLimitOpen("import", admin.data!.userId);
@@ -60,7 +60,7 @@ export async function importProductsAction(
   rows: RawRow[]
 ): Promise<Result<ImportSummary>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "import:produits");
+  const denied = await requireActionDynamic(admin.data?.role, "import:produits");
   if (denied) return err(denied);
 
   const rateLimitError = await checkRateLimitOpen("import", admin.data!.userId);
@@ -97,7 +97,7 @@ export async function importPrixAction(
   rows: RawRow[]
 ): Promise<Result<ImportSummary>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "import:prix");
+  const denied = await requireActionDynamic(admin.data?.role, "import:prix");
   if (denied) return err(denied);
 
   const rateLimitError = await checkRateLimitOpen("import", admin.data!.userId);
@@ -145,7 +145,7 @@ export async function previewCsvAction(
     categories:  "import:categories",
     prix:        "import:prix",
   } as const;
-  const denied = requireRole(admin.data.role, actionMap[type]);
+  const denied = await requireActionDynamic(admin.data.role, actionMap[type]);
   if (denied) return err(denied);
 
   const schemaMap = {

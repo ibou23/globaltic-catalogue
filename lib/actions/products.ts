@@ -10,7 +10,7 @@ import {
 } from "@/lib/db/products";
 import { err, type Result } from "@/lib/utils/result";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import type { Product } from "@/lib/types/domain";
 import { z } from "zod";
 
@@ -18,7 +18,7 @@ export async function createProductAction(
   formData: unknown
 ): Promise<Result<Product>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "produit:create");
+  const denied = await requireActionDynamic(admin.data?.role, "produit:create");
   if (denied) return err(denied);
 
   const parsed = productSchema.safeParse(formData);
@@ -42,7 +42,7 @@ export async function updateProductAction(
   formData: unknown
 ): Promise<Result<Product>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "produit:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "produit:edit");
   if (denied) return err(denied);
 
   const parsed = productSchema.partial().safeParse(formData);
@@ -65,7 +65,7 @@ export async function deleteProductAction(
   id: string
 ): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "produit:delete");
+  const denied = await requireActionDynamic(admin.data?.role, "produit:delete");
   if (denied) return err(denied);
 
   const result = await deleteProduct(id);
@@ -90,7 +90,7 @@ export async function replaceQuantityTiersAction(
   formData: unknown
 ): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "produit:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "produit:edit");
   if (denied) return err(denied);
 
   const parsed = tiersPayloadSchema.safeParse(formData);

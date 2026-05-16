@@ -6,7 +6,7 @@ import { deleteProspectFile, getProspectFileSignedUrl } from "@/lib/db/prospect-
 import { createCustomer } from "@/lib/db/customers";
 import { createTask } from "@/lib/db/tasks";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { err, ok, type Result } from "@/lib/utils/result";
 import type { Prospect, Customer, Task } from "@/lib/types/domain";
 
@@ -15,7 +15,7 @@ export async function updateProspectAction(
   formData: unknown
 ): Promise<Result<Prospect>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
 
   if (!id) return err("Identifiant du prospect manquant");
@@ -35,7 +35,7 @@ export async function deleteProspectAction(
   id: string
 ): Promise<Result<null>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:delete");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:delete");
   if (denied) return err(denied);
 
   if (!id) return err("Identifiant du prospect manquant");
@@ -50,7 +50,7 @@ export async function deleteProspectFileAction(
   fileId: string
 ): Promise<Result<true>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
 
   return deleteProspectFile(fileId);
@@ -68,7 +68,7 @@ export async function markProspectContactedAction(
   id: string
 ): Promise<Result<Prospect>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
 
   return updateProspect(id, { contacted_at: new Date().toISOString() });
@@ -78,7 +78,7 @@ export async function convertProspectToCustomerAction(
   id: string
 ): Promise<Result<Customer>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
 
   const existing = await getProspectById(id);
@@ -116,7 +116,7 @@ export async function createProspectTaskAction(
   dueDate?: string
 ): Promise<Result<Task>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "prospect:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "prospect:edit");
   if (denied) return err(denied);
   if (!admin.data) return err("Accès non autorisé");
 

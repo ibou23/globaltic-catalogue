@@ -96,7 +96,7 @@ const MODULE_ACCESS: Record<Module, AdminRole[]> = {
 };
 
 // Matrice complète : role → actions autorisées
-const ACTION_ACCESS: Record<Action, AdminRole[]> = {
+export const DEFAULT_ACTION_ACCESS: Record<Action, AdminRole[]> = {
   "devis:create":           ["patron", "admin", "commercial"],
   "devis:edit":             ["patron", "admin", "commercial"],
   "devis:delete":           ["patron", "admin"],
@@ -181,7 +181,7 @@ export function canAccessModuleDynamic(
 }
 
 export function canPerform(role: AdminRole, action: Action): boolean {
-  return ACTION_ACCESS[action].includes(role);
+  return DEFAULT_ACTION_ACCESS[action].includes(role);
 }
 
 // Helper pour les Server Actions — lève une erreur Result-compatible

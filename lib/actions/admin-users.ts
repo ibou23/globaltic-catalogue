@@ -12,14 +12,14 @@ import {
   countActivePatrons,
 } from "@/lib/db/admin-users";
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { logAdminEvent } from "@/lib/db/activity-log";
 import { err, ok, type Result } from "@/lib/utils/result";
 import type { AdminProfile } from "@/lib/types/domain";
 
 export async function getAdminUsersAction(): Promise<Result<AdminProfile[]>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "admin_user:read");
+  const denied = await requireActionDynamic(admin.data?.role, "admin_user:read");
   if (denied) return err(denied);
 
   return getAllAdminProfiles();
@@ -29,7 +29,7 @@ export async function createAdminUserAction(
   formData: unknown
 ): Promise<Result<AdminProfile>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "admin_user:create");
+  const denied = await requireActionDynamic(admin.data?.role, "admin_user:create");
   if (denied) return err(denied);
 
   const parsed = createAdminUserSchema.safeParse(formData);
@@ -60,7 +60,7 @@ export async function updateAdminUserAction(
   formData: unknown
 ): Promise<Result<AdminProfile>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "admin_user:edit");
+  const denied = await requireActionDynamic(admin.data?.role, "admin_user:edit");
   if (denied) return err(denied);
 
   if (!id) return err("Identifiant utilisateur manquant");
@@ -97,7 +97,7 @@ export async function toggleAdminUserAction(
   isActive: boolean
 ): Promise<Result<AdminProfile>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "admin_user:toggle");
+  const denied = await requireActionDynamic(admin.data?.role, "admin_user:toggle");
   if (denied) return err(denied);
 
   if (!id) return err("Identifiant utilisateur manquant");

@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentAdmin } from "@/lib/db/admin";
-import { requireRole } from "@/lib/auth/permissions";
+import { requireActionDynamic } from "@/lib/auth/check-access";
 import { updateInvoiceStatus } from "@/lib/db/invoices";
 import { err, type Result } from "@/lib/utils/result";
 import type { Invoice, InvoiceStatus } from "@/lib/types/domain";
@@ -11,7 +11,7 @@ export async function updateInvoiceStatusAction(
   status: InvoiceStatus
 ): Promise<Result<Invoice>> {
   const admin = await getCurrentAdmin();
-  const denied = requireRole(admin.data?.role, "facture:generate");
+  const denied = await requireActionDynamic(admin.data?.role, "facture:generate");
   if (denied) return err(denied);
   if (!id) return err("Identifiant manquant");
 
