@@ -102,3 +102,17 @@ export async function getProspectFileSignedUrl(
   if (error) return err(error.message);
   return ok(data.signedUrl);
 }
+
+export async function getProspectFileDownloadUrl(
+  storagePath: string,
+  fileName: string | null
+): Promise<Result<string>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(storagePath, SIGNED_URL_TTL, { download: fileName ?? true });
+
+  if (error) return err(error.message);
+  return ok(data.signedUrl);
+}

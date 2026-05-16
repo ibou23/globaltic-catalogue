@@ -2,14 +2,14 @@
 
 import { prospectUpdateSchema } from "@/lib/validators/prospect";
 import { getProspectById, updateProspect, deleteProspect, getProspectLinkedEntities } from "@/lib/db/prospects";
-import { deleteProspectFile, getProspectFileSignedUrl } from "@/lib/db/prospect-files";
+import { deleteProspectFile, getProspectFileSignedUrl, getProspectFileDownloadUrl, getProspectFiles } from "@/lib/db/prospect-files";
 import { createCustomer } from "@/lib/db/customers";
 import { createTask } from "@/lib/db/tasks";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { requireActionDynamic } from "@/lib/auth/check-access";
 import { logAdminEvent } from "@/lib/db/activity-log";
 import { err, ok, type Result } from "@/lib/utils/result";
-import type { Prospect, Customer, Task } from "@/lib/types/domain";
+import type { Prospect, Customer, Task, ProspectFile } from "@/lib/types/domain";
 
 export async function updateProspectAction(
   id: string,
@@ -103,6 +103,23 @@ export async function getProspectFileUrlAction(
   const admin = await getCurrentAdmin();
   if (!admin.data) return err("Accès non autorisé");
   return getProspectFileSignedUrl(storagePath);
+}
+
+export async function getProspectFileDownloadUrlAction(
+  storagePath: string,
+  fileName: string | null
+): Promise<Result<string>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+  return getProspectFileDownloadUrl(storagePath, fileName);
+}
+
+export async function getProspectFilesAction(
+  prospectId: string
+): Promise<Result<ProspectFile[]>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+  return getProspectFiles(prospectId);
 }
 
 export async function markProspectContactedAction(

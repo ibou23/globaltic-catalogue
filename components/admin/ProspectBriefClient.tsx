@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { ProspectStatus, ProspectPriority, AdminProfile } from "@/lib/types/domain";
 import type { ProspectWithFileFlag } from "@/lib/db/prospects";
+import { ProspectFilesModal } from "@/components/admin/ProspectFilesModal";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -287,6 +288,7 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("all");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [exportFeedback, setExportFeedback] = useState(false);
+  const [filesModal, setFilesModal] = useState<{ id: string; name: string } | null>(null);
 
   const adminMap = new Map(adminProfiles.map((a) => [a.userId, a.fullName]));
   const cutoff = periodCutoff(periodFilter);
@@ -637,11 +639,18 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
                           ) : <span className="text-slate-300">—</span>;
                         }
                         if (colIdx === 18) {
-                          // Fichier fourni — badge
+                          // Fichier fourni — bouton aperçu ou tiret
                           return p.hasFiles ? (
-                            <span className="inline-flex items-center gap-0.5 text-brand-primary font-bold">
-                              <Paperclip className="w-3 h-3" />Oui
-                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFilesModal({ id: p.id, name: p.fullName });
+                              }}
+                              title="Voir les fichiers joints"
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white transition-colors text-[10px] font-bold"
+                            >
+                              <Paperclip className="w-3 h-3" />Voir
+                            </button>
                           ) : <span className="text-slate-300">—</span>;
                         }
                         if (colIdx === 25) {
@@ -760,7 +769,14 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
                 {p.preferredColors  && <span className="text-slate-500 col-span-2">Couleurs : <span className="font-bold text-slate-700">{p.preferredColors}</span></span>}
                 {p.desiredDeadline  && <span className="text-slate-500">Délai : <span className="font-bold text-slate-700">{p.desiredDeadline}</span></span>}
                 {assignedName       && <span className="text-slate-500">Commercial : <span className="font-bold text-slate-700">{assignedName}</span></span>}
-                {p.hasFiles         && <span className="text-brand-primary font-bold col-span-2">✓ Fichier(s) fourni(s)</span>}
+                {p.hasFiles && (
+                  <button
+                    onClick={() => setFilesModal({ id: p.id, name: p.fullName })}
+                    className="col-span-2 text-left text-brand-primary font-bold text-[11px] flex items-center gap-1 hover:underline"
+                  >
+                    <Paperclip className="w-3 h-3" />Voir fichiers joints
+                  </button>
+                )}
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <Link
@@ -810,6 +826,15 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
           </div>
         )}
       </div>
+
+      {/* Modale fichiers */}
+      {filesModal && (
+        <ProspectFilesModal
+          prospectId={filesModal.id}
+          prospectName={filesModal.name}
+          onClose={() => setFilesModal(null)}
+        />
+      )}
 
       {/* Légende colonnes export */}
       <details className="bg-white rounded-2xl border border-slate-100 text-xs">
