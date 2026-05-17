@@ -36,29 +36,51 @@ export const DELIVERY_STATUS_CONFIG: Record<DeliveryStatus, {
 
 // ─── Messages WhatsApp ────────────────────────────────────────────────────────
 
-function buildWaDelivery(order: OrderEnriched, type: "planifiee" | "en_cours" | "livree" | "echec" | "reportee", estimatedDelivery?: string): string | null {
+const DELIVERY_METHOD_LABELS_WA: Record<string, string> = {
+  livraison_dakar:    "Livraison Dakar",
+  livraison_region:   "Livraison région",
+  livraison_coursier: "Livraison par coursier",
+  autre:              "Livraison",
+};
+
+function buildWaDelivery(
+  order: OrderEnriched,
+  type: "planifiee" | "en_cours" | "livree" | "echec" | "reportee",
+  opts?: { estimatedDelivery?: string; deliveryMethod?: string; deliveryFee?: number }
+): string | null {
   const phone = order.customer?.whatsapp?.replace(/\D/g, "");
   if (!phone) return null;
   const client = order.customer?.contactName ?? "client";
   const ref    = order.reference;
-  const dateStr = estimatedDelivery ? formatDateShort(estimatedDelivery) : "date à confirmer";
+  const dateStr = opts?.estimatedDelivery ? formatDateShort(opts.estimatedDelivery) : "date à confirmer";
+  const fee  = opts?.deliveryFee ?? 0;
+  const fmtFee = fee > 0 ? fee.toLocaleString("fr-SN") + " FCFA" : null;
+  const methodLabel = DELIVERY_METHOD_LABELS_WA[opts?.deliveryMethod ?? ""] ?? null;
+
+  // Lignes mode + frais (insérées si pertinentes)
+  const deliveryInfoLines: string[] = [];
+  if (methodLabel) deliveryInfoLines.push(`Mode : *${methodLabel}*`);
+  if (fmtFee)      deliveryInfoLines.push(`Frais de livraison : *${fmtFee}*`);
+  const hasInfo = deliveryInfoLines.length > 0;
 
   const msgs: Record<string, string[]> = {
     planifiee: [
       `Bonjour *${client}*,`,
       ``,
-      `La livraison de votre commande *${ref}* est prévue le *${dateStr}*.`,
+      `Votre commande *${ref}* est programmée pour livraison.`,
       ``,
-      `Notre livreur vous contactera avant son passage.`,
+      ...(hasInfo ? [...deliveryInfoLines, ``] : []),
+      `Notre livreur vous contactera pour confirmer les détails.`,
       ``,
       `*GLOBAL TIC*`,
     ],
     en_cours: [
       `Bonjour *${client}*,`,
       ``,
-      `Votre commande *${ref}* est en cours de livraison.`,
+      `Votre commande *${ref}* est actuellement en cours de livraison.`,
       ``,
-      `Notre livreur vous contactera pour organiser la remise.`,
+      ...(hasInfo ? [...deliveryInfoLines, ``] : []),
+      `Notre livreur vous contactera pour la remise.`,
       ``,
       `*GLOBAL TIC*`,
     ],
@@ -67,9 +89,10 @@ function buildWaDelivery(order: OrderEnriched, type: "planifiee" | "en_cours" | 
       ``,
       `Votre commande *${ref}* a bien été livrée ✅`,
       ``,
-      `Nous espérons que tout est à votre satisfaction. N'hésitez pas à nous contacter pour tout retour.`,
+      ...(hasInfo ? [...deliveryInfoLines, ``] : []),
+      `Merci pour votre confiance.`,
       ``,
-      `Merci de votre confiance — *GLOBAL TIC*`,
+      `*GLOBAL TIC*`,
     ],
     echec: [
       `Bonjour *${client}*,`,
@@ -157,7 +180,13 @@ export function DeliveryModal({ order, role, onClose }: DeliveryModalProps) {
     reportee:      "reportee",
   };
   const waType = waTypeMap[deliveryStatus];
-  const waLink = waType ? buildWaDelivery(order, waType, estimatedDelivery) : buildWaDefault(order);
+  const waLink = waType
+    ? buildWaDelivery(order, waType, {
+        estimatedDelivery,
+        deliveryMethod,
+        deliveryFee: parseInt(fee, 10) || 0,
+      })
+    : buildWaDefault(order);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -302,6 +331,18 @@ export function DeliveryModal({ order, role, onClose }: DeliveryModalProps) {
               </div>
             </div>
           </div>
+
+          {/* Avertissement frais de livraison */}
+          {(parseInt(fee, 10) || 0) > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 space-y-1">
+              <p className="text-xs font-bold text-amber-700">
+                Frais de livraison : {(parseInt(fee, 10) || 0).toLocaleString("fr-SN")} FCFA
+              </p>
+              <p className="text-[11px] text-amber-600">
+                Ce montant sera visible sur la facture et les messages client. Assurez-vous que le client en a été informé avant validation.
+              </p>
+            </div>
+          )}
 
           {/* WhatsApp contextuel */}
           {order.customer && waLink && (

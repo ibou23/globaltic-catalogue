@@ -22,7 +22,8 @@ const inputClass = "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-s
 const labelClass = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1";
 
 export function QuickPaymentModal({ order, onClose }: QuickPaymentModalProps) {
-  const balance = order.total - order.paidAmount;
+  const clientTotal = order.total + (order.deliveryFee ?? 0);
+  const balance = clientTotal - order.paidAmount;
   const [amount, setAmount] = useState(balance > 0 ? String(balance) : "0");
   const [method, setMethod] = useState<PaymentMethod>(order.paymentMethod ?? "especes");
   const [ref, setRef] = useState(order.paymentReference ?? "");
@@ -36,7 +37,7 @@ export function QuickPaymentModal({ order, onClose }: QuickPaymentModalProps) {
     if (isNaN(parsed) || parsed < 0) { setError("Montant invalide"); return; }
     const newPaid = order.paidAmount + parsed;
     const paymentStatus =
-      newPaid >= order.total ? "paye" :
+      newPaid >= clientTotal ? "paye" :
       newPaid > 0 ? "acompte" : "non_paye";
 
     setError(null);

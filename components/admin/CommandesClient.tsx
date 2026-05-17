@@ -205,7 +205,7 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
             <div className="sm:hidden space-y-3">
               {orders.map((order) => {
                 const payment = PAYMENT_LABELS[order.paymentStatus] ?? { label: order.paymentStatus, color: "bg-slate-100 text-slate-600" };
-                const balance = order.total - order.paidAmount;
+                const balance = order.total + (order.deliveryFee ?? 0) - order.paidAmount;
                 const waLink = buildWhatsAppMessage(order);
                 return (
                   <div key={order.id} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
@@ -404,7 +404,7 @@ export function CommandesClient({ orders, invoicesMap = new Map(), qcMap = new M
                   <tbody className="divide-y divide-slate-50">
                     {orders.map((order) => {
                       const payment = PAYMENT_LABELS[order.paymentStatus] ?? { label: order.paymentStatus, color: "bg-slate-100 text-slate-600" };
-                      const balance = order.total - order.paidAmount;
+                      const balance = order.total + (order.deliveryFee ?? 0) - order.paidAmount;
                       const waLink = buildWhatsAppMessage(order);
                       return (
                         <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">

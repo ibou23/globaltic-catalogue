@@ -71,28 +71,35 @@ function derivePaymentStatus(paid: number, total: number): PaymentStatus {
 function buildWhatsAppPaymentMessage(
   order: OrderEnriched,
   paid: number,
-  paymentStatus: PaymentStatus
+  paymentStatus: PaymentStatus,
+  clientTotal: number
 ): string | null {
   const whatsapp = order.customer?.whatsapp?.replace(/[^0-9]/g, "");
   if (!whatsapp) return null;
   if (paymentStatus !== "acompte" && paymentStatus !== "paye") return null;
 
-  const client = order.customer?.contactName ?? "client";
-  const ref = order.reference;
-  const total = order.total.toLocaleString("fr-SN");
-  const paidFmt = paid.toLocaleString("fr-SN");
+  const client  = order.customer?.contactName ?? "client";
+  const ref     = order.reference;
+  const totalFmt = clientTotal.toLocaleString("fr-SN");
+  const paidFmt  = paid.toLocaleString("fr-SN");
+  const fee      = order.deliveryFee ?? 0;
+
+  // Ligne frais optionnelle
+  const feeLines: string[] = fee > 0
+    ? [`(dont frais de livraison : *${fee.toLocaleString("fr-SN")} FCFA*)`]
+    : [];
 
   let lines: string[];
 
   if (paymentStatus === "acompte") {
-    // Cas 1 — acompte reçu
-    const balance = (order.total - paid).toLocaleString("fr-SN");
+    const balance = (clientTotal - paid).toLocaleString("fr-SN");
     lines = [
       `Bonjour *${client}*,`,
       ``,
       `Nous vous confirmons la réception de votre acompte de *${paidFmt} FCFA* pour la commande *${ref}*.`,
       ``,
-      `Montant total : *${total} FCFA*`,
+      `Montant total : *${totalFmt} FCFA*`,
+      ...feeLines,
       `Solde restant : *${balance} FCFA*`,
       ``,
       `Votre commande est maintenant confirmée ✅`,
@@ -102,8 +109,8 @@ function buildWhatsAppPaymentMessage(
       `*GLOBAL TIC*`,
     ];
   } else if (order.paymentStatus === "acompte") {
-    // Cas 3 — solde reçu (la commande était en acompte)
-    const solde = (order.total - order.paidAmount).toLocaleString("fr-SN");
+    // Solde reçu (la commande était en acompte)
+    const solde = (clientTotal - order.paidAmount).toLocaleString("fr-SN");
     lines = [
       `Bonjour *${client}*,`,
       ``,
@@ -116,12 +123,13 @@ function buildWhatsAppPaymentMessage(
       `*GLOBAL TIC*`,
     ];
   } else {
-    // Cas 2 — paiement complet d'emblée
+    // Paiement complet d'emblée
     lines = [
       `Bonjour *${client}*,`,
       ``,
       `Nous vous confirmons la réception du paiement complet de *${paidFmt} FCFA* pour la commande *${ref}*.`,
       ``,
+      ...feeLines,
       `Votre commande est entièrement réglée ✅`,
       ``,
       `Nous restons disponibles sur WhatsApp pour toute précision.`,
@@ -231,19 +239,21 @@ export function CommandeEditForm({ order, role, onClose }: CommandeEditFormProps
   const [notes, setNotes] = useState(order.notes ?? "");
   const [internalNotes, setInternalNotes] = useState(order.internalNotes ?? "");
 
-  const paid = parseInt(paidAmount, 10) || 0;
-  const balance = order.total - paid;
+  const paid         = parseInt(paidAmount, 10) || 0;
+  const feeAmount    = order.deliveryFee ?? 0;
+  const clientTotal  = order.total + feeAmount;
+  const balance      = clientTotal - paid;
 
   // Auto-dériver le statut paiement quand le montant change (sauf si remboursé)
   useEffect(() => {
     if (paymentStatus !== "rembourse") {
-      setPaymentStatus(derivePaymentStatus(paid, order.total));
+      setPaymentStatus(derivePaymentStatus(paid, clientTotal));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paid, order.total]);
+  }, [paid, clientTotal]);
 
   const waLink = buildWhatsAppMessage(order, status);
-  const waPaymentLink = buildWhatsAppPaymentMessage(order, paid, paymentStatus);
+  const waPaymentLink = buildWhatsAppPaymentMessage(order, paid, paymentStatus, clientTotal);
 
   const [orderFiles, setOrderFiles] = useState<OrderFile[]>([]);
   useEffect(() => {
@@ -348,13 +358,38 @@ export function CommandeEditForm({ order, role, onClose }: CommandeEditFormProps
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Paiement</h3>
 
             {/* Récapitulatif financier */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-slate-50 rounded-xl px-4 py-3">
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Total</p>
-                <p className="font-black text-slate-800 text-sm tabular-nums">
-                  {order.total.toLocaleString("fr-SN")} <span className="text-xs font-medium">FCFA</span>
-                </p>
-              </div>
+            <div className={`grid gap-3 mb-4 ${feeAmount > 0 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+              {feeAmount > 0 ? (
+                <>
+                  <div className="bg-slate-50 rounded-xl px-4 py-3">
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Produits</p>
+                    <p className="font-black text-slate-800 text-sm tabular-nums">
+                      {order.total.toLocaleString("fr-SN")} <span className="text-xs font-medium">FCFA</span>
+                    </p>
+                  </div>
+                  <div className="bg-teal-50 rounded-xl px-4 py-3">
+                    <p className="text-[10px] text-teal-500 font-semibold uppercase tracking-wider mb-1">Livraison</p>
+                    <p className="font-black text-teal-700 text-sm tabular-nums">
+                      +{feeAmount.toLocaleString("fr-SN")} <span className="text-xs font-medium">FCFA</span>
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="bg-slate-50 rounded-xl px-4 py-3">
+                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Total</p>
+                  <p className="font-black text-slate-800 text-sm tabular-nums">
+                    {clientTotal.toLocaleString("fr-SN")} <span className="text-xs font-medium">FCFA</span>
+                  </p>
+                </div>
+              )}
+              {feeAmount > 0 && (
+                <div className="bg-slate-800 rounded-xl px-4 py-3">
+                  <p className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mb-1">Total client</p>
+                  <p className="font-black text-white text-sm tabular-nums">
+                    {clientTotal.toLocaleString("fr-SN")} <span className="text-xs font-medium">FCFA</span>
+                  </p>
+                </div>
+              )}
               <div className="bg-blue-50 rounded-xl px-4 py-3">
                 <p className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider mb-1">Payé</p>
                 <p className="font-black text-blue-700 text-sm tabular-nums">

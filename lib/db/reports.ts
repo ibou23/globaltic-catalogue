@@ -60,7 +60,7 @@ export async function getReportData(period: ReportPeriod): Promise<Result<Report
   const ordersEncaisse    = orders.reduce((s, o) => s + o.paidAmount, 0);
   const ordersSolde       = orders
     .filter((o) => !["annulee", "livre"].includes(o.status))
-    .reduce((s, o) => s + Math.max(0, o.total - o.paidAmount), 0);
+    .reduce((s, o) => s + Math.max(0, o.total + (o.deliveryFee ?? 0) - o.paidAmount), 0);
   const ordersLivrees     = orders.filter((o) => o.status === "livre").length;
   const ordersEnCours     = orders.filter((o) => !["livre", "annulee"].includes(o.status)).length;
   const ordersAnnulees    = orders.filter((o) => o.status === "annulee").length;
@@ -111,6 +111,7 @@ export async function getReportData(period: ReportPeriod): Promise<Result<Report
       customer:      customerRaw ? (customerRaw.contact_name as string) : null,
       total:         o.total,
       paidAmount:    o.paidAmount,
+      deliveryFee:   o.deliveryFee ?? 0,
       status:        o.status,
       createdAt:     o.createdAt,
       closureStatus: o.closureStatus,
@@ -126,8 +127,8 @@ export async function getReportData(period: ReportPeriod): Promise<Result<Report
     .map((o) => toRow(o, rawOrders.find((r) => r.id === o.id)!));
 
   const impayesOrders: ReportOrderRow[] = orders
-    .filter((o) => o.total - o.paidAmount > 0 && !["annulee", "livre"].includes(o.status))
-    .sort((a, b) => (b.total - b.paidAmount) - (a.total - a.paidAmount))
+    .filter((o) => o.total + (o.deliveryFee ?? 0) - o.paidAmount > 0 && !["annulee", "livre"].includes(o.status))
+    .sort((a, b) => (b.total + (b.deliveryFee ?? 0) - b.paidAmount) - (a.total + (a.deliveryFee ?? 0) - a.paidAmount))
     .slice(0, 10)
     .map((o) => toRow(o, rawOrders.find((r) => r.id === o.id)!));
 

@@ -477,10 +477,10 @@ export default async function AdminOverviewPage() {
                     <StatusBadge status={order.status} />
                     {showFinance && (
                       <div className="text-right">
-                        <p className="text-sm font-black text-slate-700 tabular-nums">{formatPrice(order.total)}</p>
-                        {order.paidAmount < order.total && order.paidAmount > 0 && (
+                        <p className="text-sm font-black text-slate-700 tabular-nums">{formatPrice(order.total + (order.deliveryFee ?? 0))}</p>
+                        {order.paidAmount < order.total + (order.deliveryFee ?? 0) && order.paidAmount > 0 && (
                           <p className="text-[10px] text-amber-600 font-semibold tabular-nums">
-                            Solde {formatPrice(order.total - order.paidAmount)}
+                            Solde {formatPrice(order.total + (order.deliveryFee ?? 0) - order.paidAmount)}
                           </p>
                         )}
                       </div>

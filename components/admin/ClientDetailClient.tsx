@@ -138,11 +138,15 @@ function msgDevisEnAttente(customer: Customer, quote: QuoteEnriched): string {
 }
 
 function msgSoldeRestant(customer: Customer, order: OrderEnriched): string {
-  const balance = order.total - order.paidAmount;
+  const clientTotal = order.total + (order.deliveryFee ?? 0);
+  const balance = clientTotal - order.paidAmount;
+  const feeStr = (order.deliveryFee ?? 0) > 0
+    ? `\n(dont frais de livraison : *${(order.deliveryFee ?? 0).toLocaleString("fr-SN")} FCFA*)`
+    : "";
   return [
     `Bonjour *${customer.contactName}*,`,
     ``,
-    `Votre commande *${order.reference}* a un solde restant de *${formatPrice(balance)}*.`,
+    `Votre commande *${order.reference}* a un solde restant de *${formatPrice(balance)}*.${feeStr}`,
     ``,
     `Merci de régulariser votre paiement pour que nous puissions finaliser votre commande.`,
     ``,
@@ -272,7 +276,7 @@ export function ClientDetailClient({
   const totalSpent    = orders.filter((o) => o.status !== "annulee").reduce((s, o) => s + o.paidAmount, 0);
   const totalBalance  = orders
     .filter((o) => !["annulee", "livre"].includes(o.status))
-    .reduce((s, o) => s + Math.max(0, o.total - o.paidAmount), 0);
+    .reduce((s, o) => s + Math.max(0, o.total + (o.deliveryFee ?? 0) - o.paidAmount), 0);
   const lastOrder     = orders[0] ?? null;
   const pendingQuotes = quotes.filter((q) => ["brouillon", "envoye"].includes(q.status));
   const activeOrders  = orders.filter((o) => !["livre", "annulee"].includes(o.status));
@@ -673,9 +677,9 @@ export function ClientDetailClient({
                       Relance devis en attente
                     </a>
                   )}
-                  {orders.find((o) => o.total - o.paidAmount > 0 && !["annulee", "livre"].includes(o.status)) && canSeeFinances && (
+                  {orders.find((o) => o.total + (o.deliveryFee ?? 0) - o.paidAmount > 0 && !["annulee", "livre"].includes(o.status)) && canSeeFinances && (
                     <a
-                      href={buildWaLink(customer.whatsapp, msgSoldeRestant(customer, orders.find((o) => o.total - o.paidAmount > 0 && !["annulee", "livre"].includes(o.status))!))}
+                      href={buildWaLink(customer.whatsapp, msgSoldeRestant(customer, orders.find((o) => o.total + (o.deliveryFee ?? 0) - o.paidAmount > 0 && !["annulee", "livre"].includes(o.status))!))}
                       target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-2 p-3 rounded-xl border border-slate-100 hover:border-green-200 hover:bg-green-50 transition-colors text-xs font-semibold text-slate-600 hover:text-green-700"
                     >
@@ -782,7 +786,7 @@ export function ClientDetailClient({
                 <div className="space-y-2">
                   {orders.map((o) => {
                     const st = ORDER_STATUS_LABELS[o.status] ?? { label: o.status, color: "bg-slate-100 text-slate-500" };
-                    const balance = o.total - o.paidAmount;
+                    const balance = o.total + (o.deliveryFee ?? 0) - o.paidAmount;
                     const satCfg = o.satisfaction ? SATISFACTION_LABELS[o.satisfaction] : null;
                     const SatIcon = satCfg?.icon;
                     const closureCfg = o.closureStatus !== "non_cloturee" ? CLOSURE_STATUS_LABELS[o.closureStatus] : null;

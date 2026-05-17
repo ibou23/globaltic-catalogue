@@ -283,10 +283,12 @@ export function FacturePDF({ order, invoice, quote, logoUrl, company, pdfFooterT
   const companyEmail   = company?.email   ?? "contact@globalticgroup.com";
   const footerText     = pdfFooterText    ?? `${companyName} — ${companyTagline} — ${companyAddress}`;
 
-  const balance     = order.total - order.paidAmount;
-  const isFullyPaid = balance <= 0;
-  const items       = quote?.items ?? [];
-  const hasDiscount = (quote?.discountPercent ?? 0) > 0;
+  const deliveryFee  = order.deliveryFee ?? 0;
+  const clientTotal  = order.total + deliveryFee;
+  const balance      = clientTotal - order.paidAmount;
+  const isFullyPaid  = balance <= 0;
+  const items        = quote?.items ?? [];
+  const hasDiscount  = (quote?.discountPercent ?? 0) > 0;
 
   return (
     <Document
@@ -424,9 +426,21 @@ export function FacturePDF({ order, invoice, quote, logoUrl, company, pdfFooterT
                   </View>
                 </>
               )}
+              {!hasDiscount && (
+                <View style={s.totalRow}>
+                  <Text style={s.totalLabel}>Sous-total produits</Text>
+                  <Text style={s.totalValue}>{formatAmount(order.total)}</Text>
+                </View>
+              )}
+              {deliveryFee > 0 && (
+                <View style={s.totalRow}>
+                  <Text style={s.totalLabel}>Frais de livraison</Text>
+                  <Text style={s.totalValue}>{formatAmount(deliveryFee)}</Text>
+                </View>
+              )}
               <View style={s.totalFinalRow}>
-                <Text style={s.totalFinalLabel}>TOTAL</Text>
-                <Text style={s.totalFinalValue}>{formatAmount(order.total)}</Text>
+                <Text style={s.totalFinalLabel}>TOTAL FACTURE</Text>
+                <Text style={s.totalFinalValue}>{formatAmount(clientTotal)}</Text>
               </View>
               {order.paidAmount > 0 && (
                 <View style={[s.paymentRow, { backgroundColor: "#DCFCE7" }]}>
@@ -453,9 +467,21 @@ export function FacturePDF({ order, invoice, quote, logoUrl, company, pdfFooterT
                 </View>
               </View>
             )}
+            {deliveryFee > 0 && (
+              <View style={s.totalRow}>
+                <Text style={s.totalLabel}>Sous-total produits</Text>
+                <Text style={s.totalValue}>{formatAmount(order.total)}</Text>
+              </View>
+            )}
+            {deliveryFee > 0 && (
+              <View style={s.totalRow}>
+                <Text style={s.totalLabel}>Frais de livraison</Text>
+                <Text style={s.totalValue}>{formatAmount(deliveryFee)}</Text>
+              </View>
+            )}
             <View style={s.totalFinalRow}>
-              <Text style={s.totalFinalLabel}>TOTAL</Text>
-              <Text style={s.totalFinalValue}>{formatAmount(order.total)}</Text>
+              <Text style={s.totalFinalLabel}>TOTAL FACTURE</Text>
+              <Text style={s.totalFinalValue}>{formatAmount(clientTotal)}</Text>
             </View>
             {order.paidAmount > 0 && (
               <View style={[s.paymentRow, { backgroundColor: "#DCFCE7" }]}>

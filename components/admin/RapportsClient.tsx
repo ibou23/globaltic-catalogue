@@ -448,8 +448,8 @@ export function RapportsClient({ role, showFinance }: RapportsClientProps) {
                       <p className="text-xs text-slate-400">{o.customer ?? "—"}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-amber-600 tabular-nums">{formatPrice(o.total - o.paidAmount)}</p>
-                      <p className="text-[10px] text-slate-400">sur {formatPrice(o.total)}</p>
+                      <p className="font-black text-amber-600 tabular-nums">{formatPrice(o.total + o.deliveryFee - o.paidAmount)}</p>
+                      <p className="text-[10px] text-slate-400">sur {formatPrice(o.total + o.deliveryFee)}</p>
                     </div>
                   </div>
                 ))}

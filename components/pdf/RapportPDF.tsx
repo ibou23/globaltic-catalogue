@@ -463,7 +463,7 @@ export function RapportPDF({ report, company, logoUrl, showFinance = true }: Rap
                   <Text style={[s.td, { flex: 3 }]}>{o.customer ?? "—"}</Text>
                   <Text style={[s.tdGray, { flex: 2 }]}>{ORDER_STATUS_LABELS[o.status] ?? o.status}</Text>
                   <Text style={[s.tdRed, { flex: 2.5, textAlign: "right", fontFamily: "Helvetica-Bold" }]}>
-                    {formatN(o.total - o.paidAmount)}
+                    {formatN(o.total + o.deliveryFee - o.paidAmount)}
                   </Text>
                 </View>
               ))}

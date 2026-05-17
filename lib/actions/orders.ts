@@ -139,7 +139,7 @@ export async function updateOrderAction(
 
     // Synchroniser le statut de la facture si le paiement a changé
     if (previous.paidAmount !== order.paidAmount || previous.paymentStatus !== order.paymentStatus) {
-      syncInvoicePayment(id, order.paidAmount, order.total);
+      syncInvoicePayment(id, order.paidAmount, order.total + (order.deliveryFee ?? 0));
     }
 
     // Notifications selon événements clés
@@ -148,7 +148,8 @@ export async function updateOrderAction(
     const notifJobs: Array<Parameters<typeof createAdminNotifications>[0]> = [];
 
     if (previous.paidAmount !== order.paidAmount && order.paidAmount > 0) {
-      const balance = order.total - order.paidAmount;
+      const clientTotal = order.total + (order.deliveryFee ?? 0);
+      const balance = clientTotal - order.paidAmount;
       if (balance > 0) {
         notifJobs.push({
           eventKey: "paiement_mis_a_jour",

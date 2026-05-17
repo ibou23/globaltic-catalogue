@@ -307,9 +307,11 @@ export function PaymentReceiptPDF({ order, logoUrl, company, pdfFooterText }: Pa
   const companyEmail   = company?.email   ?? "contact@globalticgroup.com";
   const footerText     = pdfFooterText    ?? `${companyName} — ${companyTagline} — ${companyAddress}`;
 
-  const balance     = order.total - order.paidAmount;
-  const isFullyPaid = balance <= 0;
-  const paymentDate = order.lastPaymentAt ?? order.createdAt;
+  const deliveryFee  = order.deliveryFee ?? 0;
+  const clientTotal  = order.total + deliveryFee;
+  const balance      = clientTotal - order.paidAmount;
+  const isFullyPaid  = balance <= 0;
+  const paymentDate  = order.lastPaymentAt ?? order.createdAt;
 
   return (
     <Document
@@ -391,10 +393,27 @@ export function PaymentReceiptPDF({ order, logoUrl, company, pdfFooterText }: Pa
         <View style={s.summarySection}>
           <Text style={s.summarySectionTitle}>Detail du paiement</Text>
 
-          <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>Montant total de la commande</Text>
-            <Text style={s.summaryValue}>{formatAmount(order.total)}</Text>
-          </View>
+          {deliveryFee > 0 ? (
+            <>
+              <View style={s.summaryRow}>
+                <Text style={s.summaryLabel}>Sous-total produits</Text>
+                <Text style={s.summaryValue}>{formatAmount(order.total)}</Text>
+              </View>
+              <View style={s.summaryRowAlt}>
+                <Text style={s.summaryLabel}>Frais de livraison</Text>
+                <Text style={s.summaryValue}>{formatAmount(deliveryFee)}</Text>
+              </View>
+              <View style={s.summaryRow}>
+                <Text style={[s.summaryLabel, { fontFamily: "Helvetica-Bold" }]}>Total facture</Text>
+                <Text style={[s.summaryValue, { fontFamily: "Helvetica-Bold" }]}>{formatAmount(clientTotal)}</Text>
+              </View>
+            </>
+          ) : (
+            <View style={s.summaryRow}>
+              <Text style={s.summaryLabel}>Montant total de la commande</Text>
+              <Text style={s.summaryValue}>{formatAmount(order.total)}</Text>
+            </View>
+          )}
 
           {/* Montant reçu — mis en avant */}
           <View style={s.summaryHighlightRow}>
@@ -427,7 +446,7 @@ export function PaymentReceiptPDF({ order, logoUrl, company, pdfFooterText }: Pa
           ]}>
             {isFullyPaid
               ? "Commande entierement reglee"
-              : `Solde restant a payer : ${formatAmount(balance)}`}
+              : `Solde restant a payer : ${formatAmount(Math.max(0, balance))}`}
           </Text>
         </View>
 

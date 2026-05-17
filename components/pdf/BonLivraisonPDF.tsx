@@ -285,7 +285,7 @@ export function BonLivraisonPDF({ order, quote, logoUrl, company, pdfFooterText,
             )}
             {order.deliveryFee > 0 && (
               <Text style={s.metaCardLine}>
-                <Text style={{ fontFamily: "Helvetica-Bold" }}>Frais livraison : </Text>
+                <Text style={{ fontFamily: "Helvetica-Bold" }}>Frais de livraison : </Text>
                 {formatNumber(order.deliveryFee)} FCFA
               </Text>
             )}

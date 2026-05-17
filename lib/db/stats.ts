@@ -41,6 +41,7 @@ export interface DashboardStats {
     status: string;
     total: number;
     paidAmount: number;
+    deliveryFee: number;
     createdAt: string;
   }>;
   recentCustomers: Array<{
@@ -107,7 +108,7 @@ export async function getDashboardStats(): Promise<Result<DashboardStats>> {
     // Finance : total + paid_amount sur commandes non annulées
     supabase.from("orders").select("total, paid_amount").neq("status", "annulee"),
     supabase.from("quotes").select("id, reference, status, total, created_at").order("created_at", { ascending: false }).limit(5),
-    supabase.from("orders").select("id, reference, status, total, paid_amount, created_at").order("created_at", { ascending: false }).limit(5),
+    supabase.from("orders").select("id, reference, status, total, paid_amount, delivery_fee, created_at").order("created_at", { ascending: false }).limit(5),
     supabase.from("customers").select("id, contact_name, company_name, whatsapp, created_at").order("created_at", { ascending: false }).limit(5),
     supabase.from("activity_log").select("id, action, entity_type, metadata, created_at").order("created_at", { ascending: false }).limit(10),
     // Commandes urgentes : confirmées depuis plus de 24h sans progression
@@ -157,6 +158,7 @@ export async function getDashboardStats(): Promise<Result<DashboardStats>> {
       status: o.status as string,
       total: o.total as number,
       paidAmount: o.paid_amount as number,
+      deliveryFee: (o.delivery_fee as number) ?? 0,
       createdAt: o.created_at as string,
     })),
     recentCustomers: (recentCustomersRes.data ?? []).map((c: Record<string, unknown>) => ({

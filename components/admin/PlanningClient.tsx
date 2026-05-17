@@ -562,7 +562,7 @@ function PlanningCard({
   const cfg      = STATUS_CONFIG[order.status];
   const late     = isLate(order);
   const today    = isToday(order);
-  const balance  = order.total - order.paidAmount;
+  const balance  = order.total + (order.deliveryFee ?? 0) - order.paidAmount;
   const waLink   = buildWaMessage(order);
   const StatusIcon = cfg?.icon ?? CheckCircle2;
   const transitions = QUICK_TRANSITIONS[order.status as OrderStatus] ?? [];
@@ -732,7 +732,7 @@ function PlanningTable({
           const cfg      = STATUS_CONFIG[order.status];
           const late     = isLate(order);
           const today    = isToday(order);
-          const balance  = order.total - order.paidAmount;
+          const balance  = order.total + (order.deliveryFee ?? 0) - order.paidAmount;
           const waLink   = buildWaMessage(order);
           const StatusIcon = cfg?.icon ?? CheckCircle2;
           const transitions = QUICK_TRANSITIONS[order.status as OrderStatus] ?? [];

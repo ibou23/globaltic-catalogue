@@ -68,10 +68,10 @@ export default async function AdminCommandesPage({
     orders = allOrders.filter((o) => o.status === statusParam);
     filterLabel = ORDER_STATUS_LABELS[statusParam] ?? statusParam;
   } else if (paymentParam === "paid") {
-    orders = allOrders.filter((o) => o.paidAmount > 0 && o.total - o.paidAmount <= 0);
+    orders = allOrders.filter((o) => o.paidAmount > 0 && o.total + (o.deliveryFee ?? 0) - o.paidAmount <= 0);
     filterLabel = "Totalement payées";
   } else if (paymentParam === "remaining") {
-    orders = allOrders.filter((o) => o.total - o.paidAmount > 0 && o.status !== "annulee");
+    orders = allOrders.filter((o) => o.total + (o.deliveryFee ?? 0) - o.paidAmount > 0 && o.status !== "annulee");
     filterLabel = "Solde à encaisser";
   } else if (paymentParam === "unpaid") {
     orders = allOrders.filter((o) => o.paidAmount === 0 && o.status !== "annulee");

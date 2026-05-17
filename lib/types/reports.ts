@@ -18,6 +18,7 @@ export interface ReportOrderRow {
   customer: string | null;
   total: number;
   paidAmount: number;
+  deliveryFee: number;
   status: string;
   createdAt: string;
   closureStatus: string;
