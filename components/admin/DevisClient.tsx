@@ -39,19 +39,31 @@ const STATUS_OPTIONS = [
 function buildWhatsAppReply(quote: QuoteEnriched): string {
   const client = quote.customer?.contactName ?? "client";
   const item = quote.firstItem;
-  const lines = [
+  const isMulti = quote.itemsCount > 1;
+
+  const lines: string[] = [
     `Bonjour *${client}*,`,
     ``,
     `Suite à notre échange, voici le récapitulatif de votre devis :`,
     ``,
     `*Référence* : ${quote.reference}`,
-    item ? `*Produit* : ${item.productName}` : null,
-    item ? `*Quantité* : ${item.quantity.toLocaleString("fr-SN")}` : null,
-    item ? `*Prix unitaire* : ${item.unitPrice.toLocaleString("fr-SN")} FCFA` : null,
-    `*Total estimatif* : ${quote.total.toLocaleString("fr-SN")} FCFA`,
-    ``,
-    `Confirmez-vous cette commande ? Nous pouvons démarrer la production dès validation.`,
-  ].filter((l): l is string => l !== null);
+  ];
+
+  if (item) {
+    if (isMulti) {
+      lines.push(`*Produit principal* : ${item.productName}`);
+      lines.push(`*Quantité* : ${item.quantity.toLocaleString("fr-SN")}`);
+      lines.push(`_(+ ${quote.itemsCount - 1} autre${quote.itemsCount - 1 > 1 ? "s" : ""} ligne${quote.itemsCount - 1 > 1 ? "s" : ""} — voir le devis PDF)_`);
+    } else {
+      lines.push(`*Produit* : ${item.productName}`);
+      lines.push(`*Quantité* : ${item.quantity.toLocaleString("fr-SN")}`);
+      lines.push(`*Prix unitaire* : ${item.unitPrice.toLocaleString("fr-SN")} FCFA`);
+    }
+  }
+
+  lines.push(`*Total estimatif* : ${quote.total.toLocaleString("fr-SN")} FCFA`);
+  lines.push(``);
+  lines.push(`Confirmez-vous cette commande ? Nous pouvons démarrer la production dès validation.`);
 
   const whatsapp = quote.customer?.whatsapp?.replace(/[^0-9]/g, "") ?? siteConfig.whatsapp;
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
@@ -188,7 +200,14 @@ export function DevisClient({ quotes, totalCount, activeFilter, canDelete }: Dev
                     {/* Produit + total */}
                     {quote.firstItem && (
                       <div className="pt-2 border-t border-slate-50">
-                        <p className="text-xs font-medium text-slate-700 truncate">{quote.firstItem.productName}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-medium text-slate-700 truncate">{quote.firstItem.productName}</p>
+                          {quote.itemsCount > 1 && (
+                            <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-slate-100 text-slate-500">
+                              +{quote.itemsCount - 1}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center justify-between mt-1">
                           <p className="text-[10px] text-slate-400">{quote.firstItem.quantity.toLocaleString("fr-SN")} × {quote.firstItem.unitPrice.toLocaleString("fr-SN")} FCFA</p>
                           <p className="text-sm font-black text-slate-700 tabular-nums">{formatPrice(quote.total)}</p>
@@ -295,7 +314,14 @@ export function DevisClient({ quotes, totalCount, activeFilter, canDelete }: Dev
                           <td className="px-6 py-4">
                             {quote.firstItem ? (
                               <div>
-                                <p className="font-medium text-slate-700 max-w-[180px] truncate">{quote.firstItem.productName}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-medium text-slate-700 max-w-[180px] truncate">{quote.firstItem.productName}</p>
+                                  {quote.itemsCount > 1 && (
+                                    <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-slate-100 text-slate-500">
+                                      +{quote.itemsCount - 1}
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-xs text-slate-400">{quote.firstItem.quantity.toLocaleString("fr-SN")} × {quote.firstItem.unitPrice.toLocaleString("fr-SN")} FCFA</p>
                               </div>
                             ) : (

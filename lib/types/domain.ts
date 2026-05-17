@@ -178,6 +178,7 @@ export interface QuoteEnriched extends Quote {
     totalPrice: number;
     configSnapshot: Record<string, unknown>;
   } | null;
+  itemsCount: number;
 }
 
 export interface Order {

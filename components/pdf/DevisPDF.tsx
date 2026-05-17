@@ -464,8 +464,17 @@ export function DevisPDF({
         </View>
 
         {quote.items.map((item, i) => {
-          const options = item.configSnapshot as Record<string, string>;
-          const optionLine = [options.options, options.delai]
+          const snap = item.configSnapshot as Record<string, string>;
+          const optionLine = [
+            snap.options,
+            snap.format,
+            snap.finition,
+            snap.couleurs,
+            snap.sizes,
+            snap.markingPosition,
+            snap.dimensions,
+            snap.delai,
+          ]
             .filter(Boolean)
             .join(" — ");
           return (

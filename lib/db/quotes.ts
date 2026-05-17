@@ -52,6 +52,7 @@ export async function getQuotesEnriched(): Promise<Result<QuoteEnriched[]>> {
             configSnapshot: (itemsRaw[0].config_snapshot as Record<string, unknown>) ?? {},
           }
         : null,
+      itemsCount: itemsRaw.length,
     };
   });
 
@@ -97,6 +98,7 @@ export async function getQuotesEnrichedByCustomer(
             configSnapshot: (itemsRaw[0].config_snapshot as Record<string, unknown>) ?? {},
           }
         : null,
+      itemsCount: itemsRaw.length,
     };
   });
 
