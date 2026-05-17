@@ -57,12 +57,16 @@ function buildWaDelivery(
   const methodLabel = DELIVERY_METHOD_LABELS_WA[opts?.deliveryMethod ?? ""] ?? null;
   const address = opts?.deliveryAddress?.trim() || null;
 
-  // Bloc livraison : mode, adresse, frais
-  const deliveryInfoLines: string[] = [];
-  if (methodLabel) deliveryInfoLines.push(`Livraison : *${methodLabel}*`);
-  if (address)     deliveryInfoLines.push(`Adresse : *${address}*`);
-  if (fmtFee)      deliveryInfoLines.push(`Frais de livraison : *${fmtFee}*`);
-  const hasInfo = deliveryInfoLines.length > 0;
+  // Bloc complet : mode + adresse + frais (planifiée, en cours, livrée)
+  const fullInfoLines: string[] = [];
+  if (methodLabel) fullInfoLines.push(`Livraison : *${methodLabel}*`);
+  if (address)     fullInfoLines.push(`Adresse : *${address}*`);
+  if (fmtFee)      fullInfoLines.push(`Frais de livraison : *${fmtFee}*`);
+
+  // Bloc réduit : mode + adresse seulement (reportée, échec — pas de frais)
+  const shortInfoLines: string[] = [];
+  if (methodLabel) shortInfoLines.push(`Livraison : *${methodLabel}*`);
+  if (address)     shortInfoLines.push(`Adresse : *${address}*`);
 
   const msgs: Record<string, string[]> = {
     planifiee: [
@@ -70,8 +74,8 @@ function buildWaDelivery(
       ``,
       `Votre commande *${ref}* est programmée pour livraison.`,
       ``,
-      ...(hasInfo ? [...deliveryInfoLines, ``] : []),
-      `Notre livreur vous contactera pour confirmer les détails.`,
+      ...fullInfoLines,
+      ...(fullInfoLines.length > 0 ? [``, `Notre livreur vous contactera avant son passage pour confirmer les détails.`] : [`Notre livreur vous contactera avant son passage pour confirmer les détails.`]),
       ``,
       `*GLOBAL TIC*`,
     ],
@@ -80,8 +84,8 @@ function buildWaDelivery(
       ``,
       `Votre commande *${ref}* est actuellement en cours de livraison.`,
       ``,
-      ...(hasInfo ? [...deliveryInfoLines, ``] : []),
-      `Notre livreur vous contactera pour la remise.`,
+      ...fullInfoLines,
+      ...(fullInfoLines.length > 0 ? [``, `Notre livreur vous contactera pour la remise.`] : [`Notre livreur vous contactera pour la remise.`]),
       ``,
       `*GLOBAL TIC*`,
     ],
@@ -90,17 +94,18 @@ function buildWaDelivery(
       ``,
       `Votre commande *${ref}* a bien été livrée ✅`,
       ``,
-      ...(hasInfo ? [...deliveryInfoLines, ``] : []),
-      `Merci pour votre confiance.`,
+      ...fullInfoLines,
+      ...(fullInfoLines.length > 0 ? [``, `Merci pour votre confiance.`] : [`Merci pour votre confiance.`]),
       ``,
       `*GLOBAL TIC*`,
     ],
     echec: [
       `Bonjour *${client}*,`,
       ``,
-      `Notre livreur n'a pas pu finaliser la livraison de votre commande *${ref}*.`,
+      `La livraison de votre commande *${ref}* n'a pas pu être finalisée.`,
       ``,
-      `Merci de nous confirmer votre disponibilité afin de reprogrammer la livraison.`,
+      ...shortInfoLines,
+      ...(shortInfoLines.length > 0 ? [``, `Merci de nous confirmer votre disponibilité afin de reprogrammer la livraison.`] : [`Merci de nous confirmer votre disponibilité afin de reprogrammer la livraison.`]),
       ``,
       `*GLOBAL TIC*`,
     ],
@@ -109,7 +114,8 @@ function buildWaDelivery(
       ``,
       `La livraison de votre commande *${ref}* a été reportée.`,
       ``,
-      `Nous vous confirmerons prochainement la nouvelle date de livraison.`,
+      ...shortInfoLines,
+      ...(shortInfoLines.length > 0 ? [``, `Notre équipe reviendra vers vous pour confirmer le nouveau créneau.`] : [`Notre équipe reviendra vers vous pour confirmer le nouveau créneau.`]),
       ``,
       `*GLOBAL TIC*`,
     ],

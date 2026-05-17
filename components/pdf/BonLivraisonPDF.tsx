@@ -178,8 +178,8 @@ function formatDate(iso: string): string {
 
 const DELIVERY_METHOD_LABELS: Record<string, string> = {
   retrait:              "Retrait en boutique",
-  livraison_dakar:      "Livraison à domicile — Dakar",
-  livraison_region:     "Livraison à domicile — Région",
+  livraison_dakar:      "Livraison à Dakar",
+  livraison_region:     "Livraison en région",
   livraison_coursier:   "Livraison par coursier",
   autre:                "Livraison personnalisée",
 };
@@ -262,7 +262,7 @@ export function BonLivraisonPDF({ order, quote, logoUrl, company, pdfFooterText,
               {formatDate(order.createdAt)}
             </Text>
             <Text style={s.metaCardLine}>
-              <Text style={{ fontFamily: "Helvetica-Bold" }}>Mode : </Text>
+              <Text style={{ fontFamily: "Helvetica-Bold" }}>Mode de livraison : </Text>
               {resolveDeliveryMethodLabel(order)}
             </Text>
             {order.estimatedDelivery && (
