@@ -1,7 +1,6 @@
 import { products } from "@/data/products";
 
 // ─── Mapping CATALOG_PRODUCTS → slugs dans data/products.ts ──────────────────
-// Ordre = préférence (le plus populaire en premier)
 const CATALOG_NAME_TO_SLUGS: Record<string, string[]> = {
   "Carte de visite":  ["carte-de-visite-recto-verso", "carte-de-visite-recto"],
   "Flyers":           ["flyer-a5-recto-verso", "flyer-a5-recto"],
@@ -16,7 +15,6 @@ const CATALOG_NAME_TO_SLUGS: Record<string, string[]> = {
   "Tote bags":        ["tote-bag"],
 };
 
-// Alias normalisés pour le matching flou
 const ALIAS_MAP: Record<string, string> = {
   "cartes de visite":      "Carte de visite",
   "carte visite":          "Carte de visite",
@@ -62,16 +60,57 @@ function findTier(
   qty: number
 ) {
   const sorted = [...tiers].sort((a, b) => a.min - b.min);
-  // Cherche de haut en bas le palier qui contient qty
   for (let i = sorted.length - 1; i >= 0; i--) {
     const t = sorted[i];
     if (qty >= t.min && qty <= t.max) return t;
   }
-  // qty > max du dernier palier → meilleur prix
   const last = sorted[sorted.length - 1];
   if (last && qty > last.max) return last;
-  // qty < min du premier palier → premier palier
   return sorted[0] ?? null;
+}
+
+// Recherche interne partagée par resolveProductPrice et getProductMinQty
+function findCatalogProduct(productName: string) {
+  const normalizedInput = normalize(productName);
+
+  let canonicalName: string | undefined = CATALOG_NAME_TO_SLUGS[productName]
+    ? productName
+    : undefined;
+
+  if (!canonicalName) canonicalName = ALIAS_MAP[normalizedInput];
+
+  if (!canonicalName) {
+    for (const key of Object.keys(CATALOG_NAME_TO_SLUGS)) {
+      if (normalize(key) === normalizedInput) { canonicalName = key; break; }
+    }
+  }
+
+  if (!canonicalName) {
+    for (const key of Object.keys(CATALOG_NAME_TO_SLUGS)) {
+      const nKey = normalize(key);
+      if (nKey.includes(normalizedInput) || normalizedInput.includes(nKey)) {
+        canonicalName = key;
+        break;
+      }
+    }
+  }
+
+  let product = null;
+  if (canonicalName) {
+    for (const slug of CATALOG_NAME_TO_SLUGS[canonicalName]) {
+      product = products.find((p) => p.slug === slug) ?? null;
+      if (product) break;
+    }
+  }
+
+  if (!product) {
+    product =
+      products.find((p) => normalize(p.name) === normalizedInput) ??
+      products.find((p) => normalize(p.name).includes(normalizedInput)) ??
+      null;
+  }
+
+  return product ?? null;
 }
 
 export interface PriceResolution {
@@ -83,6 +122,18 @@ export interface PriceResolution {
 }
 
 /**
+ * Retourne la quantité minimale catalogue pour un nom de produit.
+ * Retourne null si le produit est inconnu (produit personnalisé → pas de minimum).
+ */
+export function getProductMinQty(productName: string): number | null {
+  if (!productName.trim()) return null;
+  const product = findCatalogProduct(productName);
+  if (!product?.quantityTiers?.length) return null;
+  const sorted = [...product.quantityTiers].sort((a, b) => a.min - b.min);
+  return sorted[0]?.min ?? null;
+}
+
+/**
  * Cherche le prix unitaire catalogue pour un nom de produit et une quantité.
  * Retourne null si le produit n'est pas trouvé ou si les paliers sont absents.
  */
@@ -91,58 +142,7 @@ export function resolveProductPrice(
   quantity: number
 ): PriceResolution | null {
   if (!productName.trim() || quantity < 1) return null;
-
-  const normalizedInput = normalize(productName);
-
-  // 1. Mapping exact CATALOG_PRODUCTS
-  let canonicalName = CATALOG_NAME_TO_SLUGS[productName]
-    ? productName
-    : undefined;
-
-  // 2. Alias map (insensible à la casse)
-  if (!canonicalName) {
-    canonicalName = ALIAS_MAP[normalizedInput];
-  }
-
-  // 3. Match flou sur les clés du mapping
-  if (!canonicalName) {
-    for (const key of Object.keys(CATALOG_NAME_TO_SLUGS)) {
-      if (normalize(key) === normalizedInput) {
-        canonicalName = key;
-        break;
-      }
-    }
-  }
-
-  // 4. Match partiel (le produit contient le mot clé ou inversement)
-  if (!canonicalName) {
-    for (const key of Object.keys(CATALOG_NAME_TO_SLUGS)) {
-      const nKey = normalize(key);
-      if (nKey.includes(normalizedInput) || normalizedInput.includes(nKey)) {
-        canonicalName = key;
-        break;
-      }
-    }
-  }
-
-  // Résolution du produit par slug
-  let product = null;
-  if (canonicalName) {
-    const slugs = CATALOG_NAME_TO_SLUGS[canonicalName];
-    for (const slug of slugs) {
-      product = products.find((p) => p.slug === slug) ?? null;
-      if (product) break;
-    }
-  }
-
-  // 5. Fallback: match direct sur le nom dans data/products
-  if (!product) {
-    product =
-      products.find((p) => normalize(p.name) === normalizedInput) ??
-      products.find((p) => normalize(p.name).includes(normalizedInput)) ??
-      null;
-  }
-
+  const product = findCatalogProduct(productName);
   if (!product?.quantityTiers?.length) return null;
 
   const tier = findTier(product.quantityTiers, quantity);

@@ -5,6 +5,7 @@ import { X, Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { findOrCreateCustomerAction } from "@/lib/actions/customers";
 import { createQuoteAction } from "@/lib/actions/quotes";
+import { resolveProductPrice, getProductMinQty } from "@/lib/utils/product-price-resolver";
 
 interface DevisFormProps {
   onClose: () => void;
@@ -26,6 +27,7 @@ export function DevisForm({ onClose }: DevisFormProps) {
 
   // Champs produit / ligne devis
   const [productName, setProductName] = useState("");
+  const [priceSource, setPriceSource] = useState<"auto" | "manual" | "empty">("empty");
   const [quantity, setQuantity] = useState("1");
   const [unitPrice, setUnitPrice] = useState("");
   const [options, setOptions] = useState("");
@@ -48,6 +50,10 @@ export function DevisForm({ onClose }: DevisFormProps) {
     if (!whatsapp.trim()) return setError("Le numéro WhatsApp est requis.");
     if (!productName.trim()) return setError("Le produit est requis.");
     if (isNaN(qty) || qty < 1) return setError("La quantité doit être ≥ 1.");
+    const minQty = getProductMinQty(productName);
+    if (minQty !== null && qty < minQty) {
+      return setError(`La quantité minimale pour "${productName}" est de ${minQty.toLocaleString("fr-SN")} exemplaires.`);
+    }
     if (isNaN(unit) || unit < 0) return setError("Le prix unitaire est invalide.");
 
     const totalPrice = qty * unit;
@@ -104,6 +110,8 @@ export function DevisForm({ onClose }: DevisFormProps) {
   const qty = parseInt(quantity, 10) || 0;
   const unit = parseInt(unitPrice, 10) || 0;
   const totalEstime = qty * unit;
+  const minQtyDisplay = getProductMinQty(productName);
+  const qtyInvalid = qty > 0 && minQtyDisplay !== null && qty < minQtyDisplay;
   const discount = parseFloat(discountPercent) || 0;
   const totalApresRemise = Math.round(totalEstime * (1 - discount / 100));
 
@@ -170,7 +178,20 @@ export function DevisForm({ onClose }: DevisFormProps) {
                 <input
                   className={inputClass}
                   value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setProductName(name);
+                    if (priceSource !== "manual") {
+                      const resolved = resolveProductPrice(name, parseInt(quantity, 10) || 1);
+                      if (resolved) {
+                        setUnitPrice(String(resolved.unitPrice));
+                        setPriceSource("auto");
+                      } else {
+                        setUnitPrice("");
+                        setPriceSource("empty");
+                      }
+                    }
+                  }}
                   placeholder="Flyers A5 recto-verso"
                   required
                 />
@@ -178,25 +199,48 @@ export function DevisForm({ onClose }: DevisFormProps) {
               <div>
                 <label className={labelClass}>Quantité *</label>
                 <input
-                  className={inputClass}
+                  className={`${inputClass} ${qtyInvalid ? "border-red-400 bg-red-50" : ""}`}
                   type="number"
                   min="1"
                   value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setQuantity(val);
+                    if (priceSource !== "manual") {
+                      const resolved = resolveProductPrice(productName, parseInt(val, 10) || 1);
+                      if (resolved) {
+                        setUnitPrice(String(resolved.unitPrice));
+                        setPriceSource("auto");
+                      }
+                    }
+                  }}
                   required
                 />
+                {minQtyDisplay !== null && (
+                  <p className={`text-[11px] mt-1 font-semibold ${qtyInvalid ? "text-red-500" : "text-slate-400"}`}>
+                    {qtyInvalid
+                      ? `✕ Minimum : ${minQtyDisplay.toLocaleString("fr-SN")} exemplaires`
+                      : `Min : ${minQtyDisplay.toLocaleString("fr-SN")} exemplaires`}
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelClass}>Prix unitaire (FCFA) *</label>
                 <input
-                  className={inputClass}
+                  className={`${inputClass} ${priceSource === "auto" ? "border-emerald-300 bg-emerald-50/60" : ""}`}
                   type="number"
                   min="0"
                   value={unitPrice}
-                  onChange={(e) => setUnitPrice(e.target.value)}
+                  onChange={(e) => {
+                    setUnitPrice(e.target.value);
+                    setPriceSource(e.target.value ? "manual" : "empty");
+                  }}
                   placeholder="1500"
                   required
                 />
+                {priceSource === "auto" && (
+                  <p className="text-[11px] mt-1 font-semibold text-emerald-600">✓ Prix calculé depuis le catalogue</p>
+                )}
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass}>Options / détails (format, papier, finitions…)</label>

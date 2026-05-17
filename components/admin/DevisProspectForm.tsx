@@ -8,7 +8,7 @@ import {
   getProspectLinkedQuotesAction,
   type QuoteLineInput,
 } from "@/lib/actions/quotes";
-import { resolveProductPrice, parseQuantityString } from "@/lib/utils/product-price-resolver";
+import { resolveProductPrice, parseQuantityString, getProductMinQty } from "@/lib/utils/product-price-resolver";
 import type { Prospect, QuoteEnriched } from "@/lib/types/domain";
 
 const inputClass =
@@ -166,6 +166,10 @@ export function DevisProspectForm({ prospect, onClose }: DevisProspectFormProps)
       const qty = parseInt(l.quantity, 10);
       const unit = parseInt(l.unitPrice, 10);
       if (isNaN(qty) || qty < 1) return setError(`Ligne ${lineNum} : la quantité doit être ≥ 1.`);
+      const minQty = getProductMinQty(l.productName);
+      if (minQty !== null && qty < minQty) {
+        return setError(`Ligne ${lineNum} : la quantité minimale pour "${l.productName}" est de ${minQty.toLocaleString("fr-SN")} exemplaires.`);
+      }
       if (!l.unitPrice.trim() || isNaN(unit) || unit < 0) return setError(`Ligne ${lineNum} : le prix unitaire est requis.`);
     }
 
@@ -391,6 +395,23 @@ export function DevisProspectForm({ prospect, onClose }: DevisProspectFormProps)
                             onChange={(e) => updateLine(idx, "quantity", e.target.value)}
                             required
                           />
+                          {(() => {
+                            const minQty = getProductMinQty(line.productName);
+                            const qty = parseInt(line.quantity, 10);
+                            if (!minQty) return null;
+                            if (!isNaN(qty) && qty > 0 && qty < minQty) {
+                              return (
+                                <p className="text-[10px] mt-0.5 font-semibold text-red-500">
+                                  ✕ Minimum : {minQty.toLocaleString("fr-SN")} exemplaires
+                                </p>
+                              );
+                            }
+                            return (
+                              <p className="text-[10px] mt-0.5 text-slate-400">
+                                Min : {minQty.toLocaleString("fr-SN")} ex.
+                              </p>
+                            );
+                          })()}
                         </div>
 
                         {/* Prix unitaire */}

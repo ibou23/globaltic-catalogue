@@ -13,6 +13,7 @@ import { getProspectById, updateProspect } from "@/lib/db/prospects";
 import { getCustomerById, getCustomerByWhatsapp, createCustomer } from "@/lib/db/customers";
 import { err, ok, type Result } from "@/lib/utils/result";
 import type { Quote, QuoteEnriched } from "@/lib/types/domain";
+import { getProductMinQty } from "@/lib/utils/product-price-resolver";
 
 export async function createQuoteAction(
   formData: unknown
@@ -133,6 +134,19 @@ export async function createQuoteFromProspectAction(
   if (denied) return err(denied);
 
   if (!input.prospect_id) return err("Identifiant du prospect manquant");
+
+  // Validation quantités minimales catalogue
+  const allLines = [
+    { product_name: input.product_name, quantity: input.quantity },
+    ...(input.extra_lines ?? []),
+  ];
+  for (const line of allLines) {
+    if (line.quantity < 1) return err(`La quantité doit être ≥ 1 pour "${line.product_name}".`);
+    const minQty = getProductMinQty(line.product_name);
+    if (minQty !== null && line.quantity < minQty) {
+      return err(`La quantité minimale pour "${line.product_name}" est de ${minQty} exemplaires.`);
+    }
+  }
 
   const prospectResult = await getProspectById(input.prospect_id);
   if (!prospectResult.data) return err("Prospect introuvable");
@@ -261,6 +275,13 @@ export async function createQuoteFromClientAction(
   if (denied) return err(denied);
 
   if (!input.customer_id) return err("Identifiant du client manquant");
+
+  // Validation quantité minimale catalogue
+  if (input.quantity < 1) return err(`La quantité doit être ≥ 1 pour "${input.product_name}".`);
+  const minQtyClient = getProductMinQty(input.product_name);
+  if (minQtyClient !== null && input.quantity < minQtyClient) {
+    return err(`La quantité minimale pour "${input.product_name}" est de ${minQtyClient} exemplaires.`);
+  }
 
   const customerResult = await getCustomerById(input.customer_id);
   if (!customerResult.data) return err("Client introuvable");

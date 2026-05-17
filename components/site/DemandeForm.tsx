@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef } from "react";
 import { submitProspectFormAction } from "@/lib/actions/prospect-public";
 import { CATALOG_PRODUCTS } from "@/lib/validators/prospect";
+import { getProductMinQty, parseQuantityString } from "@/lib/utils/product-price-resolver";
 import {
   User,
   Building2,
@@ -424,9 +425,26 @@ export function DemandeForm() {
                                 type="text"
                                 value={detail.quantity ?? ""}
                                 onChange={(e) => updateDetail(product, "quantity", e.target.value)}
-                                className={detailInputClass}
+                                className={(() => {
+                                  const minQty = getProductMinQty(product);
+                                  const qty = parseQuantityString(detail.quantity);
+                                  return `${detailInputClass} ${minQty !== null && qty > 0 && qty < minQty ? "border-amber-400 bg-amber-50" : ""}`;
+                                })()}
                                 placeholder="500 pièces"
                               />
+                              {(() => {
+                                const minQty = getProductMinQty(product);
+                                if (!minQty) return null;
+                                const qty = parseQuantityString(detail.quantity);
+                                const isLow = qty > 0 && qty < minQty;
+                                return (
+                                  <p className={`text-[10px] mt-0.5 font-semibold ${isLow ? "text-amber-600" : "text-slate-400"}`}>
+                                    {isLow
+                                      ? `Min. ${minQty.toLocaleString("fr-SN")} exemplaires`
+                                      : `Minimum : ${minQty.toLocaleString("fr-SN")} exemplaires`}
+                                  </p>
+                                );
+                              })()}
                             </div>
                             {isLargeFormat(product) ? (
                               <div>
