@@ -13,6 +13,7 @@ import type {
   OrderFile,
   AdminProfile,
   Prospect,
+  ProductDetail,
   ProspectFile,
 } from "@/lib/types/domain";
 
@@ -270,6 +271,7 @@ export function mapProspect(row: Record<string, unknown>): Prospect {
     estimatedBudget: (row.estimated_budget as string) ?? null,
     nextFollowup: (row.next_followup as string) ?? null,
     source: row.source as Prospect["source"],
+    productDetails: (row.product_details as ProductDetail[]) ?? [],
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };

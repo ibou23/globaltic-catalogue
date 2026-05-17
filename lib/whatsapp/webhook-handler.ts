@@ -133,6 +133,7 @@ export async function processWebhookPayload(payload: MetaWebhookPayload): Promis
                 full_name: contactName || `WhatsApp ${phone}`,
                 whatsapp: phone,
                 requested_products: [],
+                product_details: [],
               },
               reference
             );

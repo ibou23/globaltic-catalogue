@@ -103,6 +103,14 @@ export async function updateQuoteStatusAction(
 
 // ─── Créer un devis depuis un prospect ───────────────────────────────────────
 
+export interface QuoteLineInput {
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  options?: string;
+  discount_percent?: number;
+}
+
 export interface CreateQuoteFromProspectInput {
   prospect_id: string;
   product_name: string;
@@ -114,6 +122,7 @@ export interface CreateQuoteFromProspectInput {
   internal_notes?: string;
   is_urgent?: boolean;
   discount_percent?: number;
+  extra_lines?: QuoteLineInput[];
 }
 
 export async function createQuoteFromProspectAction(
@@ -172,6 +181,14 @@ export async function createQuoteFromProspectAction(
   if (prospect.estimatedBudget) internalParts.push(`Budget estimé : ${prospect.estimatedBudget}`);
   if (prospect.supportText) internalParts.push(`Texte support : ${prospect.supportText}`);
 
+  const extraItems = (input.extra_lines ?? []).map((l) => ({
+    product_name: l.product_name,
+    quantity: l.quantity,
+    unit_price: l.unit_price,
+    total_price: Math.round(l.quantity * l.unit_price * (1 - (l.discount_percent ?? 0) / 100)),
+    config_snapshot: l.options?.trim() ? { options: l.options.trim() } : {},
+  }));
+
   const reference = await generateReference("DEV");
   const quoteResult = await createQuote(
     {
@@ -184,6 +201,7 @@ export async function createQuoteFromProspectAction(
           total_price: totalPrice,
           config_snapshot: configSnapshot,
         },
+        ...extraItems,
       ],
       is_urgent: input.is_urgent ?? false,
       discount_percent: input.discount_percent ?? 0,

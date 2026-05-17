@@ -53,6 +53,7 @@ export async function createProspectFromMessageAction(
       full_name: contactName || `WhatsApp ${phoneNumber}`,
       whatsapp: phoneNumber,
       requested_products: [],
+      product_details: [],
       message: content ?? undefined,
     },
     reference

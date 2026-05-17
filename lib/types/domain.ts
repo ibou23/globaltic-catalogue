@@ -356,6 +356,22 @@ export type WhatsAppDirection = "inbound" | "outbound";
 export type WhatsAppMessageType = "text" | "image" | "document" | "audio" | "template" | "interactive" | "other";
 export type WhatsAppMessageStatus = "received" | "sent" | "delivered" | "read" | "failed";
 
+export interface ProductDetail {
+  product: string;
+  quantity?: string;
+  format?: string;
+  finish?: string;
+  colors?: string;
+  text?: string;
+  fileProvided?: boolean;
+  notes?: string;
+  // Textile-specific
+  sizes?: string;
+  markingPosition?: string;
+  // Banner/vinyl-specific
+  dimensions?: string;
+}
+
 export interface Prospect {
   id: string;
   reference: string;
@@ -387,6 +403,7 @@ export interface Prospect {
   estimatedBudget: string | null;
   nextFollowup: string | null;
   source: ProspectSource;
+  productDetails: ProductDetail[];
   createdAt: string;
   updatedAt: string;
 }

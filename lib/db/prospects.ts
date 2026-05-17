@@ -64,6 +64,7 @@ export async function createProspect(
       desired_deadline: input.desired_deadline ?? null,
       delivery_zone: input.delivery_zone ?? null,
       message: input.message ?? null,
+      product_details: input.product_details ?? [],
       status: "nouveau",
       source: "formulaire",
     })
@@ -114,6 +115,8 @@ export async function updateProspect(
   // Budget & relance
   if (input.estimated_budget !== undefined) updates.estimated_budget = input.estimated_budget;
   if (input.next_followup !== undefined) updates.next_followup = input.next_followup;
+  // Détails produits structurés
+  if (input.product_details !== undefined) updates.product_details = input.product_details;
 
   const { data, error } = await supabase
     .from("prospects")

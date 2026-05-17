@@ -14,8 +14,11 @@ import {
   Upload,
   Loader2,
   X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { siteConfig } from "@/lib/config/site";
+import type { ProductDetail } from "@/lib/types/domain";
 
 type Step = "contact" | "entreprise" | "conception" | "commande";
 
@@ -26,6 +29,22 @@ const STEPS: { key: Step; label: string; icon: React.ElementType }[] = [
   { key: "commande",   label: "Commande",   icon: Package },
 ];
 
+// Products that have textile-specific fields
+const TEXTILE_PRODUCTS = ["Tee-shirts", "Polos", "Casquettes", "Tote bags"];
+// Products that have banner/large-format-specific fields
+const LARGE_FORMAT_PRODUCTS = ["Bâches", "Vinyles", "Stickers"];
+
+function isTextile(product: string) {
+  return TEXTILE_PRODUCTS.includes(product);
+}
+function isLargeFormat(product: string) {
+  return LARGE_FORMAT_PRODUCTS.includes(product);
+}
+
+function emptyDetail(product: string): ProductDetail {
+  return { product };
+}
+
 export function DemandeForm() {
   const [step, setStep] = useState<Step>("contact");
   const [isPending, startTransition] = useTransition();
@@ -33,6 +52,7 @@ export function DemandeForm() {
   const [success, setSuccess] = useState<{ name: string; company: string; product: string; quantity: string; deadline: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
   const [form, setForm] = useState({
     full_name: "",
@@ -56,6 +76,9 @@ export function DemandeForm() {
     message: "",
   });
 
+  // Per-product detail map: product name → ProductDetail
+  const [productDetails, setProductDetails] = useState<Map<string, ProductDetail>>(new Map());
+
   function updateField(field: string, value: string | string[]) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -65,7 +88,49 @@ export function DemandeForm() {
       const products = prev.requested_products.includes(product)
         ? prev.requested_products.filter((p) => p !== product)
         : [...prev.requested_products, product];
+
+      if (!products.includes(product)) {
+        // Remove detail when deselected
+        setProductDetails((d) => {
+          const next = new Map(d);
+          next.delete(product);
+          return next;
+        });
+        setExpandedProducts((s) => {
+          const next = new Set(s);
+          next.delete(product);
+          return next;
+        });
+      } else {
+        // Auto-expand on select
+        setExpandedProducts((s) => new Set(s).add(product));
+        setProductDetails((d) => {
+          if (!d.has(product)) {
+            return new Map(d).set(product, emptyDetail(product));
+          }
+          return d;
+        });
+      }
+
       return { ...prev, requested_products: products };
+    });
+  }
+
+  function updateDetail(product: string, field: keyof ProductDetail, value: string | boolean) {
+    setProductDetails((d) => {
+      const next = new Map(d);
+      const detail = next.get(product) ?? emptyDetail(product);
+      next.set(product, { ...detail, [field]: value });
+      return next;
+    });
+  }
+
+  function toggleExpand(product: string) {
+    setExpandedProducts((s) => {
+      const next = new Set(s);
+      if (next.has(product)) next.delete(product);
+      else next.add(product);
+      return next;
     });
   }
 
@@ -105,6 +170,8 @@ export function DemandeForm() {
     setError(null);
 
     startTransition(async () => {
+      const detailsArray = Array.from(productDetails.values()).filter((d) => d.product);
+
       const payload = {
         ...form,
         phone_secondary: form.phone_secondary || null,
@@ -123,6 +190,7 @@ export function DemandeForm() {
         desired_deadline: form.desired_deadline || null,
         delivery_zone: form.delivery_zone || null,
         message: form.message || null,
+        product_details: detailsArray,
       };
 
       let filesFormData: FormData | undefined;
@@ -187,6 +255,8 @@ export function DemandeForm() {
 
   const inputClass = "w-full h-11 rounded-xl border border-slate-200 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary";
   const labelClass = "block text-xs font-bold text-slate-600 mb-1.5";
+  const detailInputClass = "w-full h-10 rounded-lg border border-slate-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary bg-white";
+  const detailLabelClass = "block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1";
 
   return (
     <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
@@ -308,30 +378,174 @@ export function DemandeForm() {
 
         {/* Étape Commande */}
         {step === "commande" && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Product checkboxes + per-product detail accordion */}
             <div>
               <label className={labelClass}>Produits demandés</label>
-              <div className="grid grid-cols-2 gap-2">
-                {CATALOG_PRODUCTS.map((product) => (
-                  <label key={product} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-100 hover:border-brand-primary/30 cursor-pointer transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={form.requested_products.includes(product)}
-                      onChange={() => toggleProduct(product)}
-                      className="w-4 h-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary/20"
-                    />
-                    <span className="text-xs text-slate-700">{product}</span>
-                  </label>
-                ))}
+              <div className="space-y-2">
+                {CATALOG_PRODUCTS.map((product) => {
+                  const checked = form.requested_products.includes(product);
+                  const expanded = expandedProducts.has(product);
+                  const detail = productDetails.get(product) ?? emptyDetail(product);
+
+                  return (
+                    <div key={product} className={`rounded-xl border transition-colors ${checked ? "border-brand-primary/30 bg-brand-primary/5" : "border-slate-100"}`}>
+                      {/* Product row */}
+                      <div className="flex items-center gap-3 px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleProduct(product)}
+                          className="w-4 h-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary/20 shrink-0"
+                        />
+                        <span className="flex-1 text-sm font-semibold text-slate-700">{product}</span>
+                        {checked && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(product)}
+                            className="flex items-center gap-1 text-[11px] font-bold text-brand-primary hover:text-brand-primary-dark transition-colors"
+                          >
+                            {expanded ? (
+                              <><ChevronUp className="w-3.5 h-3.5" />Réduire</>
+                            ) : (
+                              <><ChevronDown className="w-3.5 h-3.5" />Détails</>
+                            )}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Per-product detail fields */}
+                      {checked && expanded && (
+                        <div className="px-3 pb-3 pt-1 border-t border-brand-primary/10 space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className={detailLabelClass}>Quantité</label>
+                              <input
+                                type="text"
+                                value={detail.quantity ?? ""}
+                                onChange={(e) => updateDetail(product, "quantity", e.target.value)}
+                                className={detailInputClass}
+                                placeholder="500 pièces"
+                              />
+                            </div>
+                            {isLargeFormat(product) ? (
+                              <div>
+                                <label className={detailLabelClass}>Dimensions</label>
+                                <input
+                                  type="text"
+                                  value={detail.dimensions ?? ""}
+                                  onChange={(e) => updateDetail(product, "dimensions", e.target.value)}
+                                  className={detailInputClass}
+                                  placeholder="3m × 1m"
+                                />
+                              </div>
+                            ) : (
+                              <div>
+                                <label className={detailLabelClass}>Format</label>
+                                <input
+                                  type="text"
+                                  value={detail.format ?? ""}
+                                  onChange={(e) => updateDetail(product, "format", e.target.value)}
+                                  className={detailInputClass}
+                                  placeholder="A5, 9×5 cm..."
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className={detailLabelClass}>Finition</label>
+                              <input
+                                type="text"
+                                value={detail.finish ?? ""}
+                                onChange={(e) => updateDetail(product, "finish", e.target.value)}
+                                className={detailInputClass}
+                                placeholder="Mat, brillant..."
+                              />
+                            </div>
+                            <div>
+                              <label className={detailLabelClass}>Couleurs</label>
+                              <input
+                                type="text"
+                                value={detail.colors ?? ""}
+                                onChange={(e) => updateDetail(product, "colors", e.target.value)}
+                                className={detailInputClass}
+                                placeholder="Bleu, or..."
+                              />
+                            </div>
+                          </div>
+
+                          {isTextile(product) && (
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className={detailLabelClass}>Tailles</label>
+                                <input
+                                  type="text"
+                                  value={detail.sizes ?? ""}
+                                  onChange={(e) => updateDetail(product, "sizes", e.target.value)}
+                                  className={detailInputClass}
+                                  placeholder="S×5, M×10, L×5"
+                                />
+                              </div>
+                              <div>
+                                <label className={detailLabelClass}>Position marquage</label>
+                                <input
+                                  type="text"
+                                  value={detail.markingPosition ?? ""}
+                                  onChange={(e) => updateDetail(product, "markingPosition", e.target.value)}
+                                  className={detailInputClass}
+                                  placeholder="Poitrine, dos..."
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <label className={detailLabelClass}>Texte / contenu</label>
+                            <textarea
+                              value={detail.text ?? ""}
+                              onChange={(e) => updateDetail(product, "text", e.target.value)}
+                              className={`${detailInputClass} h-16 py-2 resize-none`}
+                              placeholder="Nom, slogan, coordonnées à imprimer..."
+                            />
+                          </div>
+
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={detail.fileProvided ?? false}
+                              onChange={(e) => updateDetail(product, "fileProvided", e.target.checked)}
+                              className="w-4 h-4 rounded border-slate-300 text-brand-primary"
+                            />
+                            <span className="text-xs font-semibold text-slate-600">Fichier / logo déjà fourni</span>
+                          </label>
+
+                          <div>
+                            <label className={detailLabelClass}>Notes spécifiques</label>
+                            <input
+                              type="text"
+                              value={detail.notes ?? ""}
+                              onChange={(e) => updateDetail(product, "notes", e.target.value)}
+                              className={detailInputClass}
+                              placeholder="Toute précision utile pour ce produit..."
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
+
             <div>
               <label className={labelClass}>Autre produit (précisez)</label>
               <input type="text" value={form.other_product} onChange={(e) => updateField("other_product", e.target.value)} className={inputClass} placeholder="Si non listé ci-dessus" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Quantité</label>
+                <label className={labelClass}>Quantité globale</label>
                 <input type="text" value={form.quantity} onChange={(e) => updateField("quantity", e.target.value)} className={inputClass} placeholder="500 pièces" />
               </div>
               <div>
@@ -341,7 +555,7 @@ export function DemandeForm() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Format / Dimensions</label>
+                <label className={labelClass}>Format / Dimensions global</label>
                 <input type="text" value={form.format_dimensions} onChange={(e) => updateField("format_dimensions", e.target.value)} className={inputClass} placeholder="9x5 cm, A4..." />
               </div>
               <div>

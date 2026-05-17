@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Save, ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { Prospect, AdminProfile } from "@/lib/types/domain";
+import type { Prospect, AdminProfile, ProductDetail } from "@/lib/types/domain";
 import { updateProspectAction } from "@/lib/actions/prospects";
 import { CATALOG_PRODUCTS, PROSPECT_STATUSES, PROSPECT_PRIORITIES } from "@/lib/validators/prospect";
 
@@ -26,6 +26,12 @@ const PRIORITY_LABELS: Record<string, string> = {
   froid: "Froid",
   perdu: "Perdu",
 };
+
+const TEXTILE_PRODUCTS = ["Tee-shirts", "Polos", "Casquettes", "Tote bags"];
+const LARGE_FORMAT_PRODUCTS = ["Bâches", "Vinyles", "Stickers"];
+
+function isTextile(product: string) { return TEXTILE_PRODUCTS.includes(product); }
+function isLargeFormat(product: string) { return LARGE_FORMAT_PRODUCTS.includes(product); }
 
 interface ProspectEditFormProps {
   prospect: Prospect;
@@ -64,6 +70,15 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
   const [deliveryZone, setDeliveryZone] = useState(prospect.deliveryZone ?? "");
   const [message, setMessage] = useState(prospect.message ?? "");
 
+  // Détails par produit
+  const initialDetailsMap = new Map<string, ProductDetail>(
+    (prospect.productDetails ?? []).map((d) => [d.product, d])
+  );
+  const [productDetailsMap, setProductDetailsMap] = useState<Map<string, ProductDetail>>(initialDetailsMap);
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(
+    new Set((prospect.productDetails ?? []).map((d) => d.product))
+  );
+
   // Suivi commercial
   const [status, setStatus] = useState(prospect.status);
   const [priority, setPriority] = useState(prospect.priority);
@@ -71,15 +86,43 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
   const [assignedTo, setAssignedTo] = useState(prospect.assignedTo ?? "");
 
   function toggleProduct(product: string) {
-    setRequestedProducts((prev) =>
-      prev.includes(product) ? prev.filter((p) => p !== product) : [...prev, product]
-    );
+    setRequestedProducts((prev) => {
+      const next = prev.includes(product) ? prev.filter((p) => p !== product) : [...prev, product];
+      if (!next.includes(product)) {
+        setProductDetailsMap((d) => { const n = new Map(d); n.delete(product); return n; });
+        setExpandedProducts((s) => { const n = new Set(s); n.delete(product); return n; });
+      } else {
+        setExpandedProducts((s) => new Set(s).add(product));
+        setProductDetailsMap((d) => {
+          if (!d.has(product)) return new Map(d).set(product, { product });
+          return d;
+        });
+      }
+      return next;
+    });
+  }
+
+  function toggleExpand(product: string) {
+    setExpandedProducts((s) => {
+      const n = new Set(s);
+      if (n.has(product)) n.delete(product); else n.add(product);
+      return n;
+    });
+  }
+
+  function updateDetail(product: string, field: keyof ProductDetail, value: string | boolean) {
+    setProductDetailsMap((d) => {
+      const detail = d.get(product) ?? { product };
+      return new Map(d).set(product, { ...detail, [field]: value });
+    });
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
+
+    const detailsArray = Array.from(productDetailsMap.values()).filter((d) => d.product);
 
     const payload = {
       full_name: fullName.trim(),
@@ -101,6 +144,7 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
       desired_deadline: desiredDeadline.trim() || null,
       delivery_zone: deliveryZone.trim() || null,
       message: message.trim() || null,
+      product_details: detailsArray,
       status,
       priority,
       internal_notes: internalNotes.trim() || null,
@@ -125,6 +169,10 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
     "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-brand-primary/50 focus:ring-1 focus:ring-brand-primary/30 transition-all";
   const labelClass =
     "block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5";
+  const detailInputClass =
+    "w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-brand-primary/50 focus:ring-1 focus:ring-brand-primary/30 transition-all";
+  const detailLabelClass =
+    "block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1";
 
   return (
     <div className="min-h-screen bg-slate-50/50 py-6 px-4 sm:px-6">
@@ -152,45 +200,19 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Nom complet *</label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className={inputClass}
-                  placeholder="Nom du prospect"
-                />
+                <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputClass} placeholder="Nom du prospect" />
               </div>
               <div>
                 <label className={labelClass}>WhatsApp *</label>
-                <input
-                  type="text"
-                  required
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  className={inputClass}
-                  placeholder="+221 7X XXX XX XX"
-                />
+                <input type="text" required value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className={inputClass} placeholder="+221 7X XXX XX XX" />
               </div>
               <div>
                 <label className={labelClass}>Tél. secondaire</label>
-                <input
-                  type="text"
-                  value={phoneSecondary}
-                  onChange={(e) => setPhoneSecondary(e.target.value)}
-                  className={inputClass}
-                  placeholder="+221 3X XXX XX XX"
-                />
+                <input type="text" value={phoneSecondary} onChange={(e) => setPhoneSecondary(e.target.value)} className={inputClass} placeholder="+221 3X XXX XX XX" />
               </div>
               <div>
                 <label className={labelClass}>Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={inputClass}
-                  placeholder="email@exemple.com"
-                />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="email@exemple.com" />
               </div>
             </div>
           </div>
@@ -201,43 +223,19 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Nom de l&apos;entreprise</label>
-                <input
-                  type="text"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className={inputClass}
-                  placeholder="Nom de l'entreprise"
-                />
+                <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} placeholder="Nom de l'entreprise" />
               </div>
               <div>
                 <label className={labelClass}>Secteur</label>
-                <input
-                  type="text"
-                  value={sector}
-                  onChange={(e) => setSector(e.target.value)}
-                  className={inputClass}
-                  placeholder="Secteur d'activité"
-                />
+                <input type="text" value={sector} onChange={(e) => setSector(e.target.value)} className={inputClass} placeholder="Secteur d'activité" />
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass}>Adresse</label>
-                <input
-                  type="text"
-                  value={companyAddress}
-                  onChange={(e) => setCompanyAddress(e.target.value)}
-                  className={inputClass}
-                  placeholder="Adresse de l'entreprise"
-                />
+                <input type="text" value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} className={inputClass} placeholder="Adresse de l'entreprise" />
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass}>Site web</label>
-                <input
-                  type="text"
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value)}
-                  className={inputClass}
-                  placeholder="https://..."
-                />
+                <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className={inputClass} placeholder="https://..." />
               </div>
             </div>
           </div>
@@ -248,130 +246,141 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
 
             <div>
               <label className={labelClass}>Produits demandés</label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {CATALOG_PRODUCTS.map((product) => (
-                  <button
-                    type="button"
-                    key={product}
-                    onClick={() => toggleProduct(product)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                      requestedProducts.includes(product)
-                        ? "bg-brand-primary text-white border-brand-primary"
-                        : "bg-slate-50 text-slate-500 border-slate-200 hover:border-brand-primary/30"
-                    }`}
-                  >
-                    {product}
-                  </button>
-                ))}
+              <div className="space-y-2 mt-1">
+                {CATALOG_PRODUCTS.map((product) => {
+                  const checked = requestedProducts.includes(product);
+                  const expanded = expandedProducts.has(product);
+                  const detail = productDetailsMap.get(product) ?? { product };
+                  return (
+                    <div key={product} className={`rounded-xl border transition-colors ${checked ? "border-brand-primary/30 bg-brand-primary/5" : "border-slate-100"}`}>
+                      <div className="flex items-center gap-3 px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleProduct(product)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
+                            checked
+                              ? "bg-brand-primary text-white border-brand-primary"
+                              : "bg-slate-50 text-slate-500 border-slate-200 hover:border-brand-primary/30"
+                          }`}
+                        >
+                          {product}
+                        </button>
+                        {checked && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(product)}
+                            className="ml-auto flex items-center gap-1 text-[11px] font-bold text-brand-primary hover:text-brand-primary-dark"
+                          >
+                            {expanded ? <><ChevronUp className="w-3.5 h-3.5" />Réduire</> : <><ChevronDown className="w-3.5 h-3.5" />Détails</>}
+                          </button>
+                        )}
+                      </div>
+
+                      {checked && expanded && (
+                        <div className="px-3 pb-3 pt-1 border-t border-brand-primary/10 space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className={detailLabelClass}>Quantité</label>
+                              <input type="text" value={detail.quantity ?? ""} onChange={(e) => updateDetail(product, "quantity", e.target.value)} className={detailInputClass} placeholder="500 pièces" />
+                            </div>
+                            {isLargeFormat(product) ? (
+                              <div>
+                                <label className={detailLabelClass}>Dimensions</label>
+                                <input type="text" value={detail.dimensions ?? ""} onChange={(e) => updateDetail(product, "dimensions", e.target.value)} className={detailInputClass} placeholder="3m × 1m" />
+                              </div>
+                            ) : (
+                              <div>
+                                <label className={detailLabelClass}>Format</label>
+                                <input type="text" value={detail.format ?? ""} onChange={(e) => updateDetail(product, "format", e.target.value)} className={detailInputClass} placeholder="A5, 9×5 cm..." />
+                              </div>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className={detailLabelClass}>Finition</label>
+                              <input type="text" value={detail.finish ?? ""} onChange={(e) => updateDetail(product, "finish", e.target.value)} className={detailInputClass} placeholder="Mat, brillant..." />
+                            </div>
+                            <div>
+                              <label className={detailLabelClass}>Couleurs</label>
+                              <input type="text" value={detail.colors ?? ""} onChange={(e) => updateDetail(product, "colors", e.target.value)} className={detailInputClass} placeholder="Bleu, or..." />
+                            </div>
+                          </div>
+                          {isTextile(product) && (
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className={detailLabelClass}>Tailles</label>
+                                <input type="text" value={detail.sizes ?? ""} onChange={(e) => updateDetail(product, "sizes", e.target.value)} className={detailInputClass} placeholder="S×5, M×10, L×5" />
+                              </div>
+                              <div>
+                                <label className={detailLabelClass}>Position marquage</label>
+                                <input type="text" value={detail.markingPosition ?? ""} onChange={(e) => updateDetail(product, "markingPosition", e.target.value)} className={detailInputClass} placeholder="Poitrine, dos..." />
+                              </div>
+                            </div>
+                          )}
+                          <div>
+                            <label className={detailLabelClass}>Texte / contenu</label>
+                            <textarea value={detail.text ?? ""} onChange={(e) => updateDetail(product, "text", e.target.value)} rows={2} className={`${detailInputClass} resize-none`} placeholder="Texte à imprimer..." />
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" checked={detail.fileProvided ?? false} onChange={(e) => updateDetail(product, "fileProvided", e.target.checked)} className="w-3.5 h-3.5 rounded border-slate-300 text-brand-primary" />
+                            <span className="text-xs font-semibold text-slate-600">Fichier / logo fourni</span>
+                          </label>
+                          <div>
+                            <label className={detailLabelClass}>Notes spécifiques</label>
+                            <input type="text" value={detail.notes ?? ""} onChange={(e) => updateDetail(product, "notes", e.target.value)} className={detailInputClass} placeholder="Précisions pour ce produit..." />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Autre produit</label>
-                <input
-                  type="text"
-                  value={otherProduct}
-                  onChange={(e) => setOtherProduct(e.target.value)}
-                  className={inputClass}
-                  placeholder="Si non listé ci-dessus"
-                />
+                <input type="text" value={otherProduct} onChange={(e) => setOtherProduct(e.target.value)} className={inputClass} placeholder="Si non listé ci-dessus" />
               </div>
               <div>
-                <label className={labelClass}>Quantité</label>
-                <input
-                  type="text"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  className={inputClass}
-                  placeholder="Ex: 500 pièces"
-                />
+                <label className={labelClass}>Quantité globale</label>
+                <input type="text" value={quantity} onChange={(e) => setQuantity(e.target.value)} className={inputClass} placeholder="Ex: 500 pièces" />
               </div>
               <div>
-                <label className={labelClass}>Format / Dimensions</label>
-                <input
-                  type="text"
-                  value={formatDimensions}
-                  onChange={(e) => setFormatDimensions(e.target.value)}
-                  className={inputClass}
-                  placeholder="Ex: A5, 85x55mm"
-                />
+                <label className={labelClass}>Format / Dimensions global</label>
+                <input type="text" value={formatDimensions} onChange={(e) => setFormatDimensions(e.target.value)} className={inputClass} placeholder="Ex: A5, 85x55mm" />
               </div>
               <div>
                 <label className={labelClass}>Finition</label>
-                <input
-                  type="text"
-                  value={finish}
-                  onChange={(e) => setFinish(e.target.value)}
-                  className={inputClass}
-                  placeholder="Pelliculage, vernis, etc."
-                />
+                <input type="text" value={finish} onChange={(e) => setFinish(e.target.value)} className={inputClass} placeholder="Pelliculage, vernis, etc." />
               </div>
               <div>
                 <label className={labelClass}>Délai souhaité</label>
-                <input
-                  type="text"
-                  value={desiredDeadline}
-                  onChange={(e) => setDesiredDeadline(e.target.value)}
-                  className={inputClass}
-                  placeholder="Ex: 5 jours"
-                />
+                <input type="text" value={desiredDeadline} onChange={(e) => setDesiredDeadline(e.target.value)} className={inputClass} placeholder="Ex: 5 jours" />
               </div>
               <div>
                 <label className={labelClass}>Zone de livraison</label>
-                <input
-                  type="text"
-                  value={deliveryZone}
-                  onChange={(e) => setDeliveryZone(e.target.value)}
-                  className={inputClass}
-                  placeholder="Dakar, Thiès, etc."
-                />
+                <input type="text" value={deliveryZone} onChange={(e) => setDeliveryZone(e.target.value)} className={inputClass} placeholder="Dakar, Thiès, etc." />
               </div>
             </div>
 
             <div>
               <label className={labelClass}>Conception — Produits/services de l&apos;entreprise</label>
-              <textarea
-                value={productsServices}
-                onChange={(e) => setProductsServices(e.target.value)}
-                rows={2}
-                maxLength={2000}
-                className={`${inputClass} resize-none`}
-                placeholder="Description de l'activité du prospect..."
-              />
+              <textarea value={productsServices} onChange={(e) => setProductsServices(e.target.value)} rows={2} maxLength={2000} className={`${inputClass} resize-none`} placeholder="Description de l'activité du prospect..." />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Couleurs préférées</label>
-                <input
-                  type="text"
-                  value={preferredColors}
-                  onChange={(e) => setPreferredColors(e.target.value)}
-                  className={inputClass}
-                  placeholder="Bleu, doré..."
-                />
+                <input type="text" value={preferredColors} onChange={(e) => setPreferredColors(e.target.value)} className={inputClass} placeholder="Bleu, doré..." />
               </div>
               <div>
                 <label className={labelClass}>Texte support</label>
-                <input
-                  type="text"
-                  value={supportText}
-                  onChange={(e) => setSupportText(e.target.value)}
-                  className={inputClass}
-                  placeholder="Texte à imprimer"
-                />
+                <input type="text" value={supportText} onChange={(e) => setSupportText(e.target.value)} className={inputClass} placeholder="Texte à imprimer" />
               </div>
             </div>
             <div>
               <label className={labelClass}>Message complémentaire</label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={2}
-                maxLength={2000}
-                className={`${inputClass} resize-none`}
-                placeholder="Message libre du prospect..."
-              />
+              <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={2} maxLength={2000} className={`${inputClass} resize-none`} placeholder="Message libre du prospect..." />
             </div>
           </div>
 
@@ -381,58 +390,33 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Statut</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as typeof status)}
-                  className={inputClass}
-                >
+                <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className={inputClass}>
                   {PROSPECT_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABELS[s] ?? s}
-                    </option>
+                    <option key={s} value={s}>{STATUS_LABELS[s] ?? s}</option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className={labelClass}>Priorité</label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as typeof priority)}
-                  className={inputClass}
-                >
+                <select value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)} className={inputClass}>
                   {PROSPECT_PRIORITIES.map((p) => (
-                    <option key={p} value={p}>
-                      {PRIORITY_LABELS[p] ?? p}
-                    </option>
+                    <option key={p} value={p}>{PRIORITY_LABELS[p] ?? p}</option>
                   ))}
                 </select>
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass}>Commercial assigné</label>
-                <select
-                  value={assignedTo}
-                  onChange={(e) => setAssignedTo(e.target.value)}
-                  className={inputClass}
-                >
+                <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className={inputClass}>
                   <option value="">— Non assigné —</option>
                   {adminProfiles.map((admin) => (
-                    <option key={admin.userId} value={admin.userId}>
-                      {admin.fullName} ({admin.role})
-                    </option>
+                    <option key={admin.userId} value={admin.userId}>{admin.fullName} ({admin.role})</option>
                   ))}
                 </select>
               </div>
             </div>
             <div>
               <label className={labelClass}>Notes commerciales</label>
-              <textarea
-                value={internalNotes}
-                onChange={(e) => setInternalNotes(e.target.value)}
-                rows={3}
-                maxLength={5000}
-                className={`${inputClass} resize-none`}
-                placeholder="Notes internes sur ce prospect..."
-              />
+              <textarea value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} rows={3} maxLength={5000} className={`${inputClass} resize-none`} placeholder="Notes internes sur ce prospect..." />
             </div>
           </div>
 
@@ -446,17 +430,10 @@ export function ProspectEditForm({ prospect, adminProfiles }: ProspectEditFormPr
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Link
-              href={`/admin/prospects/${prospect.id}`}
-              className="h-10 px-5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition-colors flex items-center"
-            >
+            <Link href={`/admin/prospects/${prospect.id}`} className="h-10 px-5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition-colors flex items-center">
               Annuler
             </Link>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="h-10 px-6 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-primary-dark hover:shadow-lg hover:shadow-brand-primary/25 transition-all disabled:opacity-50"
-            >
+            <button type="submit" disabled={isSubmitting} className="h-10 px-6 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-primary-dark hover:shadow-lg hover:shadow-brand-primary/25 transition-all disabled:opacity-50">
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Enregistrer
             </button>

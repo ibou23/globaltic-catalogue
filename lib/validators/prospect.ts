@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+export const productDetailSchema = z.object({
+  product: z.string().max(100),
+  quantity: z.string().max(100).optional(),
+  format: z.string().max(200).optional(),
+  finish: z.string().max(200).optional(),
+  colors: z.string().max(500).optional(),
+  text: z.string().max(2000).optional(),
+  fileProvided: z.boolean().optional(),
+  notes: z.string().max(1000).optional(),
+  sizes: z.string().max(500).optional(),
+  markingPosition: z.string().max(200).optional(),
+  dimensions: z.string().max(200).optional(),
+});
+
 export const CATALOG_PRODUCTS = [
   "Carte de visite",
   "Flyers",
@@ -50,6 +64,7 @@ export const prospectPublicSchema = z.object({
   desired_deadline: z.string().max(100).nullable().optional(),
   delivery_zone: z.string().max(200).nullable().optional(),
   message: z.string().max(2000).nullable().optional(),
+  product_details: z.array(productDetailSchema).default([]),
 });
 
 export const PROSPECT_PRIORITIES = ["urgent", "chaud", "a_qualifier", "froid", "perdu"] as const;
@@ -81,6 +96,7 @@ export const prospectUpdateSchema = z.object({
   desired_deadline: z.string().max(100).nullable().optional(),
   delivery_zone: z.string().max(200).nullable().optional(),
   message: z.string().max(2000).nullable().optional(),
+  product_details: z.array(productDetailSchema).optional(),
 
   // Suivi commercial
   status: z.enum(PROSPECT_STATUSES).optional(),

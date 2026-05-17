@@ -86,7 +86,7 @@ const COL_LABELS: string[] = [
   "WhatsApp", "Tél. 2", "Email", "Produit(s)", "Autre produit", "Qté", "Format",
   "Finition", "Couleurs", "Texte support", "Activité", "Fichier", "Délai",
   "Zone livraison", "Budget", "Message", "Notes int.", "Source", "Statut",
-  "Priorité", "Commercial", "Relance", "Fiche",
+  "Priorité", "Commercial", "Relance", "Fiche", "Détails produits",
 ];
 
 // Minimum pixel widths per column
@@ -95,7 +95,7 @@ const COL_MIN_WIDTHS: number[] = [
   120, 100, 130, 160, 110, 68, 120,
   90, 130, 160, 160, 68, 100, 110,
   90, 160, 160, 95, 120, 95, 120,
-  110, 72,
+  110, 72, 200,
 ];
 
 function periodCutoff(period: PeriodFilter): Date | null {
@@ -186,6 +186,23 @@ function buildBriefText(p: ProspectWithFileFlag, assignedName: string): string {
     if (p.internalNotes) lines.push(`Notes      : ${p.internalNotes}`);
     lines.push(``);
   }
+  if (p.productDetails && p.productDetails.length > 0) {
+    lines.push(`── DÉTAILS PAR PRODUIT ──────────────────`);
+    for (const d of p.productDetails) {
+      lines.push(`  ▸ ${d.product}`);
+      if (d.quantity)         lines.push(`    Quantité  : ${d.quantity}`);
+      if (d.format)           lines.push(`    Format    : ${d.format}`);
+      if (d.dimensions)       lines.push(`    Dim.      : ${d.dimensions}`);
+      if (d.finish)           lines.push(`    Finition  : ${d.finish}`);
+      if (d.colors)           lines.push(`    Couleurs  : ${d.colors}`);
+      if (d.sizes)            lines.push(`    Tailles   : ${d.sizes}`);
+      if (d.markingPosition)  lines.push(`    Marquage  : ${d.markingPosition}`);
+      if (d.text)             lines.push(`    Texte     : ${d.text}`);
+      if (d.fileProvided)     lines.push(`    Fichier   : ✓ fourni`);
+      if (d.notes)            lines.push(`    Notes     : ${d.notes}`);
+    }
+    lines.push(``);
+  }
   lines.push(`── SUIVI ───────────────────────────────`);
   lines.push(`Statut     : ${STATUS_LABELS[p.status]}`);
   lines.push(`Priorité   : ${PRIORITY_LABELS[p.priority]}`);
@@ -230,6 +247,7 @@ const CSV_HEADERS = [
   "Commercial assigné",
   "Date prochaine relance",
   "Lien fiche dashboard",
+  "Détails produits structurés",
 ];
 
 function buildCsvRow(
@@ -268,6 +286,21 @@ function buildCsvRow(
     assignedName,
     p.nextFollowup ?? "",
     `${baseUrl}/admin/prospects/${p.id}`,
+    cleanForCsv(
+      p.productDetails && p.productDetails.length > 0
+        ? p.productDetails.map((d) => {
+            const parts = [d.product];
+            if (d.quantity) parts.push(`qté:${d.quantity}`);
+            if (d.format) parts.push(`format:${d.format}`);
+            if (d.dimensions) parts.push(`dim:${d.dimensions}`);
+            if (d.finish) parts.push(`finition:${d.finish}`);
+            if (d.colors) parts.push(`couleurs:${d.colors}`);
+            if (d.sizes) parts.push(`tailles:${d.sizes}`);
+            if (d.markingPosition) parts.push(`marquage:${d.markingPosition}`);
+            return parts.join(" | ");
+          }).join(" // ")
+        : null
+    ),
   ];
 }
 
@@ -545,6 +578,9 @@ export function ProspectBriefClient({ prospects, adminProfiles, canEdit: _canEdi
                   assignedName || null,
                   p.nextFollowup,
                   "Voir fiche",
+                  p.productDetails && p.productDetails.length > 0
+                    ? p.productDetails.map((d) => d.product).join(", ")
+                    : null,
                 ];
 
                 return (

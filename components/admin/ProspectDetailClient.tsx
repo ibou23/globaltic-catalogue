@@ -535,6 +535,28 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
                 <dd className="text-slate-700">{prospect.deliveryZone}</dd>
               </div>
             )}
+            {prospect.productDetails && prospect.productDetails.length > 0 && (
+              <div>
+                <dt className="text-slate-400 text-xs mb-2">Détails par produit</dt>
+                <dd className="space-y-2">
+                  {prospect.productDetails.map((d, i) => (
+                    <div key={i} className="bg-slate-50 rounded-xl p-3 text-xs space-y-1">
+                      <p className="font-bold text-slate-700">{d.product}</p>
+                      {d.quantity && <p className="text-slate-500">Quantité : <span className="text-slate-700">{d.quantity}</span></p>}
+                      {d.format && <p className="text-slate-500">Format : <span className="text-slate-700">{d.format}</span></p>}
+                      {d.dimensions && <p className="text-slate-500">Dimensions : <span className="text-slate-700">{d.dimensions}</span></p>}
+                      {d.finish && <p className="text-slate-500">Finition : <span className="text-slate-700">{d.finish}</span></p>}
+                      {d.colors && <p className="text-slate-500">Couleurs : <span className="text-slate-700">{d.colors}</span></p>}
+                      {d.sizes && <p className="text-slate-500">Tailles : <span className="text-slate-700">{d.sizes}</span></p>}
+                      {d.markingPosition && <p className="text-slate-500">Position marquage : <span className="text-slate-700">{d.markingPosition}</span></p>}
+                      {d.text && <p className="text-slate-500">Texte : <span className="text-slate-700 whitespace-pre-wrap">{d.text}</span></p>}
+                      {d.fileProvided && <p className="text-green-600 font-semibold">✓ Fichier fourni</p>}
+                      {d.notes && <p className="text-slate-500">Notes : <span className="text-slate-700">{d.notes}</span></p>}
+                    </div>
+                  ))}
+                </dd>
+              </div>
+            )}
           </dl>
         </div>
       </div>
