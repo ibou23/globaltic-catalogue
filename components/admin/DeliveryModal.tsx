@@ -36,17 +36,18 @@ export const DELIVERY_STATUS_CONFIG: Record<DeliveryStatus, {
 
 // ─── Messages WhatsApp ────────────────────────────────────────────────────────
 
-function buildWaDelivery(order: OrderEnriched, type: "planifiee" | "en_cours" | "livree" | "echec" | "reportee"): string | null {
+function buildWaDelivery(order: OrderEnriched, type: "planifiee" | "en_cours" | "livree" | "echec" | "reportee", estimatedDelivery?: string): string | null {
   const phone = order.customer?.whatsapp?.replace(/\D/g, "");
   if (!phone) return null;
   const client = order.customer?.contactName ?? "client";
   const ref    = order.reference;
+  const dateStr = estimatedDelivery ? formatDateShort(estimatedDelivery) : "date à confirmer";
 
   const msgs: Record<string, string[]> = {
     planifiee: [
       `Bonjour *${client}*,`,
       ``,
-      `La livraison de votre commande *${ref}* est prévue le *${order.estimatedDelivery ? formatDateShort(order.estimatedDelivery) : "date à confirmer"}*.`,
+      `La livraison de votre commande *${ref}* est prévue le *${dateStr}*.`,
       ``,
       `Notre livreur vous contactera avant son passage.`,
       ``,
@@ -121,11 +122,16 @@ export function DeliveryModal({ order, role, onClose }: DeliveryModalProps) {
   const [isPending, startTransition] = useTransition();
   const canEdit = canPerform(role, "commande:edit_status");
 
-  const [deliveryMethod, setDeliveryMethod]     = useState(
-    (["livraison_dakar","livraison_region","livraison_coursier","autre"].includes(order.deliveryMethod)
-      ? order.deliveryMethod
-      : "livraison_dakar") as "livraison_dakar" | "livraison_region" | "livraison_coursier" | "autre"
-  );
+  const [deliveryMethod, setDeliveryMethod]     = useState<"livraison_dakar" | "livraison_region" | "livraison_coursier" | "autre">(() => {
+    if (["livraison_dakar","livraison_region","livraison_coursier","autre"].includes(order.deliveryMethod)) {
+      return order.deliveryMethod as "livraison_dakar" | "livraison_region" | "livraison_coursier" | "autre";
+    }
+    // retrait avec livreur/frais → coursier ; sinon défaut dakar
+    if (order.deliveryMethod === "retrait" && (order.deliveryDriver || order.deliveryFee > 0)) {
+      return "livraison_coursier";
+    }
+    return "livraison_dakar";
+  });
   const [deliveryStatus, setDeliveryStatus]     = useState<DeliveryStatus>(order.deliveryStatus ?? "non_planifiee");
   const [deliveryAddress, setDeliveryAddress]   = useState(order.deliveryAddress ?? "");
   const [recipientName, setRecipientName]       = useState(order.deliveryRecipientName ?? order.customer?.contactName ?? "");
@@ -151,7 +157,7 @@ export function DeliveryModal({ order, role, onClose }: DeliveryModalProps) {
     reportee:      "reportee",
   };
   const waType = waTypeMap[deliveryStatus];
-  const waLink = waType ? buildWaDelivery(order, waType) : buildWaDefault(order);
+  const waLink = waType ? buildWaDelivery(order, waType, estimatedDelivery) : buildWaDefault(order);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

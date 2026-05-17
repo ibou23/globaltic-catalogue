@@ -184,6 +184,13 @@ const DELIVERY_METHOD_LABELS: Record<string, string> = {
   autre:                "Autre",
 };
 
+function resolveDeliveryMethodLabel(order: OrderEnriched): string {
+  if (order.deliveryMethod === "retrait" && (order.deliveryDriver || order.deliveryFee > 0)) {
+    return "Livraison par coursier";
+  }
+  return DELIVERY_METHOD_LABELS[order.deliveryMethod] ?? order.deliveryMethod;
+}
+
 interface CompanyInfo {
   name: string;
   tagline: string;
@@ -256,7 +263,7 @@ export function BonLivraisonPDF({ order, quote, logoUrl, company, pdfFooterText,
             </Text>
             <Text style={s.metaCardLine}>
               <Text style={{ fontFamily: "Helvetica-Bold" }}>Mode : </Text>
-              {DELIVERY_METHOD_LABELS[order.deliveryMethod] ?? order.deliveryMethod}
+              {resolveDeliveryMethodLabel(order)}
             </Text>
             {order.estimatedDelivery && (
               <Text style={s.metaCardLine}>

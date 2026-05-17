@@ -244,10 +244,19 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 };
 
 const DELIVERY_METHOD_LABELS: Record<string, string> = {
-  retrait:           "Retrait en boutique",
-  livraison_dakar:   "Livraison Dakar",
-  livraison_region:  "Livraison region",
+  retrait:              "Retrait en boutique",
+  livraison_dakar:      "Livraison Dakar",
+  livraison_region:     "Livraison region",
+  livraison_coursier:   "Livraison par coursier",
+  autre:                "Autre",
 };
+
+function resolveDeliveryMethodLabel(order: OrderEnriched): string {
+  if (order.deliveryMethod === "retrait" && (order.deliveryDriver || order.deliveryFee > 0)) {
+    return "Livraison par coursier";
+  }
+  return DELIVERY_METHOD_LABELS[order.deliveryMethod] ?? order.deliveryMethod;
+}
 
 interface CompanyInfo {
   name: string;
@@ -335,7 +344,7 @@ export function FacturePDF({ order, invoice, quote, logoUrl, company, pdfFooterT
             </Text>
             <Text style={s.metaCardLine}>
               <Text style={{ fontFamily: "Helvetica-Bold" }}>Livraison : </Text>
-              {DELIVERY_METHOD_LABELS[order.deliveryMethod] ?? order.deliveryMethod}
+              {resolveDeliveryMethodLabel(order)}
             </Text>
             {order.actualDelivery && (
               <Text style={s.metaCardLine}>
