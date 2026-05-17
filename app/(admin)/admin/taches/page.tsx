@@ -25,14 +25,30 @@ export default async function AdminTachesPage() {
       getCustomers(),
     ]);
 
+  const profiles = profilesResult.data ?? [];
+
+  // Enrich tasks with admin profile data (assigned_to / created_by point to auth.users.id = AdminProfile.userId)
+  const tasks = (tasksResult.data ?? []).map((task) => ({
+    ...task,
+    assignedAdmin: task.assignedTo
+      ? profiles.find((p) => p.userId === task.assignedTo) ?? null
+      : null,
+    createdByAdmin: task.createdBy
+      ? profiles.find((p) => p.userId === task.createdBy) ?? null
+      : null,
+  }));
+
+  const overdueCount = (overdueResult.data ?? []).length;
+  const todayCount   = (todayResult.data ?? []).length;
+
   return (
     <TachesClient
-      tasks={tasksResult.data ?? []}
-      adminProfiles={profilesResult.data ?? []}
+      tasks={tasks}
+      adminProfiles={profiles}
       customers={customersResult.data ?? []}
       role={admin.role}
-      overdueCount={(overdueResult.data ?? []).length}
-      todayCount={(todayResult.data ?? []).length}
+      overdueCount={overdueCount}
+      todayCount={todayCount}
     />
   );
 }

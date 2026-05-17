@@ -27,11 +27,9 @@ function mapTask(row: Record<string, unknown>): Task {
 function mapTaskEnriched(row: Record<string, unknown>): TaskEnriched {
   const task = mapTask(row);
 
-  const customerRaw    = row.customers as Record<string, unknown> | null;
-  const quoteRaw       = row.quotes    as Record<string, unknown> | null;
-  const orderRaw       = row.orders    as Record<string, unknown> | null;
-  const assignedRaw    = row.assigned_admin  as Record<string, unknown> | null;
-  const createdByRaw   = row.created_by_admin as Record<string, unknown> | null;
+  const customerRaw = row.customers as Record<string, unknown> | null;
+  const quoteRaw    = row.quotes    as Record<string, unknown> | null;
+  const orderRaw    = row.orders    as Record<string, unknown> | null;
 
   return {
     ...task,
@@ -49,23 +47,18 @@ function mapTaskEnriched(row: Record<string, unknown>): TaskEnriched {
     order: orderRaw
       ? { id: orderRaw.id as string, reference: orderRaw.reference as string, total: orderRaw.total as number }
       : null,
-    assignedAdmin: assignedRaw
-      ? { id: assignedRaw.id as string, fullName: assignedRaw.full_name as string, email: assignedRaw.email as string }
-      : null,
-    createdByAdmin: createdByRaw
-      ? { id: createdByRaw.id as string, fullName: createdByRaw.full_name as string }
-      : null,
+    assignedAdmin:  null,
+    createdByAdmin: null,
   };
 }
 
 // Jointures réutilisables
+// Note: assigned_to/created_by pointent vers auth.users, pas admin_profiles — enrichissement admin fait côté applicatif
 const ENRICHED_SELECT = `
   *,
   customers(id, contact_name, whatsapp, company_name),
   quotes(id, reference, total),
-  orders(id, reference, total),
-  assigned_admin:admin_profiles!tasks_assigned_to_fkey(id, full_name, email),
-  created_by_admin:admin_profiles!tasks_created_by_fkey(id, full_name)
+  orders(id, reference, total)
 `;
 
 export async function getTasks(): Promise<Result<TaskEnriched[]>> {
