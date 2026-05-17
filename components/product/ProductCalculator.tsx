@@ -9,7 +9,7 @@ import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
 import { PriceAnimation } from "@/components/calculator/PriceAnimation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, Info, MessageCircle, Zap, Clock } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, MessageCircle, Zap, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ProductCalculatorProps {
@@ -58,6 +58,11 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
   const maxSlider =
     lastTier?.maxQty && lastTier.maxQty <= 10000 ? lastTier.maxQty : 10000;
   const step = minQty < 50 ? 10 : 50;
+
+  const isQtyInvalid = state.quantity > 0 && state.quantity < minQty;
+  const isQtyEmpty   = state.quantity === 0;
+  const qtyBlocked   = isQtyInvalid || isQtyEmpty;
+  const unitLabelMin = isM2 ? "m²" : "exemplaires";
 
   return (
     <Card className="border-0 shadow-xl ring-1 ring-gray-100 lg:sticky lg:top-24">
@@ -214,9 +219,16 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
               <label className="text-sm font-bold text-brand-secondary uppercase tracking-wider">
                 {product.finishes.length > 0 ? "4" : "3"}. Quantité
               </label>
-              <span className="text-xs font-medium text-muted-foreground bg-gray-100 px-2 py-1 rounded">
-                Prix dégressif
-              </span>
+              <div className="flex items-center gap-2">
+                {minQty > 1 && (
+                  <span className="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-1 rounded">
+                    Minimum : {minQty.toLocaleString("fr-SN")} {unitLabelMin}
+                  </span>
+                )}
+                <span className="text-xs font-medium text-muted-foreground bg-gray-100 px-2 py-1 rounded">
+                  Prix dégressif
+                </span>
+              </div>
             </div>
             <motion.div
               initial={{ opacity: 0, y: 5 }}
@@ -238,7 +250,7 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
                     min={minQty}
                     max={maxSlider}
                     step={step}
-                    value={state.quantity}
+                    value={Math.max(state.quantity, minQty)}
                     onChange={(e) => actions.setQuantity(Number(e.target.value))}
                     className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
                   />
@@ -254,17 +266,31 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
                       .replace(/^0+/, "");
                     actions.setQuantity(val === "" ? 0 : parseInt(val, 10));
                   }}
-                  onBlur={() => {
-                    if (state.quantity < minQty) {
-                      actions.setQuantity(minQty);
-                    }
-                  }}
-                  className="w-full sm:w-32 text-center font-bold text-2xl border-2 border-slate-200 rounded-2xl py-4 focus:ring-2 focus:ring-brand-primary focus:outline-none transition-all shadow-inner"
+                  className={`w-full sm:w-32 text-center font-bold text-2xl border-2 rounded-2xl py-4 focus:ring-2 focus:outline-none transition-all shadow-inner ${
+                    qtyBlocked
+                      ? "border-red-400 bg-red-50 text-red-700 focus:ring-red-300"
+                      : "border-slate-200 focus:ring-brand-primary"
+                  }`}
                 />
               </div>
+
+              {/* Message d'erreur quantité */}
+              {qtyBlocked && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-3 flex items-center gap-2 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2"
+                >
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {isQtyEmpty
+                    ? "Veuillez saisir une quantité."
+                    : `La quantité minimale pour ${product.name.toLowerCase()} est de ${minQty.toLocaleString("fr-SN")} ${unitLabelMin}.`}
+                </motion.div>
+              )}
+
               <div className="mt-4 flex justify-between items-center">
-                <div className="text-4xl font-black text-brand-secondary font-heading">
-                  {state.quantity.toLocaleString("fr-SN")}{" "}
+                <div className={`text-4xl font-black font-heading ${qtyBlocked ? "text-red-400" : "text-brand-secondary"}`}>
+                  {state.quantity > 0 ? state.quantity.toLocaleString("fr-SN") : "—"}{" "}
                   <span className="text-base font-medium text-slate-400 font-sans ml-2">
                     {unitLabel}
                   </span>
@@ -334,51 +360,70 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
                   Estimatif
                 </span>
               </div>
-              <PriceAnimation
-                value={result.totalPrice}
-                className="text-3xl sm:text-4xl md:text-5xl font-black text-white"
-              />
-              <div className="flex text-[11px] sm:text-sm text-slate-400 mt-2 items-center gap-1 font-medium bg-white/5 px-3 py-1 rounded-full w-fit border border-white/5">
-                <Info className="h-3 w-3 sm:h-4 sm:w-4 text-brand-primary" />
-                Prix unitaire : {formatPrice(result.unitPrice)} /{" "}
-                {unitLabelSingular}
-              </div>
-              <div className="text-xs sm:text-sm text-slate-300 mt-2 sm:mt-3 font-medium flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-400" />
-                  Production estimée : ~{result.estimatedTurnaroundDays} jours
-                  ouvrés
+              {qtyBlocked ? (
+                <div className="flex items-center gap-2 text-red-400 text-sm font-semibold py-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  Quantité invalide — aucun prix calculé
                 </div>
-                <div className="flex items-center gap-2 text-brand-primary-light">
-                  <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                  Livraison Dakar disponible (48h)
-                </div>
-              </div>
+              ) : (
+                <>
+                  <PriceAnimation
+                    value={result.totalPrice}
+                    className="text-3xl sm:text-4xl md:text-5xl font-black text-white"
+                  />
+                  <div className="flex text-[11px] sm:text-sm text-slate-400 mt-2 items-center gap-1 font-medium bg-white/5 px-3 py-1 rounded-full w-fit border border-white/5">
+                    <Info className="h-3 w-3 sm:h-4 sm:w-4 text-brand-primary" />
+                    Prix unitaire : {formatPrice(result.unitPrice)} /{" "}
+                    {unitLabelSingular}
+                  </div>
+                  <div className="text-xs sm:text-sm text-slate-300 mt-2 sm:mt-3 font-medium flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-400" />
+                      Production estimée : ~{result.estimatedTurnaroundDays} jours
+                      ouvrés
+                    </div>
+                    <div className="flex items-center gap-2 text-brand-primary-light">
+                      <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                      Livraison Dakar disponible (48h)
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="w-full md:w-auto shrink-0 flex flex-col items-center">
-              <Button
-                variant="whatsapp"
-                size="lg"
-                className="w-full h-14 sm:h-12 font-bold shadow-xl hover:scale-105 active:scale-95 transition-transform rounded-xl"
-                asChild
-              >
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() =>
-                    trackEvent(AnalyticsEvents.WHATSAPP_CLICK, {
-                      product_name: product.name,
-                      total_price: result.totalPrice,
-                      quantity: state.quantity,
-                    })
-                  }
+              {qtyBlocked ? (
+                <button
+                  disabled
+                  className="w-full h-14 sm:h-12 font-bold rounded-xl bg-slate-600 text-slate-400 cursor-not-allowed flex items-center justify-center gap-2 text-sm"
                 >
-                  <MessageCircle className="mr-2 h-6 w-6" />
-                  Valider sur WhatsApp
-                </a>
-              </Button>
+                  <AlertCircle className="h-5 w-5" />
+                  Quantité minimale requise
+                </button>
+              ) : (
+                <Button
+                  variant="whatsapp"
+                  size="lg"
+                  className="w-full h-14 sm:h-12 font-bold shadow-xl hover:scale-105 active:scale-95 transition-transform rounded-xl"
+                  asChild
+                >
+                  <a
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() =>
+                      trackEvent(AnalyticsEvents.WHATSAPP_CLICK, {
+                        product_name: product.name,
+                        total_price: result.totalPrice,
+                        quantity: state.quantity,
+                      })
+                    }
+                  >
+                    <MessageCircle className="mr-2 h-6 w-6" />
+                    Valider sur WhatsApp
+                  </a>
+                </Button>
+              )}
               <p className="text-[10px] text-gray-400 text-center mt-3 uppercase tracking-wider max-w-[200px] leading-tight">
                 Devis sans engagement. Le prix final peut varier selon les
                 contraintes de fichier.
