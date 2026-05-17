@@ -24,7 +24,9 @@ import {
   Copy,
   Check,
   Table2,
+  FilePlus,
 } from "lucide-react";
+import { DevisProspectForm } from "@/components/admin/DevisProspectForm";
 import type { Prospect, ProspectStatus, ProspectPriority, AdminRole } from "@/lib/types/domain";
 import { siteConfig } from "@/lib/config/site";
 import {
@@ -122,6 +124,7 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
   const [deleteTarget, setDeleteTarget] = useState<Prospect | null>(null);
   const [deleteWarning, setDeleteWarning] = useState<string | undefined>(undefined);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [devisTarget, setDevisTarget] = useState<Prospect | null>(null);
 
   const tabFilter = (p: Prospect): boolean => {
     switch (activeTab) {
@@ -250,6 +253,14 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
 
   return (
     <div className="space-y-5">
+      {/* Modale création devis */}
+      {devisTarget && (
+        <DevisProspectForm
+          prospect={devisTarget}
+          onClose={() => setDevisTarget(null)}
+        />
+      )}
+
       {/* Modal suppression */}
       {deleteTarget && (
         <ConfirmWithWord
@@ -435,6 +446,14 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
                 >
                   <Eye className="w-3 h-3" /> Fiche
                 </Link>
+                {canEdit && (
+                  <button
+                    onClick={() => setDevisTarget(p)}
+                    className="h-8 px-3 rounded-lg bg-brand-primary text-white text-[11px] font-bold flex items-center gap-1 transition-colors hover:bg-brand-primary-dark"
+                  >
+                    <FilePlus className="w-3 h-3" /> Devis
+                  </button>
+                )}
                 <a
                   href={buildWhatsAppLink(p.whatsapp)}
                   target="_blank"
@@ -547,6 +566,15 @@ export function ProspectsClient({ prospects, totalCount, activeFilter, role: _ro
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </Link>
+                        {canEdit && (
+                          <button
+                            onClick={() => setDevisTarget(p)}
+                            title="Créer un devis"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-brand-primary text-white hover:bg-brand-primary-dark transition-colors"
+                          >
+                            <FilePlus className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         {/* WhatsApp dropdown */}
                         <div className="relative group">
                           <button

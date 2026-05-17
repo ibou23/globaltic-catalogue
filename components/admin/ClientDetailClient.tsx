@@ -32,7 +32,9 @@ import {
   Frown,
   AlertTriangle,
   Trash2,
+  FilePlus,
 } from "lucide-react";
+import { DevisClientForm } from "@/components/admin/DevisClientForm";
 import type { Customer, QuoteEnriched, OrderEnriched, AdminRole, TaskEnriched, AdminProfile } from "@/lib/types/domain";
 import { formatPrice, formatDate, formatDateShort } from "@/lib/utils/format";
 import { canPerform } from "@/lib/auth/permissions";
@@ -259,6 +261,7 @@ export function ClientDetailClient({
   const [taskPending, startTaskTransition] = useTransition();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteWarning, setDeleteWarning] = useState<string | undefined>(undefined);
+  const [showDevisForm, setShowDevisForm] = useState(false);
 
   const tier = TIER_LABELS[customer.loyaltyTier] ?? TIER_LABELS.nouveau;
   const waBase = buildWaLink(customer.whatsapp);
@@ -344,6 +347,13 @@ export function ClientDetailClient({
   return (
     <div className="space-y-6">
 
+      {showDevisForm && (
+        <DevisClientForm
+          customer={customer}
+          onClose={() => setShowDevisForm(false)}
+        />
+      )}
+
       {showTaskForm && (
         <TaskForm
           adminProfiles={adminProfiles}
@@ -405,6 +415,14 @@ export function ClientDetailClient({
 
             {/* Actions rapides */}
             <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {canEdit && (
+                <button
+                  onClick={() => setShowDevisForm(true)}
+                  className="h-9 px-4 rounded-xl bg-brand-primary text-white hover:bg-brand-primary-dark text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <FilePlus className="w-4 h-4" /> Créer devis
+                </button>
+              )}
               <a
                 href={waBase}
                 target="_blank"

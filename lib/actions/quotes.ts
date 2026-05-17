@@ -1,15 +1,18 @@
 "use server";
 
 import { createQuoteSchema, updateQuoteStatusSchema, updateQuoteSchema } from "@/lib/validators/quote";
-import { createQuote, updateQuote, updateQuoteStatus } from "@/lib/db/quotes";
+import { createQuote, updateQuote, updateQuoteStatus, getQuotesEnrichedByCustomer } from "@/lib/db/quotes";
 import { generateReference } from "@/lib/services/reference";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { requireActionDynamic } from "@/lib/auth/check-access";
 import { getActiveAdminProfiles } from "@/lib/db/admin-users";
 import { createAdminNotifications } from "@/lib/db/notifications";
 import { createQuoteFollowUpTasks } from "@/lib/services/auto-tasks";
-import { err, type Result } from "@/lib/utils/result";
-import type { Quote } from "@/lib/types/domain";
+import { logAdminEvent } from "@/lib/db/activity-log";
+import { getProspectById, updateProspect } from "@/lib/db/prospects";
+import { getCustomerById, getCustomerByWhatsapp, createCustomer } from "@/lib/db/customers";
+import { err, ok, type Result } from "@/lib/utils/result";
+import type { Quote, QuoteEnriched } from "@/lib/types/domain";
 
 export async function createQuoteAction(
   formData: unknown
@@ -96,4 +99,218 @@ export async function updateQuoteStatusAction(
   }
 
   return result;
+}
+
+// ─── Créer un devis depuis un prospect ───────────────────────────────────────
+
+export interface CreateQuoteFromProspectInput {
+  prospect_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  options?: string;
+  delai?: string;
+  notes?: string;
+  internal_notes?: string;
+  is_urgent?: boolean;
+  discount_percent?: number;
+}
+
+export async function createQuoteFromProspectAction(
+  input: CreateQuoteFromProspectInput
+): Promise<Result<{ quoteId: string; quoteRef: string }>> {
+  const admin = await getCurrentAdmin();
+  const denied = await requireActionDynamic(admin.data?.role, "devis:create");
+  if (denied) return err(denied);
+
+  if (!input.prospect_id) return err("Identifiant du prospect manquant");
+
+  const prospectResult = await getProspectById(input.prospect_id);
+  if (!prospectResult.data) return err("Prospect introuvable");
+  const prospect = prospectResult.data;
+
+  // Trouver ou créer le client lié
+  let customerId: string | null = prospect.convertedCustomerId ?? null;
+
+  if (!customerId) {
+    const existingCustomer = await getCustomerByWhatsapp(prospect.whatsapp);
+    if (existingCustomer.data) {
+      customerId = existingCustomer.data.id;
+      await updateProspect(prospect.id, { converted_customer_id: existingCustomer.data.id });
+    } else {
+      const newCustomer = await createCustomer({
+        contact_name: prospect.fullName,
+        whatsapp: prospect.whatsapp,
+        email: prospect.email ?? undefined,
+        phone: prospect.phoneSecondary ?? undefined,
+        company_name: prospect.companyName ?? undefined,
+        city: prospect.deliveryZone ?? "Dakar",
+        customer_type: prospect.companyName ? "entreprise" : "particulier",
+        source: "whatsapp",
+        notes: prospect.internalNotes ?? undefined,
+      });
+      if (!newCustomer.data) return err(newCustomer.error ?? "Erreur création client");
+      customerId = newCustomer.data.id;
+      await updateProspect(prospect.id, { converted_customer_id: customerId });
+    }
+  }
+
+  const totalPrice = input.quantity * input.unit_price;
+
+  const configSnapshot: Record<string, unknown> = {};
+  if (input.options?.trim()) configSnapshot.options = input.options.trim();
+  if (input.delai?.trim()) configSnapshot.delai = input.delai.trim();
+  if (prospect.formatDimensions) configSnapshot.format = prospect.formatDimensions;
+  if (prospect.finish) configSnapshot.finition = prospect.finish;
+  if (prospect.preferredColors) configSnapshot.couleurs = prospect.preferredColors;
+
+  // Notes internes enrichies avec les données du prospect
+  const internalParts: string[] = [];
+  if (input.internal_notes?.trim()) internalParts.push(input.internal_notes.trim());
+  if (prospect.message) internalParts.push(`Message prospect : ${prospect.message}`);
+  if (prospect.productsServices) internalParts.push(`Activité : ${prospect.productsServices}`);
+  if (prospect.estimatedBudget) internalParts.push(`Budget estimé : ${prospect.estimatedBudget}`);
+  if (prospect.supportText) internalParts.push(`Texte support : ${prospect.supportText}`);
+
+  const reference = await generateReference("DEV");
+  const quoteResult = await createQuote(
+    {
+      customer_id: customerId,
+      items: [
+        {
+          product_name: input.product_name,
+          quantity: input.quantity,
+          unit_price: input.unit_price,
+          total_price: totalPrice,
+          config_snapshot: configSnapshot,
+        },
+      ],
+      is_urgent: input.is_urgent ?? false,
+      discount_percent: input.discount_percent ?? 0,
+      notes: input.notes?.trim() || null,
+      internal_notes: internalParts.length > 0 ? internalParts.join("\n\n") : null,
+    },
+    reference
+  );
+
+  if (!quoteResult.data) return err(quoteResult.error ?? "Erreur création devis");
+
+  // Mettre le statut prospect à "devis_envoye"
+  await updateProspect(prospect.id, { status: "devis_envoye" });
+
+  if (admin.data) {
+    await logAdminEvent(admin.data.userId, "devis_cree_depuis_prospect", quoteResult.data.id, {
+      prospectId: prospect.id,
+      prospectName: prospect.fullName,
+      quoteRef: quoteResult.data.reference,
+    });
+  }
+
+  const profiles = await getActiveAdminProfiles();
+  await createAdminNotifications({
+    eventKey: "devis_cree",
+    title: "Nouveau devis créé",
+    body: `Devis ${quoteResult.data.reference} créé pour ${prospect.fullName} (prospect)`,
+    entityType: "quote",
+    entityId: quoteResult.data.id,
+    link: "/admin/devis",
+    adminProfiles: profiles,
+  });
+
+  return ok({ quoteId: quoteResult.data.id, quoteRef: quoteResult.data.reference });
+}
+
+// ─── Créer un devis depuis un client ─────────────────────────────────────────
+
+export interface CreateQuoteFromClientInput {
+  customer_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  options?: string;
+  delai?: string;
+  notes?: string;
+  internal_notes?: string;
+  is_urgent?: boolean;
+  discount_percent?: number;
+}
+
+export async function createQuoteFromClientAction(
+  input: CreateQuoteFromClientInput
+): Promise<Result<{ quoteId: string; quoteRef: string }>> {
+  const admin = await getCurrentAdmin();
+  const denied = await requireActionDynamic(admin.data?.role, "devis:create");
+  if (denied) return err(denied);
+
+  if (!input.customer_id) return err("Identifiant du client manquant");
+
+  const customerResult = await getCustomerById(input.customer_id);
+  if (!customerResult.data) return err("Client introuvable");
+
+  const totalPrice = input.quantity * input.unit_price;
+
+  const configSnapshot: Record<string, unknown> = {};
+  if (input.options?.trim()) configSnapshot.options = input.options.trim();
+  if (input.delai?.trim()) configSnapshot.delai = input.delai.trim();
+
+  const reference = await generateReference("DEV");
+  const quoteResult = await createQuote(
+    {
+      customer_id: input.customer_id,
+      items: [
+        {
+          product_name: input.product_name,
+          quantity: input.quantity,
+          unit_price: input.unit_price,
+          total_price: totalPrice,
+          config_snapshot: configSnapshot,
+        },
+      ],
+      is_urgent: input.is_urgent ?? false,
+      discount_percent: input.discount_percent ?? 0,
+      notes: input.notes?.trim() || null,
+      internal_notes: input.internal_notes?.trim() || null,
+    },
+    reference
+  );
+
+  if (!quoteResult.data) return err(quoteResult.error ?? "Erreur création devis");
+
+  if (admin.data) {
+    await logAdminEvent(admin.data.userId, "devis_cree_depuis_client", quoteResult.data.id, {
+      customerId: input.customer_id,
+      customerName: customerResult.data.contactName,
+      quoteRef: quoteResult.data.reference,
+    });
+  }
+
+  const profiles = await getActiveAdminProfiles();
+  await createAdminNotifications({
+    eventKey: "devis_cree",
+    title: "Nouveau devis créé",
+    body: `Devis ${quoteResult.data.reference} créé pour ${customerResult.data.contactName} (client)`,
+    entityType: "quote",
+    entityId: quoteResult.data.id,
+    link: "/admin/devis",
+    adminProfiles: profiles,
+  });
+
+  return ok({ quoteId: quoteResult.data.id, quoteRef: quoteResult.data.reference });
+}
+
+// ─── Devis liés à un prospect ─────────────────────────────────────────────────
+
+export async function getProspectLinkedQuotesAction(
+  prospectId: string
+): Promise<Result<QuoteEnriched[]>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+
+  const prospectResult = await getProspectById(prospectId);
+  if (!prospectResult.data) return err("Prospect introuvable");
+
+  const customerId = prospectResult.data.convertedCustomerId;
+  if (!customerId) return ok([]);
+
+  return getQuotesEnrichedByCustomer(customerId);
 }

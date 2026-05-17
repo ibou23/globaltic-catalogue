@@ -25,7 +25,9 @@ import {
   HelpCircle,
   XCircle,
   Pencil,
+  FilePlus,
 } from "lucide-react";
+import { DevisProspectForm } from "@/components/admin/DevisProspectForm";
 import {
   updateProspectAction,
   deleteProspectAction,
@@ -91,6 +93,7 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
   const [converted, setConverted] = useState(!!prospect.convertedCustomerId);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteWarning, setDeleteWarning] = useState<string | undefined>(undefined);
+  const [showDevisForm, setShowDevisForm] = useState(false);
 
   const waNumber = prospect.whatsapp.replace(/[^0-9]/g, "") || siteConfig.whatsapp;
   const waLink = `https://wa.me/${waNumber}`;
@@ -261,6 +264,15 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
               <Pencil className="w-4 h-4" /> Modifier
             </Link>
           )}
+          {canEdit && (
+            <button
+              onClick={() => setShowDevisForm(true)}
+              disabled={isPending}
+              className="h-10 px-4 rounded-xl bg-brand-primary text-white text-sm font-bold hover:bg-brand-primary-dark transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <FilePlus className="w-4 h-4" /> Créer devis
+            </button>
+          )}
           {canEdit && !converted && (
             <button
               onClick={handleConvert}
@@ -290,6 +302,14 @@ export function ProspectDetailClient({ prospect, files, canEdit, canDelete }: Pr
           )}
         </div>
       </div>
+
+      {/* Modale création devis */}
+      {showDevisForm && (
+        <DevisProspectForm
+          prospect={prospect}
+          onClose={() => setShowDevisForm(false)}
+        />
+      )}
 
       {/* Modal suppression forte */}
       {showDeleteModal && (
