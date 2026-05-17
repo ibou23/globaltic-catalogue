@@ -9,7 +9,6 @@ import {
 import type { OrderEnriched, DeliveryStatus, AdminRole } from "@/lib/types/domain";
 import { updateDeliveryAction } from "@/lib/actions/delivery";
 import { canPerform } from "@/lib/auth/permissions";
-import { formatDateShort } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config/site";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -37,29 +36,31 @@ export const DELIVERY_STATUS_CONFIG: Record<DeliveryStatus, {
 // ─── Messages WhatsApp ────────────────────────────────────────────────────────
 
 const DELIVERY_METHOD_LABELS_WA: Record<string, string> = {
-  livraison_dakar:    "Livraison Dakar",
-  livraison_region:   "Livraison région",
-  livraison_coursier: "Livraison par coursier",
-  autre:              "Livraison",
+  livraison_dakar:    "À domicile / Dakar",
+  livraison_region:   "À domicile / Région",
+  livraison_coursier: "Par coursier",
+  autre:              "Livraison personnalisée",
+  retrait:            "Retrait en boutique",
 };
 
 function buildWaDelivery(
   order: OrderEnriched,
   type: "planifiee" | "en_cours" | "livree" | "echec" | "reportee",
-  opts?: { estimatedDelivery?: string; deliveryMethod?: string; deliveryFee?: number }
+  opts?: { estimatedDelivery?: string; deliveryMethod?: string; deliveryFee?: number; deliveryAddress?: string }
 ): string | null {
   const phone = order.customer?.whatsapp?.replace(/\D/g, "");
   if (!phone) return null;
   const client = order.customer?.contactName ?? "client";
   const ref    = order.reference;
-  const dateStr = opts?.estimatedDelivery ? formatDateShort(opts.estimatedDelivery) : "date à confirmer";
   const fee  = opts?.deliveryFee ?? 0;
   const fmtFee = fee > 0 ? fee.toLocaleString("fr-SN") + " FCFA" : null;
   const methodLabel = DELIVERY_METHOD_LABELS_WA[opts?.deliveryMethod ?? ""] ?? null;
+  const address = opts?.deliveryAddress?.trim() || null;
 
-  // Lignes mode + frais (insérées si pertinentes)
+  // Bloc livraison : mode, adresse, frais
   const deliveryInfoLines: string[] = [];
-  if (methodLabel) deliveryInfoLines.push(`Mode : *${methodLabel}*`);
+  if (methodLabel) deliveryInfoLines.push(`Livraison : *${methodLabel}*`);
+  if (address)     deliveryInfoLines.push(`Adresse : *${address}*`);
   if (fmtFee)      deliveryInfoLines.push(`Frais de livraison : *${fmtFee}*`);
   const hasInfo = deliveryInfoLines.length > 0;
 
@@ -185,6 +186,7 @@ export function DeliveryModal({ order, role, onClose }: DeliveryModalProps) {
         estimatedDelivery,
         deliveryMethod,
         deliveryFee: parseInt(fee, 10) || 0,
+        deliveryAddress,
       })
     : buildWaDefault(order);
 

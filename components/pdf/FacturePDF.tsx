@@ -245,10 +245,10 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 
 const DELIVERY_METHOD_LABELS: Record<string, string> = {
   retrait:              "Retrait en boutique",
-  livraison_dakar:      "Livraison Dakar",
-  livraison_region:     "Livraison region",
+  livraison_dakar:      "Livraison à domicile — Dakar",
+  livraison_region:     "Livraison à domicile — Région",
   livraison_coursier:   "Livraison par coursier",
-  autre:                "Autre",
+  autre:                "Livraison personnalisée",
 };
 
 function resolveDeliveryMethodLabel(order: OrderEnriched): string {
