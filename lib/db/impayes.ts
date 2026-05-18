@@ -81,7 +81,7 @@ export async function getImpayeRows(): Promise<Result<ImpayeRow[]>> {
   const { data: ordData, error: ordErr } = await supabase
     .from("orders")
     .select(`
-      id, reference, status, total, paid_amount, last_payment_at, customer_id,
+      id, reference, status, total, paid_amount, delivery_fee, last_payment_at, customer_id,
       customers(id, contact_name, company_name, whatsapp)
     `)
     .eq("status", "livre")
@@ -90,9 +90,10 @@ export async function getImpayeRows(): Promise<Result<ImpayeRow[]>> {
   if (ordErr) return err(ordErr.message);
 
   for (const raw of (ordData ?? []) as Record<string, unknown>[]) {
-    const total      = raw.total       as number;
-    const paidAmount = raw.paid_amount as number;
-    const balance    = total - paidAmount;
+    const total       = raw.total        as number;
+    const paidAmount  = raw.paid_amount  as number;
+    const deliveryFee = (raw.delivery_fee as number) ?? 0;
+    const balance     = total + deliveryFee - paidAmount;
     if (balance <= 0) continue;
 
     const orderId = raw.id as string;
@@ -113,7 +114,7 @@ export async function getImpayeRows(): Promise<Result<ImpayeRow[]>> {
       customerName:     (customerRaw?.contact_name as string) ?? null,
       customerCompany:  (customerRaw?.company_name as string) ?? null,
       customerWhatsapp: (customerRaw?.whatsapp     as string) ?? null,
-      total,
+      total:            total + deliveryFee,
       paidAmount,
       balance,
     });
@@ -134,7 +135,7 @@ export async function getImpayesStats(): Promise<Result<ImpayesStats>> {
       .not("status", "in", '("annulee","payee")'),
     supabase
       .from("orders")
-      .select("total, paid_amount")
+      .select("total, paid_amount, delivery_fee")
       .eq("status", "livre"),
   ]);
 
@@ -142,7 +143,7 @@ export async function getImpayesStats(): Promise<Result<ImpayesStats>> {
   if (ordRes.error) return err(ordRes.error.message);
 
   const invRows = (invRes.data ?? []) as Array<{ total: number; paid_amount: number }>;
-  const ordRows = (ordRes.data ?? []) as Array<{ total: number; paid_amount: number }>;
+  const ordRows = (ordRes.data ?? []) as Array<{ total: number; paid_amount: number; delivery_fee: number | null }>;
 
   let totalBalance = 0;
   let nbInvoicesUnpaid = 0;
@@ -151,7 +152,7 @@ export async function getImpayesStats(): Promise<Result<ImpayesStats>> {
     if (b > 0) { totalBalance += b; nbInvoicesUnpaid++; }
   }
 
-  const nbDeliveredUnpaid = ordRows.filter((r) => r.total - r.paid_amount > 0).length;
+  const nbDeliveredUnpaid = ordRows.filter((r) => r.total + (r.delivery_fee ?? 0) - r.paid_amount > 0).length;
 
   return ok({ totalBalance, nbInvoicesUnpaid, nbDeliveredUnpaid });
 }

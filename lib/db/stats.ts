@@ -23,7 +23,7 @@ export interface DashboardStats {
   ordersLivres: number;       // livre
 
   // Finance commandes
-  caCommandes: number;        // SUM(total) toutes commandes hors annulee
+  caCommandes: number;        // SUM(total + delivery_fee) toutes commandes hors annulee
   montantEncaisse: number;    // SUM(paid_amount)
   soldeRestant: number;       // caCommandes - montantEncaisse
 
@@ -105,8 +105,8 @@ export async function getDashboardStats(): Promise<Result<DashboardStats>> {
     supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["bat_en_cours", "bat_valide"]),
     supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["pret", "en_livraison"]),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "livre"),
-    // Finance : total + paid_amount sur commandes non annulées
-    supabase.from("orders").select("total, paid_amount").neq("status", "annulee"),
+    // Finance : total + paid_amount + delivery_fee sur commandes non annulées
+    supabase.from("orders").select("total, paid_amount, delivery_fee").neq("status", "annulee"),
     supabase.from("quotes").select("id, reference, status, total, created_at").order("created_at", { ascending: false }).limit(5),
     supabase.from("orders").select("id, reference, status, total, paid_amount, delivery_fee, created_at").order("created_at", { ascending: false }).limit(5),
     supabase.from("customers").select("id, contact_name, company_name, whatsapp, created_at").order("created_at", { ascending: false }).limit(5),
@@ -122,9 +122,9 @@ export async function getDashboardStats(): Promise<Result<DashboardStats>> {
   const acceptedRows = (acceptedQuotesRes.data ?? []) as Array<{ id: string; total: number }>;
   const caDevisAcceptes = acceptedRows.reduce((sum, r) => sum + (r.total ?? 0), 0);
 
-  // Calcul CA commandes + encaissé
-  const orderFinRows = (caCommandesRes.data ?? []) as Array<{ total: number; paid_amount: number }>;
-  const caCommandes = orderFinRows.reduce((sum, r) => sum + (r.total ?? 0), 0);
+  // Calcul CA commandes + encaissé (clientTotal = total + deliveryFee)
+  const orderFinRows = (caCommandesRes.data ?? []) as Array<{ total: number; paid_amount: number; delivery_fee: number | null }>;
+  const caCommandes = orderFinRows.reduce((sum, r) => sum + (r.total ?? 0) + (r.delivery_fee ?? 0), 0);
   const montantEncaisse = orderFinRows.reduce((sum, r) => sum + (r.paid_amount ?? 0), 0);
 
   return ok({

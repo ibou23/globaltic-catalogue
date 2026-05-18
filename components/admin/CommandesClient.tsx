@@ -74,12 +74,13 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 function buildWhatsAppMessage(order: OrderEnriched): string {
   const client = order.customer?.contactName ?? "client";
   const statusLabel = STATUS_OPTIONS.find((s) => s.value === order.status)?.label ?? order.status;
+  const clientTotal = order.total + (order.deliveryFee ?? 0);
   const lines = [
     `Bonjour *${client}*,`,
     ``,
     `Mise à jour de votre commande *${order.reference}* :`,
     `*Statut* : ${statusLabel}`,
-    `*Montant total* : ${order.total.toLocaleString("fr-SN")} FCFA`,
+    `*Montant total* : ${clientTotal.toLocaleString("fr-SN")} FCFA`,
     ``,
     `Merci pour votre confiance — *GLOBAL TIC*`,
   ];

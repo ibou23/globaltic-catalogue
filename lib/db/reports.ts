@@ -56,7 +56,7 @@ export async function getReportData(period: ReportPeriod): Promise<Result<Report
   const orders = rawOrders.map(mapOrder);
 
   const ordersCreated     = orders.length;
-  const ordersCA          = orders.filter((o) => o.status !== "annulee").reduce((s, o) => s + o.total, 0);
+  const ordersCA          = orders.filter((o) => o.status !== "annulee").reduce((s, o) => s + o.total + (o.deliveryFee ?? 0), 0);
   const ordersEncaisse    = orders.reduce((s, o) => s + o.paidAmount, 0);
   const ordersSolde       = orders
     .filter((o) => !["annulee", "livre"].includes(o.status))
@@ -85,7 +85,7 @@ export async function getReportData(period: ReportPeriod): Promise<Result<Report
     const existing = clientMap.get(order.customerId);
     if (existing) {
       existing.ordersCount++;
-      existing.totalCA   += order.total;
+      existing.totalCA   += order.total + (order.deliveryFee ?? 0);
       existing.totalPaid += order.paidAmount;
     } else {
       clientMap.set(order.customerId, {
@@ -93,7 +93,7 @@ export async function getReportData(period: ReportPeriod): Promise<Result<Report
         name,
         company,
         ordersCount: 1,
-        totalCA:    order.total,
+        totalCA:    order.total + (order.deliveryFee ?? 0),
         totalPaid:  order.paidAmount,
       });
     }
