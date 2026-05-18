@@ -27,6 +27,7 @@ import {
   UserPlus,
   MessageSquare,
   Shield,
+  Presentation,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -71,6 +72,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Utilisateurs",   href: "/admin/utilisateurs", icon: UserCog,                      module: "utilisateurs" },
   { label: "Maintenance",    href: "/admin/maintenance",  icon: Wrench,                       module: "maintenance" },
   { label: "Aide",           href: "/admin/aide",         icon: HelpCircle,                   module: "aide" },
+  { label: "Présentation",  href: "/admin/presentation", icon: Presentation,                 module: "presentation" },
 ];
 
 interface MenuOrderEntry {
