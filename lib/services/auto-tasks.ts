@@ -40,7 +40,8 @@ export async function createQuoteFollowUpTasks(opts: {
   isUrgent: boolean;
 }): Promise<void> {
   const { quoteId, quoteRef, customerId, assignedTo, isUrgent } = opts;
-  const priority = isUrgent ? "haute" : "normale";
+  const priority = isUrgent ? "urgente" : "normale";
+  const assignee = assignedTo || null;
 
   const tasks = [
     { title: `Relance devis ${quoteRef} — J+1`, days: 1 },
@@ -63,9 +64,9 @@ export async function createQuoteFollowUpTasks(opts: {
         prospect_id: null,
         quote_id: quoteId,
         order_id: null,
-        assigned_to: assignedTo,
+        assigned_to: assignee,
       },
-      assignedTo
+      assignee ?? ""
     );
   }
 }
@@ -77,6 +78,7 @@ export async function createSatisfactionTask(opts: {
   assignedTo: string;
 }): Promise<void> {
   const { orderId, orderRef, customerId, assignedTo } = opts;
+  const assignee = assignedTo || null;
   const title = `Vérifier satisfaction client — ${orderRef}`;
 
   const exists = await taskExists({ orderId, taskType: "confirmer_livraison", title });
@@ -93,9 +95,9 @@ export async function createSatisfactionTask(opts: {
       prospect_id: null,
       quote_id: null,
       order_id: orderId,
-      assigned_to: assignedTo,
+      assigned_to: assignee,
     },
-    assignedTo
+    assignee ?? ""
   );
 }
 
@@ -108,6 +110,7 @@ export async function createLoyaltyTask(opts: {
   const { orderId, orderRef, customerId, assignedTo } = opts;
   if (!customerId) return;
 
+  const assignee = assignedTo || null;
   const title = `Relancer client pour nouvelle commande — ${orderRef}`;
 
   const exists = await taskExists({ customerId, orderId, taskType: "appeler_client", title });
@@ -124,9 +127,9 @@ export async function createLoyaltyTask(opts: {
       prospect_id: null,
       quote_id: null,
       order_id: orderId,
-      assigned_to: assignedTo,
+      assigned_to: assignee,
     },
-    assignedTo
+    assignee ?? ""
   );
 }
 
