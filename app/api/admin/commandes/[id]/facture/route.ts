@@ -59,8 +59,9 @@ export async function GET(
 
   if (!invoice) {
     const reference = await generateReference("FAC");
+    const clientTotal = order.total + (order.deliveryFee ?? 0);
     const invoiceStatus: InvoiceStatus =
-      order.paidAmount >= order.total ? "payee"
+      order.paidAmount >= clientTotal ? "payee"
       : order.paidAmount > 0          ? "partiellement_payee"
       : "emise";
 
@@ -69,7 +70,7 @@ export async function GET(
       orderId:     order.id,
       customerId:  order.customerId,
       status:      invoiceStatus,
-      total:       order.total,
+      total:       clientTotal,
       paidAmount:  order.paidAmount,
       generatedBy: admin.data.userId,
       notes:       null,
@@ -85,7 +86,7 @@ export async function GET(
   if (isNew) {
     logOrderEvent(admin.data.userId, order.id, "facture_generee", {
       factureRef: invoice.reference,
-      total: order.total,
+      total: invoice.total,
       paidAmount: order.paidAmount,
     });
   }

@@ -166,10 +166,11 @@ export async function updateOrderAction(
           adminProfiles: profiles,
         });
       } else {
+        const clientTotal = order.total + (order.deliveryFee ?? 0);
         notifJobs.push({
           eventKey: "paiement_mis_a_jour",
           title: "Paiement complet",
-          body: `Commande ${ref} entièrement réglée (${order.total.toLocaleString("fr-SN")} FCFA)`,
+          body: `Commande ${ref} entièrement réglée (${clientTotal.toLocaleString("fr-SN")} FCFA)`,
           entityType: "order", entityId: id, link: "/admin/commandes",
           adminProfiles: profiles,
         });
