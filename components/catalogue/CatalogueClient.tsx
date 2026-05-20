@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 import { ArrowRight, Settings2, Sparkles, Filter, ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FullCatalogueCTA } from "@/components/sections/FullCatalogueCTA";
+import { trackViewContent } from "@/lib/tracking/meta-pixel";
 import type { Category, Product } from "@/lib/types/domain";
 
 interface CatalogueClientProps {
@@ -31,6 +32,20 @@ export function CatalogueClient({
   initialMinPrices,
 }: CatalogueClientProps) {
   const [activeCategory, setActiveCategory] = useState(initialCategoryId);
+
+  useEffect(() => {
+    if (initialCategoryId !== "all") {
+      const category = categories.find((c) => c.id === initialCategoryId);
+      if (category) {
+        trackViewContent({
+          content_name: category.name,
+          content_category: "catalogue",
+          content_ids: [category.slug],
+          content_type: "product_group",
+        });
+      }
+    }
+  }, [initialCategoryId, categories]);
 
   const filteredProducts =
     activeCategory === "all"

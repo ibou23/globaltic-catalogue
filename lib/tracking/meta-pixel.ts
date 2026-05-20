@@ -1,6 +1,6 @@
-type MetaPixelParams = Record<string, string | number | boolean | undefined>;
+type MetaPixelParams = Record<string, string | number | boolean | string[] | undefined>;
 
-interface ViewContentPayload {
+export interface ViewContentPayload {
   content_name: string;
   content_category: string;
   content_ids: string[];
@@ -9,19 +9,19 @@ interface ViewContentPayload {
   value?: number;
 }
 
-interface ContactPayload {
+export interface ContactPayload {
   content_name: string;
   content_category: string;
   source: string;
 }
 
-interface LeadPayload {
+export interface LeadPayload {
   content_name: string;
   content_category: string;
   source: string;
 }
 
-function fbq(event: string, name: string, params?: MetaPixelParams): void {
+function callFbq(event: string, name: string, params?: MetaPixelParams): void {
   if (typeof window === "undefined") return;
   if (!window.fbq) return;
 
@@ -51,18 +51,18 @@ export function trackViewContent(payload: ViewContentPayload): void {
   if (firedEvents.has(key)) return;
   firedEvents.add(key);
 
-  fbq("track", "ViewContent", {
+  callFbq("track", "ViewContent", {
     content_name: payload.content_name,
     content_category: payload.content_category,
     content_type: payload.content_type ?? "product",
-    content_ids: payload.content_ids.join(","),
+    content_ids: payload.content_ids,
     ...(payload.currency && { currency: payload.currency }),
     ...(payload.value != null && { value: payload.value }),
   });
 }
 
 export function trackContact(payload: ContactPayload): void {
-  fbq("track", "Contact", {
+  callFbq("track", "Contact", {
     content_name: payload.content_name,
     content_category: payload.content_category,
     source: payload.source,
@@ -70,7 +70,7 @@ export function trackContact(payload: ContactPayload): void {
 }
 
 export function trackLead(payload: LeadPayload): void {
-  fbq("track", "Lead", {
+  callFbq("track", "Lead", {
     content_name: payload.content_name,
     content_category: payload.content_category,
     source: payload.source,
@@ -78,5 +78,5 @@ export function trackLead(payload: LeadPayload): void {
 }
 
 export function trackCustomEvent(name: string, params?: MetaPixelParams): void {
-  fbq("trackCustom", name, params);
+  callFbq("trackCustom", name, params);
 }
