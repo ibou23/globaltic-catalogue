@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Mail, Phone, MapPin, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WhatsAppLink } from "@/components/ui/WhatsAppLink";
 
 export function Footer() {
   return (
@@ -88,9 +89,13 @@ export function Footer() {
             <p className="text-slate-400 text-sm">Notre équipe commerciale vous répond en moins de 15 minutes sur WhatsApp.</p>
           </div>
           <Button variant="whatsapp" size="lg" className="shrink-0" asChild>
-            <a href="https://wa.me/221776190419" target="_blank" rel="noopener noreferrer">
+            <WhatsAppLink
+              href="https://wa.me/221776190419"
+              contentName="Devis sur-mesure"
+              contentCategory="footer"
+            >
               Discuter sur WhatsApp
-            </a>
+            </WhatsAppLink>
           </Button>
         </div>
 

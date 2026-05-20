@@ -19,7 +19,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { siteConfig } from "@/lib/config/site";
-import { trackLead } from "@/lib/tracking/meta-pixel";
+import { trackLead, trackContact } from "@/lib/tracking/meta-pixel";
+import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
 import type { ProductDetail } from "@/lib/types/domain";
 
 type Step = "contact" | "entreprise" | "conception" | "commande";
@@ -248,6 +249,17 @@ export function DemandeForm() {
           href={`https://wa.me/${siteConfig.whatsapp}?text=${waText}`}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => {
+            trackEvent(AnalyticsEvents.WHATSAPP_CLICK, {
+              content_name: "Confirmation demande",
+              location: "demande_success",
+            });
+            trackContact({
+              content_name: "Confirmation demande",
+              content_category: "demande_success",
+              source: "whatsapp",
+            });
+          }}
           className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors"
         >
           <MessageCircle className="w-5 h-5" />

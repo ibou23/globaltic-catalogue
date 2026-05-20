@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { WhatsAppLink } from "@/components/ui/WhatsAppLink";
 import { ArrowRight, Star, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -68,13 +69,13 @@ export function HeroSection() {
                 className="w-full sm:w-auto h-16 sm:h-14 px-8 text-lg sm:text-base bg-white/80 rounded-2xl"
                 asChild
               >
-                <a
+                <WhatsAppLink
                   href="https://wa.me/221776190419"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  contentName="Contact Commercial"
+                  contentCategory="hero"
                 >
                   Contact Commercial
-                </a>
+                </WhatsAppLink>
               </Button>
             </motion.div>
 

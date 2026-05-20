@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Send, FileText, CheckCircle2 } from "lucide-react";
 import { products } from "@/data/products";
+import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
+import { trackContact } from "@/lib/tracking/meta-pixel";
 
 export function QuickQuote() {
   const [isSubmitted, setIsSubmitted] = React.useState(false);
@@ -34,6 +36,15 @@ export function QuickQuote() {
     text += `${nl}Bonjour GLOBAL TIC, merci de me recontacter pour ce projet.`;
     
     window.open(`https://wa.me/221776190419?text=${text}`, "_blank");
+    trackEvent(AnalyticsEvents.WHATSAPP_CLICK, {
+      content_name: formData.product,
+      location: "quick_quote",
+    });
+    trackContact({
+      content_name: formData.product,
+      content_category: "quick_quote",
+      source: "whatsapp",
+    });
     setIsSubmitted(true);
   };
 
