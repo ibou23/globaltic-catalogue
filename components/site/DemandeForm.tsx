@@ -19,6 +19,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { siteConfig } from "@/lib/config/site";
+import { trackLead } from "@/lib/tracking/meta-pixel";
 import type { ProductDetail } from "@/lib/types/domain";
 
 type Step = "contact" | "entreprise" | "conception" | "commande";
@@ -205,6 +206,11 @@ export function DemandeForm() {
       if (result.error) {
         setError(result.error);
       } else {
+        trackLead({
+          content_name: "Demande de devis",
+          content_category: "formulaire",
+          source: "demande_form",
+        });
         setSuccess({
           name: form.full_name,
           company: form.company_name || "",

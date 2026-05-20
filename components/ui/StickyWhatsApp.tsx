@@ -4,6 +4,7 @@ import React from "react";
 import { MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
+import { trackContact } from "@/lib/tracking/meta-pixel";
 
 export function StickyWhatsApp() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -24,6 +25,11 @@ export function StickyWhatsApp() {
   const handleClick = () => {
     trackEvent(AnalyticsEvents.WHATSAPP_CLICK, {
       location: "sticky_button"
+    });
+    trackContact({
+      content_name: "Aide générale",
+      content_category: "sticky_button",
+      source: "whatsapp",
     });
   };
 

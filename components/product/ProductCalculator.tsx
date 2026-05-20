@@ -6,6 +6,7 @@ import { useCalculator } from "@/hooks/use-calculator";
 import { formatPrice } from "@/lib/utils";
 import { generateWhatsAppLink } from "@/lib/whatsapp/generator";
 import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
+import { trackViewContent, trackContact } from "@/lib/tracking/meta-pixel";
 import { PriceAnimation } from "@/components/calculator/PriceAnimation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +31,14 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
       product_name: product.name,
       category_id: product.categoryId,
     });
-  }, [product.id, product.name, product.categoryId]);
+    trackViewContent({
+      content_name: product.name,
+      content_category: product.category?.name ?? "",
+      content_ids: [product.slug],
+      currency: "XOF",
+      value: product.quantityTiers[0]?.baseUnitPrice,
+    });
+  }, [product.id, product.name, product.categoryId, product.slug, product.category?.name, product.quantityTiers]);
 
   // Progrès de configuration
   const steps = [
@@ -411,13 +419,18 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
                     href={whatsappLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() =>
+                    onClick={() => {
                       trackEvent(AnalyticsEvents.WHATSAPP_CLICK, {
                         product_name: product.name,
                         total_price: result.totalPrice,
                         quantity: state.quantity,
-                      })
-                    }
+                      });
+                      trackContact({
+                        content_name: product.name,
+                        content_category: product.category?.name ?? "",
+                        source: "whatsapp",
+                      });
+                    }}
                   >
                     <MessageCircle className="mr-2 h-6 w-6" />
                     Valider sur WhatsApp
