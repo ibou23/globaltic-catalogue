@@ -8,6 +8,8 @@ import {
   Font,
 } from "@react-pdf/renderer";
 import type { Quote, QuoteItem } from "@/lib/types/domain";
+import { PdfFooter } from "./PdfFooter";
+import { PdfSignatureBlock } from "./PdfSignatureBlock";
 
 Font.register({
   family: "Helvetica",
@@ -28,7 +30,7 @@ const s = StyleSheet.create({
     color: GRAY_DARK,
     backgroundColor: "#FFFFFF",
     paddingTop: 40,
-    paddingBottom: 56,
+    paddingBottom: 72,
     paddingHorizontal: 48,
   },
   // Header
@@ -257,28 +259,7 @@ const s = StyleSheet.create({
     color: GRAY_TEXT,
     lineHeight: 1.4,
   },
-  // Footer
-  footer: {
-    position: "absolute",
-    bottom: 24,
-    left: 48,
-    right: 48,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: GRAY_BORDER,
-    paddingTop: 8,
-  },
-  footerText: {
-    fontSize: 7,
-    color: GRAY_TEXT,
-  },
-  footerBrand: {
-    fontSize: 7,
-    fontFamily: "Helvetica-Bold",
-    color: BRAND_PRIMARY,
-  },
+  // (footer handled by PdfFooter component)
   urgentBadge: {
     backgroundColor: "#FEE2E2",
     borderRadius: 3,
@@ -365,14 +346,12 @@ export function DevisPDF({
   logoUrl,
   company,
   pdfConditions,
-  pdfFooterText,
 }: DevisPDFProps) {
   const companyName    = company?.name    ?? "GLOBAL TIC";
   const companyTagline = company?.tagline ?? "Imprimerie Professionnelle";
   const companyAddress = company?.address ?? "Dakar, Sénégal";
   const companyPhone   = company?.phone   ?? "+221 77 619 04 19";
   const companyEmail   = company?.email   ?? "contact@globalticgroup.com";
-  const footerText     = pdfFooterText    ?? `${companyName} — ${companyTagline} — ${companyAddress}`;
   const conditions     = pdfConditions && pdfConditions.length > 0 ? pdfConditions : [
     "Les délais de production sont donnés à titre indicatif et commencent à courir après validation définitive de la commande.",
     "Les modalités de paiement sont les suivantes : 50 % d'acompte à la validation de la commande, le solde restant étant payable à la livraison.",
@@ -543,11 +522,11 @@ export function DevisPDF({
           </View>
         </View>
 
-        {/* Footer */}
-        <View style={s.footer} fixed>
-          <Text style={s.footerText}>{footerText}</Text>
-          <Text style={s.footerBrand}>{quote.reference}</Text>
-        </View>
+        {/* Signature */}
+        <PdfSignatureBlock />
+
+        {/* Footer officiel */}
+        <PdfFooter reference={quote.reference} />
       </Page>
     </Document>
   );

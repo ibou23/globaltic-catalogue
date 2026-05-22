@@ -7,6 +7,8 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { OrderEnriched, Quote, QuoteItem, Invoice, InvoiceStatus } from "@/lib/types/domain";
+import { PdfFooter } from "./PdfFooter";
+import { PdfSignatureBlock } from "./PdfSignatureBlock";
 
 const BRAND_PRIMARY   = "#529FD7";
 const BRAND_SECONDARY = "#132034";
@@ -24,7 +26,7 @@ const s = StyleSheet.create({
     color: GRAY_DARK,
     backgroundColor: "#FFFFFF",
     paddingTop: 40,
-    paddingBottom: 56,
+    paddingBottom: 72,
     paddingHorizontal: 48,
   },
   header: {
@@ -193,20 +195,7 @@ const s = StyleSheet.create({
   },
   issuerText: { fontSize: 8, color: GRAY_TEXT },
   issuerBold: { fontSize: 8, fontFamily: "Helvetica-Bold", color: BRAND_SECONDARY },
-  footer: {
-    position: "absolute",
-    bottom: 24,
-    left: 48,
-    right: 48,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: GRAY_BORDER,
-    paddingTop: 8,
-  },
-  footerText:  { fontSize: 7, color: GRAY_TEXT },
-  footerBrand: { fontSize: 7, fontFamily: "Helvetica-Bold", color: BRAND_PRIMARY },
+  // (footer handled by PdfFooter component)
 });
 
 function formatNumber(n: number): string {
@@ -275,13 +264,12 @@ interface FacturePDFProps {
   pdfFooterText?: string;
 }
 
-export function FacturePDF({ order, invoice, quote, logoUrl, company, pdfFooterText }: FacturePDFProps) {
+export function FacturePDF({ order, invoice, quote, logoUrl, company }: FacturePDFProps) {
   const companyName    = company?.name    ?? "GLOBAL TIC";
   const companyTagline = company?.tagline ?? "Imprimerie Professionnelle";
   const companyAddress = company?.address ?? "Dakar, Senegal";
   const companyPhone   = company?.phone   ?? "+221 77 619 04 19";
   const companyEmail   = company?.email   ?? "contact@globalticgroup.com";
-  const footerText     = pdfFooterText    ?? `${companyName} — ${companyTagline} — ${companyAddress}`;
 
   const deliveryFee  = order.deliveryFee ?? 0;
   const clientTotal  = order.total + deliveryFee;
@@ -515,11 +503,11 @@ export function FacturePDF({ order, invoice, quote, logoUrl, company, pdfFooterT
           <Text style={s.issuerText}>{companyEmail}</Text>
         </View>
 
-        {/* Footer */}
-        <View style={s.footer} fixed>
-          <Text style={s.footerText}>{footerText}</Text>
-          <Text style={s.footerBrand}>{invoice.reference}</Text>
-        </View>
+        {/* Signature */}
+        <PdfSignatureBlock />
+
+        {/* Footer officiel */}
+        <PdfFooter reference={invoice.reference} />
       </Page>
     </Document>
   );

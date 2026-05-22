@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { OrderEnriched, Quote, QuoteItem } from "@/lib/types/domain";
+import { PdfFooter } from "./PdfFooter";
 
 const BRAND_PRIMARY   = "#529FD7";
 const BRAND_SECONDARY = "#132034";
@@ -22,7 +23,7 @@ const s = StyleSheet.create({
     color: GRAY_DARK,
     backgroundColor: "#FFFFFF",
     paddingTop: 40,
-    paddingBottom: 56,
+    paddingBottom: 72,
     paddingHorizontal: 48,
   },
   header: {
@@ -145,20 +146,7 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   signatureHint: { fontSize: 7, color: GRAY_BORDER },
-  footer: {
-    position: "absolute",
-    bottom: 24,
-    left: 48,
-    right: 48,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: GRAY_BORDER,
-    paddingTop: 8,
-  },
-  footerText:  { fontSize: 7, color: GRAY_TEXT },
-  footerBrand: { fontSize: 7, fontFamily: "Helvetica-Bold", color: BRAND_PRIMARY },
+  // (footer handled by PdfFooter component)
 });
 
 function formatNumber(n: number): string {
@@ -208,13 +196,12 @@ interface BonLivraisonPDFProps {
   blRef: string;
 }
 
-export function BonLivraisonPDF({ order, quote, logoUrl, company, pdfFooterText, blRef }: BonLivraisonPDFProps) {
+export function BonLivraisonPDF({ order, quote, logoUrl, company, blRef }: BonLivraisonPDFProps) {
   const companyName    = company?.name    ?? "GLOBAL TIC";
   const companyTagline = company?.tagline ?? "Imprimerie Professionnelle";
   const companyAddress = company?.address ?? "Dakar, Senegal";
   const companyPhone   = company?.phone   ?? "+221 77 619 04 19";
   const companyEmail   = company?.email   ?? "contact@globalticgroup.com";
-  const footerText     = pdfFooterText    ?? `${companyName} — ${companyTagline} — ${companyAddress}`;
 
   const items = quote?.items ?? [];
 
@@ -365,11 +352,8 @@ export function BonLivraisonPDF({ order, quote, logoUrl, company, pdfFooterText,
           </View>
         </View>
 
-        {/* Footer */}
-        <View style={s.footer} fixed>
-          <Text style={s.footerText}>{footerText}</Text>
-          <Text style={s.footerBrand}>{blRef}</Text>
-        </View>
+        {/* Footer officiel */}
+        <PdfFooter reference={blRef} />
       </Page>
     </Document>
   );
