@@ -265,6 +265,7 @@ export interface CreateQuoteFromClientInput {
   internal_notes?: string;
   is_urgent?: boolean;
   discount_percent?: number;
+  extra_lines?: QuoteLineInput[];
 }
 
 export async function createQuoteFromClientAction(
@@ -276,37 +277,59 @@ export async function createQuoteFromClientAction(
 
   if (!input.customer_id) return err("Identifiant du client manquant");
 
-  // Validation quantité minimale catalogue
-  if (input.quantity < 1) return err(`La quantité doit être ≥ 1 pour "${input.product_name}".`);
-  const minQtyClient = getProductMinQty(input.product_name);
-  if (minQtyClient !== null && input.quantity < minQtyClient) {
-    return err(`La quantité minimale pour "${input.product_name}" est de ${minQtyClient} exemplaires.`);
+  // Validation quantités minimales catalogue
+  const allLines = [
+    { product_name: input.product_name, quantity: input.quantity },
+    ...(input.extra_lines ?? []),
+  ];
+  for (const line of allLines) {
+    if (line.quantity < 1) return err(`La quantité doit être ≥ 1 pour "${line.product_name}".`);
+    const minQty = getProductMinQty(line.product_name);
+    if (minQty !== null && line.quantity < minQty) {
+      return err(`La quantité minimale pour "${line.product_name}" est de ${minQty} exemplaires.`);
+    }
   }
 
   const customerResult = await getCustomerById(input.customer_id);
   if (!customerResult.data) return err("Client introuvable");
 
-  const totalPrice = input.quantity * input.unit_price;
-
   const configSnapshot: Record<string, unknown> = {};
   if (input.options?.trim()) configSnapshot.options = input.options.trim();
   if (input.delai?.trim()) configSnapshot.delai = input.delai.trim();
+
+  const firstDiscount = input.discount_percent ?? 0;
+  const firstTotal = Math.round(input.quantity * input.unit_price * (1 - firstDiscount / 100));
+
+  const items = [
+    {
+      product_name: input.product_name,
+      quantity: input.quantity,
+      unit_price: input.unit_price,
+      total_price: firstTotal,
+      config_snapshot: configSnapshot,
+    },
+    ...(input.extra_lines ?? []).map((line) => {
+      const lineConfig: Record<string, unknown> = {};
+      if (line.options?.trim()) lineConfig.options = line.options.trim();
+      const lineDiscount = line.discount_percent ?? 0;
+      const lineTotal = Math.round(line.quantity * line.unit_price * (1 - lineDiscount / 100));
+      return {
+        product_name: line.product_name,
+        quantity: line.quantity,
+        unit_price: line.unit_price,
+        total_price: lineTotal,
+        config_snapshot: lineConfig,
+      };
+    }),
+  ];
 
   const reference = await generateReference("DEV");
   const quoteResult = await createQuote(
     {
       customer_id: input.customer_id,
-      items: [
-        {
-          product_name: input.product_name,
-          quantity: input.quantity,
-          unit_price: input.unit_price,
-          total_price: totalPrice,
-          config_snapshot: configSnapshot,
-        },
-      ],
+      items,
       is_urgent: input.is_urgent ?? false,
-      discount_percent: input.discount_percent ?? 0,
+      discount_percent: 0,
       notes: input.notes?.trim() || null,
       internal_notes: input.internal_notes?.trim() || null,
     },

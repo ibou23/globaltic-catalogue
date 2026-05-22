@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { X, Loader2, Save, FileText, AlertTriangle, Plus, Trash2, Sparkles, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -82,7 +82,7 @@ interface DevisProspectFormProps {
 
 export function DevisProspectForm({ prospect, onClose }: DevisProspectFormProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingQuotes, setExistingQuotes] = useState<QuoteEnriched[] | null>(null);
   const [showExistingWarning, setShowExistingWarning] = useState(false);
@@ -153,7 +153,7 @@ export function DevisProspectForm({ prospect, onClose }: DevisProspectFormProps)
     setLines((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -173,7 +173,8 @@ export function DevisProspectForm({ prospect, onClose }: DevisProspectFormProps)
       if (!l.unitPrice.trim() || isNaN(unit) || unit < 0) return setError(`Ligne ${lineNum} : le prix unitaire est requis.`);
     }
 
-    startTransition(async () => {
+    setIsSubmitting(true);
+    try {
       const [first, ...rest] = lines;
       const extraLines: QuoteLineInput[] = rest.map((l) => ({
         product_name: l.productName.trim(),
@@ -205,7 +206,11 @@ export function DevisProspectForm({ prospect, onClose }: DevisProspectFormProps)
       router.push(`/admin/devis`);
       router.refresh();
       onClose();
-    });
+    } catch {
+      setError("Une erreur inattendue est survenue. Veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   // Compute totals
@@ -578,15 +583,15 @@ export function DevisProspectForm({ prospect, onClose }: DevisProspectFormProps)
               </button>
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isSubmitting}
                 className="flex-1 h-11 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-brand-primary-dark transition-colors disabled:opacity-60"
               >
-                {isPending ? (
+                {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                {isPending
+                {isSubmitting
                   ? "Création…"
                   : `Créer le devis${lines.length > 1 ? ` (${lines.length} lignes)` : ""}`}
               </button>
