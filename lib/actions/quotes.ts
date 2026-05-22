@@ -1,7 +1,7 @@
 "use server";
 
 import { createQuoteSchema, updateQuoteStatusSchema, updateQuoteSchema } from "@/lib/validators/quote";
-import { createQuote, updateQuote, updateQuoteStatus, getQuotesEnrichedByCustomer } from "@/lib/db/quotes";
+import { createQuote, updateQuote, updateQuoteStatus, getQuotesEnrichedByCustomer, getQuoteById } from "@/lib/db/quotes";
 import { generateReference } from "@/lib/services/reference";
 import { getCurrentAdmin } from "@/lib/db/admin";
 import { requireActionDynamic } from "@/lib/auth/check-access";
@@ -12,7 +12,7 @@ import { logAdminEvent } from "@/lib/db/activity-log";
 import { getProspectById, updateProspect } from "@/lib/db/prospects";
 import { getCustomerById, getCustomerByWhatsapp, createCustomer } from "@/lib/db/customers";
 import { err, ok, type Result } from "@/lib/utils/result";
-import type { Quote, QuoteEnriched } from "@/lib/types/domain";
+import type { Quote, QuoteEnriched, QuoteItem } from "@/lib/types/domain";
 import { getProductMinQty } from "@/lib/utils/product-price-resolver";
 
 export async function createQuoteAction(
@@ -375,4 +375,16 @@ export async function getProspectLinkedQuotesAction(
   if (!customerId) return ok([]);
 
   return getQuotesEnrichedByCustomer(customerId);
+}
+
+export async function getQuoteItemsAction(
+  quoteId: string
+): Promise<Result<QuoteItem[]>> {
+  const admin = await getCurrentAdmin();
+  if (!admin.data) return err("Accès non autorisé");
+
+  const result = await getQuoteById(quoteId);
+  if (!result.data) return err(result.error ?? "Devis introuvable");
+
+  return ok(result.data.items);
 }
