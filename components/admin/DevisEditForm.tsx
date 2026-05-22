@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { X, Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateCustomerAction } from "@/lib/actions/customers";
@@ -27,7 +27,7 @@ const STATUS_OPTIONS = [
 
 export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const snap = quote.firstItem?.configSnapshot as Record<string, string> | undefined;
@@ -52,7 +52,7 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
   const [isUrgent, setIsUrgent]             = useState(quote.isUrgent);
   const [discountPercent, setDiscountPercent] = useState(String(quote.discountPercent));
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -72,8 +72,8 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
     const totalPrice = qty * unit;
     const discount   = parseFloat(discountPercent) || 0;
 
-    startTransition(async () => {
-      // 1. Mettre à jour le client si on en a un
+    setIsSubmitting(true);
+    try {
       if (quote.customerId) {
         const customerResult = await updateCustomerAction(quote.customerId, {
           contact_name:  contactName.trim(),
@@ -86,7 +86,6 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
         }
       }
 
-      // 2. Mettre à jour le devis et sa ligne produit
       const configSnapshot: Record<string, unknown> = {};
       if (options.trim()) configSnapshot.options = options.trim();
       if (delai.trim())   configSnapshot.delai   = delai.trim();
@@ -115,7 +114,11 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
 
       router.refresh();
       onClose();
-    });
+    } catch {
+      setError("Une erreur inattendue est survenue. Veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const qty   = parseInt(quantity, 10) || 0;
@@ -297,9 +300,9 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
             <button type="button" onClick={onClose} className="flex-1 h-11 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
               Annuler
             </button>
-            <button type="submit" disabled={isPending} className="flex-1 h-11 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-brand-primary-dark transition-colors disabled:opacity-60">
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {isPending ? "Enregistrement…" : "Enregistrer"}
+            <button type="submit" disabled={isSubmitting} className="flex-1 h-11 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-brand-primary-dark transition-colors disabled:opacity-60">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {isSubmitting ? "Enregistrement…" : "Enregistrer"}
             </button>
           </div>
         </form>

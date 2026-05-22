@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { X, Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateOrderAction } from "@/lib/actions/orders";
@@ -222,7 +222,7 @@ export function CommandeEditForm({ order, role, onClose }: CommandeEditFormProps
   const canEditPayment = canPerform(role, "commande:edit_payment");
   const canBat = canPerform(role, "commande:bat");
   const canUploadFile = canPerform(role, "commande:upload_file");
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [status, setStatus] = useState<OrderStatus>(order.status as OrderStatus);
@@ -262,13 +262,14 @@ export function CommandeEditForm({ order, role, onClose }: CommandeEditFormProps
     });
   }, [order.id]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
     if (isNaN(paid) || paid < 0) return setError("Le montant payé est invalide.");
 
-    startTransition(async () => {
+    setIsSubmitting(true);
+    try {
       const result = await updateOrderAction(order.id, {
         status,
         payment_status: paymentStatus,
@@ -291,7 +292,11 @@ export function CommandeEditForm({ order, role, onClose }: CommandeEditFormProps
 
       router.refresh();
       onClose();
-    });
+    } catch {
+      setError("Une erreur inattendue est survenue. Veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -589,11 +594,11 @@ export function CommandeEditForm({ order, role, onClose }: CommandeEditFormProps
             </button>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isSubmitting}
               className="flex-1 h-11 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-brand-primary-dark transition-colors disabled:opacity-60"
             >
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {isPending ? "Enregistrement…" : "Enregistrer"}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {isSubmitting ? "Enregistrement…" : "Enregistrer"}
             </button>
           </div>
         </form>

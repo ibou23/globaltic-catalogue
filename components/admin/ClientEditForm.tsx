@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Loader2, Save, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Customer } from "@/lib/types/domain";
@@ -13,8 +13,9 @@ interface ClientEditFormProps {
 
 export function ClientEditForm({ customer }: ClientEditFormProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const [contactName, setContactName] = useState(customer.contactName);
   const [companyName, setCompanyName] = useState(customer.companyName ?? "");
@@ -25,9 +26,10 @@ export function ClientEditForm({ customer }: ClientEditFormProps) {
   const [customerType, setCustomerType] = useState(customer.customerType);
   const [notes, setNotes] = useState(customer.notes ?? "");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsSubmitting(true);
 
     const payload = {
       contact_name: contactName.trim(),
@@ -40,15 +42,19 @@ export function ClientEditForm({ customer }: ClientEditFormProps) {
       notes: notes.trim() || null,
     };
 
-    startTransition(async () => {
+    try {
       const result = await updateCustomerAction(customer.id, payload);
       if (result.error) {
         setError(result.error);
       } else {
+        setSuccess(true);
         router.push(`/admin/clients/${customer.id}`);
-        router.refresh();
       }
-    });
+    } catch {
+      setError("Une erreur inattendue est survenue. Veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -194,6 +200,14 @@ export function ClientEditForm({ customer }: ClientEditFormProps) {
             </div>
           )}
 
+          {/* Success */}
+          {success && (
+            <div className="bg-green-50 text-green-700 p-3 rounded-xl text-xs font-bold flex items-center gap-2 border border-green-100">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              Client mis à jour avec succès. Redirection...
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <Link
@@ -204,10 +218,10 @@ export function ClientEditForm({ customer }: ClientEditFormProps) {
             </Link>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isSubmitting}
               className="h-10 px-6 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-primary-dark hover:shadow-lg hover:shadow-brand-primary/25 transition-all disabled:opacity-50"
             >
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Enregistrer
             </button>
           </div>
