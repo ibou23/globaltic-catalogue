@@ -150,7 +150,7 @@ export async function getQuoteByReference(
   const { data, error } = await supabase
     .from("quotes")
     .select("*")
-    .eq("reference", reference)
+    .or(`reference.eq.${reference},legacy_reference.eq.${reference}`)
     .maybeSingle();
 
   if (error) return err(error.message);

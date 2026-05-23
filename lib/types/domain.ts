@@ -140,6 +140,7 @@ export interface Customer {
 export interface Quote {
   id: string;
   reference: string;
+  legacyReference: string | null;
   customerId: string | null;
   status: QuoteStatus;
   subtotal: number;
@@ -184,6 +185,7 @@ export interface QuoteEnriched extends Quote {
 export interface Order {
   id: string;
   reference: string;
+  legacyReference: string | null;
   quoteId: string | null;
   customerId: string | null;
   status: OrderStatus;
@@ -268,6 +270,7 @@ export type InvoiceStatus =
 export interface Invoice {
   id:           string;
   reference:    string;
+  legacyReference: string | null;
   orderId:      string;
   customerId:   string | null;
   status:       InvoiceStatus;
@@ -376,6 +379,7 @@ export interface ProductDetail {
 export interface Prospect {
   id: string;
   reference: string;
+  legacyReference: string | null;
   fullName: string;
   whatsapp: string;
   phoneSecondary: string | null;

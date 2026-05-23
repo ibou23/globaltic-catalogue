@@ -6,6 +6,7 @@ function mapInvoice(row: Record<string, unknown>): Invoice {
   return {
     id:          row.id          as string,
     reference:   row.reference   as string,
+    legacyReference: (row.legacy_reference as string) ?? null,
     orderId:     row.order_id    as string,
     customerId:  (row.customer_id  as string) ?? null,
     status:      row.status      as InvoiceStatus,

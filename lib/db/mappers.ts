@@ -150,6 +150,7 @@ export function mapQuote(row: Record<string, unknown>): Quote {
   return {
     id: row.id as string,
     reference: row.reference as string,
+    legacyReference: (row.legacy_reference as string) ?? null,
     customerId: (row.customer_id as string) ?? null,
     status: row.status as Quote["status"],
     subtotal: row.subtotal as number,
@@ -181,6 +182,7 @@ export function mapOrder(row: Record<string, unknown>): Order {
   return {
     id: row.id as string,
     reference: row.reference as string,
+    legacyReference: (row.legacy_reference as string) ?? null,
     quoteId: (row.quote_id as string) ?? null,
     customerId: (row.customer_id as string) ?? null,
     status: row.status as Order["status"],
@@ -243,6 +245,7 @@ export function mapProspect(row: Record<string, unknown>): Prospect {
   return {
     id: row.id as string,
     reference: row.reference as string,
+    legacyReference: (row.legacy_reference as string) ?? null,
     fullName: row.full_name as string,
     whatsapp: row.whatsapp as string,
     phoneSecondary: (row.phone_secondary as string) ?? null,

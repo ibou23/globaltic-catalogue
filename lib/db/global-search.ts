@@ -35,7 +35,7 @@ export async function globalSearch(
       supabase
         .from("orders")
         .select("id, reference, status, total, customers(contact_name, whatsapp)")
-        .ilike("reference", `%${q}%`)
+        .or(`reference.ilike.%${q}%,legacy_reference.ilike.%${q}%`)
         .limit(LIMIT)
         .then(({ data }) => {
           for (const o of data ?? []) {
@@ -60,7 +60,7 @@ export async function globalSearch(
       supabase
         .from("quotes")
         .select("id, reference, status, total, customers(contact_name)")
-        .ilike("reference", `%${q}%`)
+        .or(`reference.ilike.%${q}%,legacy_reference.ilike.%${q}%`)
         .limit(LIMIT)
         .then(({ data }) => {
           for (const d of data ?? []) {

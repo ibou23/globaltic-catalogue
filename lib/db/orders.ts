@@ -170,7 +170,7 @@ export async function getOrderByReference(
   const { data, error } = await supabase
     .from("orders")
     .select("*")
-    .eq("reference", reference)
+    .or(`reference.eq.${reference},legacy_reference.eq.${reference}`)
     .maybeSingle();
 
   if (error) return err(error.message);
