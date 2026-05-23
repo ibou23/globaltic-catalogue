@@ -9,7 +9,6 @@ import {
 } from "@react-pdf/renderer";
 import type { Quote, QuoteItem } from "@/lib/types/domain";
 import { PdfFooter } from "./PdfFooter";
-import { PdfSignatureBlock } from "./PdfSignatureBlock";
 
 Font.register({
   family: "Helvetica",
@@ -521,9 +520,6 @@ export function DevisPDF({
             </Text>
           </View>
         </View>
-
-        {/* Signature */}
-        <PdfSignatureBlock />
 
         {/* Footer officiel */}
         <PdfFooter reference={quote.reference} />

@@ -8,7 +8,6 @@ import {
 } from "@react-pdf/renderer";
 import type { OrderEnriched, Quote, QuoteItem, Invoice, InvoiceStatus } from "@/lib/types/domain";
 import { PdfFooter } from "./PdfFooter";
-import { PdfSignatureBlock } from "./PdfSignatureBlock";
 
 const BRAND_PRIMARY   = "#529FD7";
 const BRAND_SECONDARY = "#132034";
@@ -502,9 +501,6 @@ export function FacturePDF({ order, invoice, quote, logoUrl, company }: FactureP
           <Text style={s.issuerBold}>{companyName} — {companyTagline}</Text>
           <Text style={s.issuerText}>{companyEmail}</Text>
         </View>
-
-        {/* Signature */}
-        <PdfSignatureBlock />
 
         {/* Footer officiel */}
         <PdfFooter reference={invoice.reference} />
