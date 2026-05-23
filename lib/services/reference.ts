@@ -6,7 +6,11 @@ export async function generateReference(
   prefix: ReferencePrefix
 ): Promise<string> {
   const supabase = await createClient();
-  const year = new Date().getFullYear();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const monthDay = `${month}${day}`;
 
   const table =
     prefix === "DEV"
@@ -17,14 +21,23 @@ export async function generateReference(
           ? "prospects"
           : "invoices";
 
-  const { count } = await supabase
+  const dayPrefix = `${prefix}-${year}-${monthDay}-`;
+
+  const { data } = await supabase
     .from(table)
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", `${year}-01-01`)
-    .lt("created_at", `${year + 1}-01-01`);
+    .select("reference")
+    .like("reference", `${dayPrefix}%`)
+    .order("created_at", { ascending: false })
+    .limit(50);
 
-  const number = (count ?? 0) + 1;
-  const padded = String(number).padStart(4, "0");
+  let maxNum = 0;
+  if (data) {
+    for (const row of data) {
+      const suffix = (row.reference as string).slice(dayPrefix.length);
+      const num = parseInt(suffix, 10);
+      if (!isNaN(num) && num > maxNum) maxNum = num;
+    }
+  }
 
-  return `${prefix}-${year}-${padded}`;
+  return `${dayPrefix}${maxNum + 1}`;
 }
