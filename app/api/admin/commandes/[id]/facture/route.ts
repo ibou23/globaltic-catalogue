@@ -115,8 +115,11 @@ export async function GET(
   return new NextResponse(uint8, {
     status: 200,
     headers: {
-      "Content-Type":        "application/pdf",
+      "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="facture-${invoice.reference}.pdf"`,
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
     },
   });
 }
