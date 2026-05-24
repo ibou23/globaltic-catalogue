@@ -9,6 +9,9 @@ import type { ProductWithOptions } from "@/lib/types/domain";
 import path from "path";
 import fs from "fs";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const PRODUCT_WITH_OPTIONS_SELECT = `
   *,
   categories(*),
@@ -107,7 +110,15 @@ export async function POST(request: Request) {
       },
     });
   } catch (e) {
-    console.error("[estimate-pdf]", e);
-    return NextResponse.json({ error: "Erreur lors de la generation du PDF" }, { status: 500 });
+    const message = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : undefined;
+    console.error("[estimate-pdf]", message, stack);
+    return NextResponse.json(
+      {
+        error: "Erreur lors de la generation du PDF",
+        details: message,
+      },
+      { status: 500 }
+    );
   }
 }

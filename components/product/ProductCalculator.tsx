@@ -41,7 +41,7 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        setPdfError(data?.error ?? "Erreur lors du telechargement");
+        setPdfError(data?.details ?? data?.error ?? "Erreur lors du telechargement");
         return;
       }
       const blob = await res.blob();
