@@ -6,11 +6,11 @@ import { useCalculator } from "@/hooks/use-calculator";
 import { formatPrice } from "@/lib/utils";
 import { generateWhatsAppLink } from "@/lib/whatsapp/generator";
 import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
-import { trackViewContent, trackContact } from "@/lib/tracking/meta-pixel";
+import { trackViewContent, trackContact, trackCustomEvent } from "@/lib/tracking/meta-pixel";
 import { PriceAnimation } from "@/components/calculator/PriceAnimation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, CheckCircle2, Info, MessageCircle, Zap, Clock } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, MessageCircle, Zap, Clock, FileDown, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ProductCalculatorProps {
@@ -19,8 +19,52 @@ interface ProductCalculatorProps {
 
 export function ProductCalculator({ product }: ProductCalculatorProps) {
   const { state, result, actions } = useCalculator(product);
+  const [pdfLoading, setPdfLoading] = React.useState(false);
+  const [pdfError, setPdfError] = React.useState<string | null>(null);
   const productUrl = typeof window !== "undefined" ? window.location.href : `/produit/${product.slug}`;
   const whatsappLink = generateWhatsAppLink(product, state, result, productUrl);
+
+  const handleDownloadPdf = async () => {
+    setPdfLoading(true);
+    setPdfError(null);
+    try {
+      const res = await fetch("/api/public/estimate-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: product.slug,
+          quantity: state.quantity,
+          formatId: state.format?.id ?? null,
+          paperId: state.paper?.id ?? null,
+          finishIds: state.selectedFinishes.map((f) => f.id),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setPdfError(data?.error ?? "Erreur lors du telechargement");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ?? "devis-estimatif.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      trackCustomEvent("DownloadEstimate", {
+        content_name: product.name,
+        content_category: product.category?.name ?? "",
+        currency: "XOF",
+        value: result.totalPrice,
+      });
+    } catch {
+      setPdfError("Erreur reseau");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   const isM2 = product.unitType === "m2";
   const unitLabel = isM2 ? "mètre carré (m²)" : "exemplaires";
@@ -438,9 +482,25 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
                   </a>
                 </Button>
               )}
-              <p className="text-[10px] text-gray-400 text-center mt-3 uppercase tracking-wider max-w-[200px] leading-tight">
-                Devis sans engagement. Le prix final peut varier selon les
-                contraintes de fichier.
+              {!qtyBlocked && (
+                <button
+                  onClick={handleDownloadPdf}
+                  disabled={pdfLoading}
+                  className="w-full mt-3 h-10 rounded-xl border border-white/20 text-white/80 hover:text-white hover:bg-white/10 text-xs font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                >
+                  {pdfLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <FileDown className="h-3.5 w-3.5" />
+                  )}
+                  Telecharger le devis PDF
+                </button>
+              )}
+              {pdfError && (
+                <p className="text-[10px] text-red-400 text-center mt-2 font-medium">{pdfError}</p>
+              )}
+              <p className="text-[10px] text-gray-400 text-center mt-3 uppercase tracking-wider max-w-[250px] leading-tight">
+                Telechargez votre devis estimatif ou envoyez votre configuration sur WhatsApp pour validation finale.
               </p>
             </div>
           </div>
