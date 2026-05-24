@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { createElement } from "react";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { createElement, type JSXElementConstructor, type ReactElement } from "react";
+import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { mapProductWithOptions } from "@/lib/db/mappers";
 import { calculatePrice } from "@/lib/calculator/engine";
 import { PublicEstimatePDF, type EstimateData } from "@/components/pdf/PublicEstimatePDF";
 import type { ProductWithOptions } from "@/lib/types/domain";
+import path from "path";
+import fs from "fs";
 
 const PRODUCT_WITH_OPTIONS_SELECT = `
   *,
@@ -89,8 +91,11 @@ export async function POST(request: Request) {
       options,
     };
 
-    const element = createElement(PublicEstimatePDF, { data: estimateData });
-    const buffer = await renderToBuffer(element as any);
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
+    const logoUrl = fs.existsSync(logoPath) ? logoPath : undefined;
+
+    const element = createElement(PublicEstimatePDF, { data: estimateData, logoUrl }) as unknown as ReactElement<DocumentProps, string | JSXElementConstructor<unknown>>;
+    const buffer = await renderToBuffer(element);
 
     const filename = `devis-estimatif-${slug}-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.pdf`;
 

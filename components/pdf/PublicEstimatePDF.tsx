@@ -115,15 +115,22 @@ export interface EstimateData {
   options: string[];
 }
 
-export function PublicEstimatePDF({ data }: { data: EstimateData }) {
-  const logoPath = process.cwd() + "/public/logo.png";
+interface PublicEstimatePDFProps {
+  data: EstimateData;
+  logoUrl?: string;
+}
 
+export function PublicEstimatePDF({ data, logoUrl }: PublicEstimatePDFProps) {
   return (
     <Document>
       <Page size="A4" style={s.page}>
         {/* Header */}
         <View style={s.header}>
-          <Image src={logoPath} style={s.logo} />
+          {logoUrl ? (
+            <Image src={logoUrl} style={s.logo} />
+          ) : (
+            <Text style={s.companyName}>GLOBAL TIC</Text>
+          )}
           <View style={s.companyBlock}>
             <Text style={s.companyName}>GLOBAL TIC</Text>
             <Text style={s.companyDetail}>Imprimerie Professionnelle</Text>
