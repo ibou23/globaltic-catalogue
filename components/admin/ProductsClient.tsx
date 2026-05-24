@@ -6,9 +6,10 @@ import type { Product, Category } from "@/lib/types/domain";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { DeleteConfirm } from "@/components/admin/DeleteConfirm";
 import { ActiveFilterBadge } from "@/components/admin/ActiveFilterBadge";
-import { deleteProductAction, updateProductAction } from "@/lib/actions/products";
+import { deleteProductAction, updateProductAction, getProductTiersAction } from "@/lib/actions/products";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { ProductQuantityTier } from "@/lib/types/domain";
 
 interface ActiveFilter {
   label: string;
@@ -32,6 +33,8 @@ export function ProductsClient({ products, categories, totalCount, activeFilter 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editingTiers, setEditingTiers] = useState<ProductQuantityTier[]>([]);
+  const [loadingTiers, setLoadingTiers] = useState(false);
 
   const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 
@@ -42,9 +45,16 @@ export function ProductsClient({ products, categories, totalCount, activeFilter 
       )
     : products;
 
-  const openCreate = () => { setEditing(undefined); setShowForm(true); };
-  const openEdit = (p: Product) => { setEditing(p); setShowForm(true); };
-  const closeForm = () => { setShowForm(false); setEditing(undefined); };
+  const openCreate = () => { setEditing(undefined); setEditingTiers([]); setShowForm(true); };
+  const openEdit = async (p: Product) => {
+    setEditing(p);
+    setLoadingTiers(true);
+    setShowForm(true);
+    const result = await getProductTiersAction(p.id);
+    setEditingTiers(result.data?.quantityTiers ?? []);
+    setLoadingTiers(false);
+  };
+  const closeForm = () => { setShowForm(false); setEditing(undefined); setEditingTiers([]); };
 
   const handleDelete = async () => {
     if (!deleting) return { error: "Aucun produit sélectionné" };
@@ -273,7 +283,7 @@ export function ProductsClient({ products, categories, totalCount, activeFilter 
       )}
 
       {/* Modals */}
-      {showForm && <ProductForm product={editing} categories={categories} onClose={closeForm} />}
+      {showForm && <ProductForm product={editing} categories={categories} quantityTiers={editingTiers} onClose={closeForm} />}
       {deleting && (
         <DeleteConfirm
           title="Supprimer le produit"

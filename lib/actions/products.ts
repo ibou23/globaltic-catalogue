@@ -79,6 +79,21 @@ export async function deleteProductAction(
   return result;
 }
 
+export async function getProductTiersAction(
+  productId: string
+): Promise<Result<{ quantityTiers: Array<{ id: string; productId: string; minQty: number; maxQty: number | null; baseUnitPrice: number; label: string | null }> }>> {
+  const admin = await getCurrentAdmin();
+  const denied = await requireActionDynamic(admin.data?.role, "produit:edit");
+  if (denied) return err(denied);
+
+  const { getProductById } = await import("@/lib/db/products");
+  const result = await getProductById(productId);
+  if (result.error) return err(result.error);
+  if (!result.data) return err("Produit introuvable");
+
+  return { data: { quantityTiers: result.data.quantityTiers }, error: null };
+}
+
 const tiersPayloadSchema = z.object({
   productId: z.string().uuid(),
   tiers: z.array(

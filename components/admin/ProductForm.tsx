@@ -1,18 +1,28 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { X, Loader2, Save } from "lucide-react";
-import type { Product, Category } from "@/lib/types/domain";
+import { X, Loader2, Save, Plus, Trash2, AlertCircle } from "lucide-react";
+import type { Product, Category, ProductQuantityTier } from "@/lib/types/domain";
 import {
   createProductAction,
   updateProductAction,
+  replaceQuantityTiersAction,
 } from "@/lib/actions/products";
 import { useRouter } from "next/navigation";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 
+interface TierDraft {
+  id?: string;
+  min_qty: number;
+  max_qty: number | null;
+  base_unit_price: number;
+  label: string;
+}
+
 interface ProductFormProps {
   product?: Product;
   categories: Category[];
+  quantityTiers?: ProductQuantityTier[];
   onClose: () => void;
 }
 
@@ -25,7 +35,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-export function ProductForm({ product, categories, onClose }: ProductFormProps) {
+export function ProductForm({ product, categories, quantityTiers, onClose }: ProductFormProps) {
   const isEditing = !!product;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -48,20 +58,75 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
   const [displayOrder, setDisplayOrder] = useState(product?.displayOrder ?? 0);
   const [autoSlug, setAutoSlug] = useState(!isEditing);
 
+  const [tiers, setTiers] = useState<TierDraft[]>(() => {
+    if (!quantityTiers || quantityTiers.length === 0) return [];
+    return quantityTiers
+      .sort((a, b) => a.minQty - b.minQty)
+      .map((t) => ({
+        id: t.id,
+        min_qty: t.minQty,
+        max_qty: t.maxQty,
+        base_unit_price: t.baseUnitPrice,
+        label: t.label ?? "",
+      }));
+  });
+  const [tierErrors, setTierErrors] = useState<string[]>([]);
+
   const handleNameChange = (val: string) => {
     setName(val);
     if (autoSlug) setSlug(slugify(val));
   };
 
+  const addTier = () => {
+    const lastTier = tiers[tiers.length - 1];
+    const newMin = lastTier ? (lastTier.max_qty ? lastTier.max_qty + 1 : lastTier.min_qty + 100) : 1;
+    setTiers([...tiers, { min_qty: newMin, max_qty: null, base_unit_price: 0, label: "" }]);
+  };
+
+  const updateTier = (index: number, field: keyof TierDraft, value: number | string | null) => {
+    setTiers(tiers.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
+  };
+
+  const removeTier = (index: number) => {
+    setTiers(tiers.filter((_, i) => i !== index));
+  };
+
+  const validateTiers = (): string[] => {
+    const errors: string[] = [];
+    for (let i = 0; i < tiers.length; i++) {
+      const t = tiers[i];
+      if (t.min_qty < 1) errors.push(`Palier ${i + 1} : quantité min doit être ≥ 1`);
+      if (t.base_unit_price < 0) errors.push(`Palier ${i + 1} : prix unitaire invalide`);
+      if (t.max_qty !== null && t.max_qty < t.min_qty) {
+        errors.push(`Palier ${i + 1} : quantité max < quantité min`);
+      }
+      if (i > 0) {
+        const prev = tiers[i - 1];
+        const prevEnd = prev.max_qty ?? Infinity;
+        if (t.min_qty <= prevEnd && prev.max_qty !== null) {
+          errors.push(`Palier ${i + 1} : chevauchement avec le palier précédent`);
+        }
+      }
+    }
+    return errors;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setTierErrors([]);
+
+    const tierValidationErrors = validateTiers();
+    if (tierValidationErrors.length > 0) {
+      setTierErrors(tierValidationErrors);
+      return;
+    }
 
     const parsedOtherImages = otherImages
       .split("\n")
       .map((u) => u.trim())
       .filter(Boolean);
-    
+
     const parsedImageUrls = [mainImage, ...parsedOtherImages].filter(Boolean);
 
     const parsedTags = tags
@@ -92,10 +157,30 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
 
       if (result.error) {
         setError(result.error);
-      } else {
-        router.refresh();
-        onClose();
+        return;
       }
+
+      const productId = isEditing ? product!.id : result.data!.id;
+
+      const tiersPayload = tiers.map((t) => ({
+        min_qty: t.min_qty,
+        max_qty: t.max_qty,
+        base_unit_price: t.base_unit_price,
+        label: t.label || null,
+      }));
+
+      const tiersResult = await replaceQuantityTiersAction({
+        productId,
+        tiers: tiersPayload,
+      });
+
+      if (tiersResult.error) {
+        setError(tiersResult.error);
+        return;
+      }
+
+      router.refresh();
+      onClose();
     });
   };
 
@@ -204,6 +289,99 @@ export function ProductForm({ product, categories, onClose }: ProductFormProps) 
           <div>
             <label className={labelClass}>Tags (séparés par des virgules)</label>
             <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} className={inputClass} placeholder="carte, visite, pro" />
+          </div>
+
+          {/* ── Tarification / Paliers de prix ── */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black text-slate-600 uppercase tracking-wider">Tarification / Paliers de prix</h3>
+              <span className="text-[10px] font-bold text-slate-400">
+                {tiers.length} palier{tiers.length > 1 ? "s" : ""}
+              </span>
+            </div>
+
+            {tiers.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-xs text-slate-400 font-medium mb-2">Aucun palier tarifaire défini</p>
+                <button type="button" onClick={addTier} className="text-xs font-bold text-brand-primary hover:text-brand-primary-dark transition-colors">
+                  + Ajouter un premier palier
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {tiers.map((tier, index) => (
+                    <div key={index} className="grid grid-cols-[1fr_1fr_1fr_auto] sm:grid-cols-[1fr_1fr_1fr_1.5fr_auto] gap-2 items-end">
+                      <div>
+                        {index === 0 && <label className="block text-[10px] font-bold text-slate-400 mb-1">Qté min</label>}
+                        <input
+                          type="number"
+                          min={1}
+                          value={tier.min_qty}
+                          onChange={(e) => updateTier(index, "min_qty", Number(e.target.value))}
+                          className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-brand-primary/50 transition-all"
+                          placeholder="100"
+                        />
+                      </div>
+                      <div>
+                        {index === 0 && <label className="block text-[10px] font-bold text-slate-400 mb-1">Qté max</label>}
+                        <input
+                          type="number"
+                          min={0}
+                          value={tier.max_qty ?? ""}
+                          onChange={(e) => updateTier(index, "max_qty", e.target.value === "" ? null : Number(e.target.value))}
+                          className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-brand-primary/50 transition-all"
+                          placeholder="∞"
+                        />
+                      </div>
+                      <div>
+                        {index === 0 && <label className="block text-[10px] font-bold text-slate-400 mb-1">Prix (FCFA)</label>}
+                        <input
+                          type="number"
+                          min={0}
+                          value={tier.base_unit_price}
+                          onChange={(e) => updateTier(index, "base_unit_price", Number(e.target.value))}
+                          className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-brand-primary/50 transition-all"
+                          placeholder="150"
+                        />
+                      </div>
+                      <div className="hidden sm:block">
+                        {index === 0 && <label className="block text-[10px] font-bold text-slate-400 mb-1">Libellé</label>}
+                        <input
+                          type="text"
+                          value={tier.label}
+                          onChange={(e) => updateTier(index, "label", e.target.value)}
+                          className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-brand-primary/50 transition-all"
+                          placeholder="100-299 ex."
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeTier(index)}
+                        className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors shrink-0"
+                        title="Supprimer ce palier"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button type="button" onClick={addTier} className="text-xs font-bold text-brand-primary hover:text-brand-primary-dark transition-colors flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> Ajouter un palier
+                </button>
+              </>
+            )}
+
+            {tierErrors.length > 0 && (
+              <div className="bg-red-50 border border-red-100 rounded-lg p-2.5 space-y-1">
+                {tierErrors.map((err, i) => (
+                  <p key={i} className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5">
+                    <AlertCircle className="w-3 h-3 shrink-0" /> {err}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Toggles */}
