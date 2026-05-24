@@ -61,7 +61,8 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
       : 0;
 
   // Bornes du slider
-  const minQty = product.quantityTiers[0]?.minQty || 1;
+  const tierMinQty = product.quantityTiers[0]?.minQty || 1;
+  const minQty = Math.max(product.minOrderQuantity, tierMinQty);
   const lastTier = product.quantityTiers[product.quantityTiers.length - 1];
   const maxSlider =
     lastTier?.maxQty && lastTier.maxQty <= 10000 ? lastTier.maxQty : 10000;

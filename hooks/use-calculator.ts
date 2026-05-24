@@ -5,11 +5,15 @@ import type { ProductWithOptions, ProductFormat, ProductPaper, ProductFinish } f
 import { calculatePrice, type CalculatorState, type CalculationResult } from "@/lib/calculator/engine";
 
 export function useCalculator(product: ProductWithOptions) {
-  const [state, setState] = useState<CalculatorState>({
-    format: product.formats[0] || null,
-    paper: product.papers[0] || null,
-    quantity: product.quantityTiers[0]?.minQty || 100,
-    selectedFinishes: [],
+  const [state, setState] = useState<CalculatorState>(() => {
+    const tierMin = product.quantityTiers[0]?.minQty || 1;
+    const effectiveMin = Math.max(product.minOrderQuantity, tierMin);
+    return {
+      format: product.formats[0] || null,
+      paper: product.papers[0] || null,
+      quantity: effectiveMin || 100,
+      selectedFinishes: [],
+    };
   });
 
   const setQuantity = (quantity: number) => {

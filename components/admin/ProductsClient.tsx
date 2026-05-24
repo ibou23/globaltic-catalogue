@@ -49,10 +49,10 @@ export function ProductsClient({ products, categories, totalCount, activeFilter 
   const openEdit = async (p: Product) => {
     setEditing(p);
     setLoadingTiers(true);
-    setShowForm(true);
     const result = await getProductTiersAction(p.id);
     setEditingTiers(result.data?.quantityTiers ?? []);
     setLoadingTiers(false);
+    setShowForm(true);
   };
   const closeForm = () => { setShowForm(false); setEditing(undefined); setEditingTiers([]); };
 
