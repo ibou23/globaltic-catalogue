@@ -9,6 +9,7 @@ import {
   type QuoteLineInput,
 } from "@/lib/actions/quotes";
 import { resolveProductPrice, parseQuantityString, getProductMinQty } from "@/lib/utils/product-price-resolver";
+import { useProductPricing } from "@/hooks/use-product-pricing";
 import type { Prospect, QuoteEnriched } from "@/lib/types/domain";
 
 const inputClass =
@@ -81,6 +82,7 @@ interface DevisProspectFormProps {
 }
 
 export function DevisProspectForm({ prospect, onClose }: DevisProspectFormProps) {
+  useProductPricing();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

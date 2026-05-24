@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from "react";
 import { submitProspectFormAction } from "@/lib/actions/prospect-public";
 import { CATALOG_PRODUCTS } from "@/lib/validators/prospect";
 import { getProductMinQty, parseQuantityString } from "@/lib/utils/product-price-resolver";
+import { useProductPricing } from "@/hooks/use-product-pricing";
 import {
   User,
   Building2,
@@ -49,6 +50,7 @@ function emptyDetail(product: string): ProductDetail {
 }
 
 export function DemandeForm() {
+  useProductPricing();
   const [step, setStep] = useState<Step>("contact");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);

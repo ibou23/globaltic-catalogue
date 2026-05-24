@@ -1,4 +1,21 @@
-import { products } from "@/data/products";
+import { products as staticProducts } from "@/data/products";
+
+export interface CatalogProduct {
+  slug: string;
+  name: string;
+  quantityTiers: Array<{ min: number; max: number; baseUnitPrice: number; label: string }>;
+}
+
+let _productsCache: CatalogProduct[] | null = null;
+
+export function setProductsCache(data: CatalogProduct[]) {
+  _productsCache = data;
+}
+
+function getProducts(): CatalogProduct[] {
+  if (_productsCache && _productsCache.length > 0) return _productsCache;
+  return staticProducts as unknown as CatalogProduct[];
+}
 
 // ─── Mapping CATALOG_PRODUCTS → slugs dans data/products.ts ──────────────────
 const CATALOG_NAME_TO_SLUGS: Record<string, string[]> = {
@@ -95,18 +112,19 @@ function findCatalogProduct(productName: string) {
     }
   }
 
+  const allProducts = getProducts();
   let product = null;
   if (canonicalName) {
     for (const slug of CATALOG_NAME_TO_SLUGS[canonicalName]) {
-      product = products.find((p) => p.slug === slug) ?? null;
+      product = allProducts.find((p) => p.slug === slug) ?? null;
       if (product) break;
     }
   }
 
   if (!product) {
     product =
-      products.find((p) => normalize(p.name) === normalizedInput) ??
-      products.find((p) => normalize(p.name).includes(normalizedInput)) ??
+      allProducts.find((p) => normalize(p.name) === normalizedInput) ??
+      allProducts.find((p) => normalize(p.name).includes(normalizedInput)) ??
       null;
   }
 

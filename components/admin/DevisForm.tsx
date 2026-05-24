@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { findOrCreateCustomerAction } from "@/lib/actions/customers";
 import { createQuoteAction } from "@/lib/actions/quotes";
 import { resolveProductPrice, getProductMinQty } from "@/lib/utils/product-price-resolver";
+import { useProductPricing } from "@/hooks/use-product-pricing";
 
 interface DevisFormProps {
   onClose: () => void;
@@ -45,6 +46,7 @@ function emptyLine(): LineState {
 }
 
 export function DevisForm({ onClose }: DevisFormProps) {
+  useProductPricing();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

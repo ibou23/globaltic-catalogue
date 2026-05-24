@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { updateCustomerAction } from "@/lib/actions/customers";
 import { updateQuoteAction, getQuoteItemsAction } from "@/lib/actions/quotes";
 import { resolveProductPrice, getProductMinQty } from "@/lib/utils/product-price-resolver";
+import { useProductPricing } from "@/hooks/use-product-pricing";
 import type { QuoteEnriched } from "@/lib/types/domain";
 
 interface DevisEditFormProps {
@@ -55,6 +56,7 @@ function emptyLine(): LineState {
 }
 
 export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
+  useProductPricing();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

@@ -5,6 +5,7 @@ import { X, Loader2, Save, Plus, Trash2, Sparkles, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createQuoteFromClientAction, type QuoteLineInput } from "@/lib/actions/quotes";
 import { resolveProductPrice, getProductMinQty } from "@/lib/utils/product-price-resolver";
+import { useProductPricing } from "@/hooks/use-product-pricing";
 import type { Customer } from "@/lib/types/domain";
 
 const inputClass =
@@ -46,6 +47,7 @@ interface DevisClientFormProps {
 }
 
 export function DevisClientForm({ customer, onClose }: DevisClientFormProps) {
+  useProductPricing();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

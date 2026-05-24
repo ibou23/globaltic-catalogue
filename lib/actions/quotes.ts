@@ -13,7 +13,26 @@ import { getProspectById, updateProspect } from "@/lib/db/prospects";
 import { getCustomerById, getCustomerByWhatsapp, createCustomer } from "@/lib/db/customers";
 import { err, ok, type Result } from "@/lib/utils/result";
 import type { Quote, QuoteEnriched, QuoteItem } from "@/lib/types/domain";
-import { getProductMinQty } from "@/lib/utils/product-price-resolver";
+import { getProductMinQty as getStaticProductMinQty } from "@/lib/utils/product-price-resolver";
+import { createClient } from "@/lib/supabase/server";
+
+async function getServerProductMinQty(productName: string): Promise<number | null> {
+  if (!productName.trim()) return null;
+  try {
+    const supabase = await createClient();
+    const normalized = productName.toLowerCase().trim();
+    const { data } = await supabase
+      .from("products")
+      .select("id, min_order_quantity")
+      .eq("is_active", true)
+      .ilike("name", `%${normalized}%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (data) return (data.min_order_quantity as number) ?? 1;
+  } catch { /* fallback below */ }
+  return getStaticProductMinQty(productName);
+}
 
 export async function createQuoteAction(
   formData: unknown
@@ -142,7 +161,7 @@ export async function createQuoteFromProspectAction(
   ];
   for (const line of allLines) {
     if (line.quantity < 1) return err(`La quantité doit être ≥ 1 pour "${line.product_name}".`);
-    const minQty = getProductMinQty(line.product_name);
+    const minQty = await getServerProductMinQty(line.product_name);
     if (minQty !== null && line.quantity < minQty) {
       return err(`La quantité minimale pour "${line.product_name}" est de ${minQty} exemplaires.`);
     }
@@ -284,7 +303,7 @@ export async function createQuoteFromClientAction(
   ];
   for (const line of allLines) {
     if (line.quantity < 1) return err(`La quantité doit être ≥ 1 pour "${line.product_name}".`);
-    const minQty = getProductMinQty(line.product_name);
+    const minQty = await getServerProductMinQty(line.product_name);
     if (minQty !== null && line.quantity < minQty) {
       return err(`La quantité minimale pour "${line.product_name}" est de ${minQty} exemplaires.`);
     }
