@@ -30,7 +30,7 @@ export function Header() {
           
           {/* Logo Section */}
           <div className="flex items-center flex-shrink-0">
-            <Link href="/" className="flex items-center gap-2 group">
+            <Link href="/" className="flex items-center gap-2 group" aria-label="Retour à l'accueil GLOBAL TIC" title="Accueil GLOBAL TIC">
               <div className="relative overflow-hidden rounded-xl p-1 transition-transform duration-300 group-hover:scale-105">
                 <img src="/logo.png" alt="GLOBAL TIC" className="h-10 w-auto object-contain" />
               </div>
