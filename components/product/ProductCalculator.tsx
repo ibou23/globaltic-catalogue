@@ -267,7 +267,7 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
           )}
 
           {/* Quantité */}
-          <div className="space-y-6">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-sm font-bold text-brand-secondary uppercase tracking-wider">
                 {product.finishes.length > 0 ? "4" : "3"}. Quantité
@@ -295,7 +295,7 @@ export function ProductCalculator({ product }: ProductCalculatorProps) {
               Glissez le curseur ou saisissez votre quantité manuellement
             </motion.div>
 
-            <div className="pt-2">
+            <div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <div className="flex-grow py-4 flex items-center">
                   <input
