@@ -5,6 +5,7 @@ export const quoteItemSchema = z.object({
   product_name: z.string().min(1).max(300),
   quantity: z.number().int().min(1),
   unit_price: z.number().int().min(0),
+  discount_percent: z.number().min(0).max(100).default(0),
   total_price: z.number().int().min(0),
   config_snapshot: z.record(z.unknown()).default({}),
   notes: z.string().max(1000).nullable().optional(),
@@ -15,6 +16,8 @@ export const createQuoteSchema = z.object({
   items: z.array(quoteItemSchema).min(1),
   is_urgent: z.boolean().default(false),
   discount_percent: z.number().min(0).max(100).default(0),
+  global_discount_type: z.enum(["percentage", "fixed"]).nullable().optional(),
+  global_discount_value: z.number().min(0).optional().default(0),
   notes: z.string().max(2000).nullable().optional(),
   internal_notes: z.string().max(2000).nullable().optional(),
 });
@@ -29,6 +32,8 @@ export const updateQuoteSchema = z.object({
   items: z.array(quoteItemSchema).min(1),
   is_urgent: z.boolean().default(false),
   discount_percent: z.number().min(0).max(100).default(0),
+  global_discount_type: z.enum(["percentage", "fixed"]).nullable().optional(),
+  global_discount_value: z.number().min(0).default(0),
   notes: z.string().max(2000).nullable().optional(),
   internal_notes: z.string().max(2000).nullable().optional(),
 });

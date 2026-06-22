@@ -156,6 +156,9 @@ export function mapQuote(row: Record<string, unknown>): Quote {
     subtotal: row.subtotal as number,
     discountPercent: row.discount_percent as number,
     discountAmount: row.discount_amount as number,
+    globalDiscountType: (row.global_discount_type as Quote["globalDiscountType"]) ?? null,
+    globalDiscountValue: (row.global_discount_value as number) ?? 0,
+    globalDiscountAmount: (row.global_discount_amount as number) ?? 0,
     total: row.total as number,
     isUrgent: row.is_urgent as boolean,
     validUntil: (row.valid_until as string) ?? null,
@@ -173,6 +176,7 @@ export function mapQuoteItem(row: Record<string, unknown>): QuoteItem {
     productName: row.product_name as string,
     quantity: row.quantity as number,
     unitPrice: row.unit_price as number,
+    discountPercent: (row.discount_percent as number) ?? 0,
     totalPrice: row.total_price as number,
     configSnapshot: (row.config_snapshot as Record<string, unknown>) ?? {},
   };

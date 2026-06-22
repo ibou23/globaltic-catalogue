@@ -10,6 +10,10 @@ function mapInvoice(row: Record<string, unknown>): Invoice {
     orderId:     row.order_id    as string,
     customerId:  (row.customer_id  as string) ?? null,
     status:      row.status      as InvoiceStatus,
+    subtotal:    (row.subtotal as number) ?? 0,
+    globalDiscountType: (row.global_discount_type as Invoice["globalDiscountType"]) ?? null,
+    globalDiscountValue: (row.global_discount_value as number) ?? 0,
+    globalDiscountAmount: (row.global_discount_amount as number) ?? 0,
     total:       row.total       as number,
     paidAmount:  row.paid_amount as number,
     issuedAt:    row.issued_at   as string,
@@ -91,6 +95,10 @@ export async function createInvoice(input: {
   orderId:     string;
   customerId:  string | null;
   status:      InvoiceStatus;
+  subtotal?:   number;
+  globalDiscountType?: "percentage" | "fixed" | null;
+  globalDiscountValue?: number;
+  globalDiscountAmount?: number;
   total:       number;
   paidAmount:  number;
   generatedBy: string | null;
@@ -104,6 +112,10 @@ export async function createInvoice(input: {
       order_id:     input.orderId,
       customer_id:  input.customerId  ?? null,
       status:       input.status,
+      subtotal:     input.subtotal ?? input.total,
+      global_discount_type:   input.globalDiscountType ?? null,
+      global_discount_value:  input.globalDiscountValue ?? 0,
+      global_discount_amount: input.globalDiscountAmount ?? 0,
       total:        input.total,
       paid_amount:  input.paidAmount,
       generated_by: input.generatedBy ?? null,

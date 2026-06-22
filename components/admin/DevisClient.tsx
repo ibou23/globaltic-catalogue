@@ -61,7 +61,14 @@ function buildWhatsAppReply(quote: QuoteEnriched): string {
     }
   }
 
-  lines.push(`*Total estimatif* : ${quote.total.toLocaleString("fr-SN")} FCFA`);
+  if (quote.globalDiscountAmount > 0) {
+    lines.push(`*Sous-total* : ${quote.subtotal.toLocaleString("fr-SN")} FCFA`);
+    lines.push(`*Remise commerciale* : -${quote.globalDiscountAmount.toLocaleString("fr-SN")} FCFA`);
+    lines.push(`*Total* : ${quote.total.toLocaleString("fr-SN")} FCFA`);
+  } else {
+    lines.push(`*Total estimatif* : ${quote.total.toLocaleString("fr-SN")} FCFA`);
+  }
+
   lines.push(``);
   lines.push(`Confirmez-vous cette commande ? Nous pouvons démarrer la production dès validation.`);
 

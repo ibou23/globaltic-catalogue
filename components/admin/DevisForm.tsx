@@ -61,6 +61,9 @@ export function DevisForm({ onClose }: DevisFormProps) {
   const [internalNotes, setInternalNotes] = useState("");
   const [isUrgent, setIsUrgent] = useState(false);
 
+  const [globalDiscountType, setGlobalDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [globalDiscountValue, setGlobalDiscountValue] = useState("");
+
   const updateLine = useCallback((index: number, field: keyof LineState, value: string) => {
     setLines((prev) =>
       prev.map((l, i) => {
@@ -113,7 +116,14 @@ export function DevisForm({ onClose }: DevisFormProps) {
     return Math.round(qty * unit * (1 - disc / 100));
   }
 
-  const grandTotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+  const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+  const globalDiscVal = parseFloat(globalDiscountValue) || 0;
+  const globalDiscountAmount = globalDiscVal > 0
+    ? globalDiscountType === "percentage"
+      ? Math.round(subtotal * (globalDiscVal / 100))
+      : Math.round(globalDiscVal)
+    : 0;
+  const grandTotal = subtotal - globalDiscountAmount;
   const autoCount = lines.filter((l) => l.priceSource === "auto").length;
   const emptyCount = lines.filter((l) => l.priceSource === "empty").length;
 
@@ -168,6 +178,7 @@ export function DevisForm({ onClose }: DevisFormProps) {
           product_name: l.productName.trim(),
           quantity: qty,
           unit_price: unit,
+          discount_percent: disc,
           total_price: totalPrice,
           config_snapshot: configSnapshot,
         };
@@ -178,6 +189,8 @@ export function DevisForm({ onClose }: DevisFormProps) {
         items,
         is_urgent: isUrgent,
         discount_percent: 0,
+        global_discount_type: globalDiscVal > 0 ? globalDiscountType : null,
+        global_discount_value: globalDiscVal,
         notes: notes.trim() || null,
         internal_notes: internalNotes.trim() || null,
       });
@@ -353,14 +366,62 @@ export function DevisForm({ onClose }: DevisFormProps) {
               })}
             </div>
 
-            {grandTotal > 0 && (
-              <div className="mt-3 bg-brand-primary/5 border border-brand-primary/20 rounded-xl px-4 py-3 flex justify-between items-center">
-                <span className="text-sm font-bold text-slate-600">
-                  Total estimé{lines.length > 1 ? ` (${lines.length} lignes)` : ""}
-                </span>
-                <span className="text-lg font-black text-brand-primary">{grandTotal.toLocaleString("fr-SN")} FCFA</span>
+            {subtotal > 0 && (
+              <div className="mt-3 space-y-2">
+                {globalDiscountAmount > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 flex justify-between items-center">
+                    <span className="text-xs font-bold text-green-700">
+                      Sous-total
+                    </span>
+                    <span className="text-sm font-black text-green-700">{subtotal.toLocaleString("fr-SN")} FCFA</span>
+                  </div>
+                )}
+                {globalDiscountAmount > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 flex justify-between items-center">
+                    <span className="text-xs font-bold text-green-700">
+                      Remise globale {globalDiscountType === "percentage" ? `(${globalDiscVal}%)` : ""}
+                    </span>
+                    <span className="text-sm font-black text-green-700">-{globalDiscountAmount.toLocaleString("fr-SN")} FCFA</span>
+                  </div>
+                )}
+                <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl px-4 py-3 flex justify-between items-center">
+                  <span className="text-sm font-bold text-slate-600">
+                    Total final{lines.length > 1 ? ` (${lines.length} lignes)` : ""}
+                  </span>
+                  <span className="text-lg font-black text-brand-primary">{grandTotal.toLocaleString("fr-SN")} FCFA</span>
+                </div>
               </div>
             )}
+          </div>
+
+          {/* Remise globale */}
+          <div>
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Remise globale</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Type de remise</label>
+                <select
+                  className={inputClass}
+                  value={globalDiscountType}
+                  onChange={(e) => setGlobalDiscountType(e.target.value as "percentage" | "fixed")}
+                >
+                  <option value="percentage">Pourcentage (%)</option>
+                  <option value="fixed">Montant fixe (FCFA)</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Valeur</label>
+                <input
+                  className={inputClass}
+                  type="number"
+                  min="0"
+                  max={globalDiscountType === "percentage" ? "100" : undefined}
+                  value={globalDiscountValue}
+                  onChange={(e) => setGlobalDiscountValue(e.target.value)}
+                  placeholder={globalDiscountType === "percentage" ? "5" : "20000"}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Notes */}

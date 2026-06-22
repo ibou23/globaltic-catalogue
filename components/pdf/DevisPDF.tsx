@@ -357,6 +357,7 @@ export function DevisPDF({
   ];
 
   const hasDiscount = quote.discountPercent > 0;
+  const hasGlobalDiscount = quote.globalDiscountAmount > 0;
   const validUntil = quote.validUntil
     ? formatDate(quote.validUntil)
     : addDays(quote.createdAt, 30);
@@ -455,6 +456,10 @@ export function DevisPDF({
           ]
             .filter(Boolean)
             .join(" — ");
+          const lineDiscount = item.discountPercent ?? 0;
+          const lineDiscountAmount = lineDiscount > 0
+            ? Math.round(item.quantity * item.unitPrice * lineDiscount / 100)
+            : 0;
           return (
             <View key={item.id} style={i % 2 === 0 ? s.tableRow : s.tableRowAlt}>
               <View style={s.colProduct}>
@@ -462,6 +467,11 @@ export function DevisPDF({
                 {optionLine ? (
                   <Text style={s.tdTextGray}>{optionLine}</Text>
                 ) : null}
+                {lineDiscount > 0 && (
+                  <Text style={[s.tdTextGray, { color: "#16A34A" }]}>
+                    Remise {lineDiscount}% : -{formatAmount(lineDiscountAmount)}
+                  </Text>
+                )}
               </View>
               <Text style={[s.tdText, s.colQty]}>
                 {formatNumber(item.quantity)}
@@ -487,6 +497,16 @@ export function DevisPDF({
               <Text style={s.totalLabel}>Remise ({quote.discountPercent}%)</Text>
               <Text style={[s.totalValue, { color: "#16A34A" }]}>
                 -{" "}{formatAmount(quote.discountAmount)}
+              </Text>
+            </View>
+          )}
+          {hasGlobalDiscount && (
+            <View style={s.totalRow}>
+              <Text style={s.totalLabel}>
+                Remise globale{quote.globalDiscountType === "percentage" ? ` (${quote.globalDiscountValue}%)` : ""}
+              </Text>
+              <Text style={[s.totalValue, { color: "#16A34A" }]}>
+                -{" "}{formatAmount(quote.globalDiscountAmount)}
               </Text>
             </View>
           )}

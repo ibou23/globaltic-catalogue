@@ -137,6 +137,8 @@ export interface Customer {
   createdAt: string;
 }
 
+export type GlobalDiscountType = "percentage" | "fixed";
+
 export interface Quote {
   id: string;
   reference: string;
@@ -146,6 +148,9 @@ export interface Quote {
   subtotal: number;
   discountPercent: number;
   discountAmount: number;
+  globalDiscountType: GlobalDiscountType | null;
+  globalDiscountValue: number;
+  globalDiscountAmount: number;
   total: number;
   isUrgent: boolean;
   validUntil: string | null;
@@ -161,6 +166,7 @@ export interface QuoteItem {
   productName: string;
   quantity: number;
   unitPrice: number;
+  discountPercent: number;
   totalPrice: number;
   configSnapshot: Record<string, unknown>;
 }
@@ -274,6 +280,10 @@ export interface Invoice {
   orderId:      string;
   customerId:   string | null;
   status:       InvoiceStatus;
+  subtotal:     number;
+  globalDiscountType: GlobalDiscountType | null;
+  globalDiscountValue: number;
+  globalDiscountAmount: number;
   total:        number;
   paidAmount:   number;
   issuedAt:     string;

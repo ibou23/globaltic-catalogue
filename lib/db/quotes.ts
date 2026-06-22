@@ -21,7 +21,7 @@ export async function getQuotesEnriched(): Promise<Result<QuoteEnriched[]>> {
 
   const { data, error } = await supabase
     .from("quotes")
-    .select("*, customers(contact_name, whatsapp, company_name), quote_items(id, product_name, quantity, unit_price, total_price, config_snapshot)")
+    .select("*, customers(contact_name, whatsapp, company_name), quote_items(id, product_name, quantity, unit_price, total_price, discount_percent, config_snapshot)")
     .order("created_at", { ascending: false });
 
   if (error) return err(error.message);
@@ -66,7 +66,7 @@ export async function getQuotesEnrichedByCustomer(
 
   const { data, error } = await supabase
     .from("quotes")
-    .select("*, customers(contact_name, whatsapp, company_name), quote_items(id, product_name, quantity, unit_price, total_price, config_snapshot)")
+    .select("*, customers(contact_name, whatsapp, company_name), quote_items(id, product_name, quantity, unit_price, total_price, discount_percent, config_snapshot)")
     .eq("customer_id", customerId)
     .order("created_at", { ascending: false });
 
@@ -157,6 +157,16 @@ export async function getQuoteByReference(
   return ok(data ? mapQuote(data) : null);
 }
 
+function computeGlobalDiscount(
+  subtotal: number,
+  type: "percentage" | "fixed" | null | undefined,
+  value: number
+): number {
+  if (!type || value <= 0) return 0;
+  if (type === "percentage") return Math.round(subtotal * (value / 100));
+  return Math.round(value);
+}
+
 export async function createQuote(
   input: CreateQuoteInput,
   reference: string
@@ -165,7 +175,12 @@ export async function createQuote(
 
   const subtotal = input.items.reduce((sum, item) => sum + item.total_price, 0);
   const discountAmount = Math.round(subtotal * (input.discount_percent / 100));
-  const total = subtotal - discountAmount;
+  const afterLineDiscount = subtotal - discountAmount;
+
+  const globalDiscountType = input.global_discount_type ?? null;
+  const globalDiscountValue = input.global_discount_value ?? 0;
+  const globalDiscountAmount = computeGlobalDiscount(afterLineDiscount, globalDiscountType, globalDiscountValue);
+  const total = afterLineDiscount - globalDiscountAmount;
 
   const { data: quoteData, error: quoteError } = await supabase
     .from("quotes")
@@ -176,6 +191,9 @@ export async function createQuote(
       subtotal,
       discount_percent: input.discount_percent,
       discount_amount: discountAmount,
+      global_discount_type: globalDiscountType,
+      global_discount_value: globalDiscountValue,
+      global_discount_amount: globalDiscountAmount,
       total,
       is_urgent: input.is_urgent,
       notes: input.notes ?? null,
@@ -192,6 +210,7 @@ export async function createQuote(
     product_name: item.product_name,
     quantity: item.quantity,
     unit_price: item.unit_price,
+    discount_percent: item.discount_percent ?? 0,
     total_price: item.total_price,
     config_snapshot: item.config_snapshot,
     notes: item.notes ?? null,
@@ -214,7 +233,12 @@ export async function updateQuote(
 
   const subtotal = input.items.reduce((sum, item) => sum + item.total_price, 0);
   const discountAmount = Math.round(subtotal * (input.discount_percent / 100));
-  const total = subtotal - discountAmount;
+  const afterLineDiscount = subtotal - discountAmount;
+
+  const globalDiscountType = input.global_discount_type ?? null;
+  const globalDiscountValue = input.global_discount_value ?? 0;
+  const globalDiscountAmount = computeGlobalDiscount(afterLineDiscount, globalDiscountType, globalDiscountValue);
+  const total = afterLineDiscount - globalDiscountAmount;
 
   const { data: quoteData, error: quoteError } = await supabase
     .from("quotes")
@@ -223,6 +247,9 @@ export async function updateQuote(
       subtotal,
       discount_percent: input.discount_percent,
       discount_amount: discountAmount,
+      global_discount_type: globalDiscountType,
+      global_discount_value: globalDiscountValue,
+      global_discount_amount: globalDiscountAmount,
       total,
       is_urgent: input.is_urgent,
       notes: input.notes ?? null,
@@ -234,7 +261,7 @@ export async function updateQuote(
 
   if (quoteError) return err(quoteError.message);
 
-  // Supprimer les anciennes lignes et réinsérer
+  // Supprimer les anciennes lignes et reinseerer
   const { error: deleteError } = await supabase
     .from("quote_items")
     .delete()
@@ -248,6 +275,7 @@ export async function updateQuote(
     product_name: item.product_name,
     quantity: item.quantity,
     unit_price: item.unit_price,
+    discount_percent: item.discount_percent ?? 0,
     total_price: item.total_price,
     config_snapshot: item.config_snapshot,
     notes: item.notes ?? null,
@@ -265,7 +293,7 @@ export async function updateQuote(
 export async function deleteQuote(id: string): Promise<Result<null>> {
   const supabase = await createClient();
 
-  // quote_items supprimés en CASCADE par la FK
+  // quote_items supprimes en CASCADE par la FK
   const { error } = await supabase.from("quotes").delete().eq("id", id);
   if (error) return err(error.message);
   return ok(null);
