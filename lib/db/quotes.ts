@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ok, err, type Result } from "@/lib/utils/result";
+import { computeQuoteDiscounts } from "@/lib/utils/discount";
 import { mapQuote, mapQuoteItem } from "./mappers";
 import type { Quote, QuoteItem, QuoteEnriched, QuoteStatus } from "@/lib/types/domain";
 import type { CreateQuoteInput, UpdateQuoteInput } from "@/lib/validators/quote";
@@ -157,30 +158,26 @@ export async function getQuoteByReference(
   return ok(data ? mapQuote(data) : null);
 }
 
-function computeGlobalDiscount(
-  subtotal: number,
-  type: "percentage" | "fixed" | null | undefined,
-  value: number
-): number {
-  if (!type || value <= 0) return 0;
-  if (type === "percentage") return Math.round(subtotal * (value / 100));
-  return Math.round(value);
-}
-
 export async function createQuote(
   input: CreateQuoteInput,
   reference: string
 ): Promise<Result<Quote>> {
   const supabase = await createClient();
 
-  const subtotal = input.items.reduce((sum, item) => sum + item.total_price, 0);
-  const discountAmount = Math.round(subtotal * (input.discount_percent / 100));
-  const afterLineDiscount = subtotal - discountAmount;
-
-  const globalDiscountType = input.global_discount_type ?? null;
-  const globalDiscountValue = input.global_discount_value ?? 0;
-  const globalDiscountAmount = computeGlobalDiscount(afterLineDiscount, globalDiscountType, globalDiscountValue);
-  const total = afterLineDiscount - globalDiscountAmount;
+  const calc = computeQuoteDiscounts(
+    input.items.map((item) => ({
+      quantity: item.quantity,
+      unitPrice: item.unit_price,
+      discountPercent: item.discount_percent ?? 0,
+    })),
+    input.global_discount_type,
+    input.global_discount_value ?? 0
+  );
+  const subtotal = calc.subtotal;
+  const globalDiscountType = calc.globalDiscountType;
+  const globalDiscountValue = calc.globalDiscountValue;
+  const globalDiscountAmount = calc.globalDiscountAmount;
+  const total = calc.total;
 
   const { data: quoteData, error: quoteError } = await supabase
     .from("quotes")
@@ -190,7 +187,7 @@ export async function createQuote(
       status: "brouillon" as const,
       subtotal,
       discount_percent: input.discount_percent,
-      discount_amount: discountAmount,
+      discount_amount: 0,
       global_discount_type: globalDiscountType,
       global_discount_value: globalDiscountValue,
       global_discount_amount: globalDiscountAmount,
@@ -231,26 +228,27 @@ export async function updateQuote(
 ): Promise<Result<Quote>> {
   const supabase = await createClient();
 
-  const subtotal = input.items.reduce((sum, item) => sum + item.total_price, 0);
-  const discountAmount = Math.round(subtotal * (input.discount_percent / 100));
-  const afterLineDiscount = subtotal - discountAmount;
-
-  const globalDiscountType = input.global_discount_type ?? null;
-  const globalDiscountValue = input.global_discount_value ?? 0;
-  const globalDiscountAmount = computeGlobalDiscount(afterLineDiscount, globalDiscountType, globalDiscountValue);
-  const total = afterLineDiscount - globalDiscountAmount;
+  const calc = computeQuoteDiscounts(
+    input.items.map((item) => ({
+      quantity: item.quantity,
+      unitPrice: item.unit_price,
+      discountPercent: item.discount_percent ?? 0,
+    })),
+    input.global_discount_type,
+    input.global_discount_value ?? 0
+  );
 
   const { data: quoteData, error: quoteError } = await supabase
     .from("quotes")
     .update({
       status: input.status,
-      subtotal,
+      subtotal: calc.subtotal,
       discount_percent: input.discount_percent,
-      discount_amount: discountAmount,
-      global_discount_type: globalDiscountType,
-      global_discount_value: globalDiscountValue,
-      global_discount_amount: globalDiscountAmount,
-      total,
+      discount_amount: 0,
+      global_discount_type: calc.globalDiscountType,
+      global_discount_value: calc.globalDiscountValue,
+      global_discount_amount: calc.globalDiscountAmount,
+      total: calc.total,
       is_urgent: input.is_urgent,
       notes: input.notes ?? null,
       internal_notes: input.internal_notes ?? null,

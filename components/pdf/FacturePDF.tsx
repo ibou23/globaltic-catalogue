@@ -378,44 +378,54 @@ export function FacturePDF({ order, invoice, quote, logoUrl, company }: FactureP
         {/* Items table (if quote items available) */}
         {items.length > 0 ? (
           <>
-            <View style={s.tableHeader}>
-              <Text style={[s.thText, s.colProduct]}>Produit / Description</Text>
-              <Text style={[s.thText, s.colQty]}>Qte</Text>
-              <Text style={[s.thText, s.colUnit]}>P.U.</Text>
-              <Text style={[s.thText, s.colTotal]}>Total HT</Text>
-            </View>
-
-            {items.map((item, i) => {
-              const options = item.configSnapshot as Record<string, string>;
-              const optionLine = [options.options, options.delai].filter(Boolean).join(" — ");
-              const lineDiscount = item.discountPercent ?? 0;
-              const lineDiscountAmount = lineDiscount > 0
-                ? Math.round(item.quantity * item.unitPrice * lineDiscount / 100)
-                : 0;
+            {(() => {
+              const hasAnyLineDiscount = items.some((item) => (item.discountPercent ?? 0) > 0);
               return (
-                <View key={item.id} style={i % 2 === 0 ? s.tableRow : s.tableRowAlt}>
-                  <View style={s.colProduct}>
-                    <Text style={s.tdTextBold}>{item.productName}</Text>
-                    {optionLine ? <Text style={s.tdTextGray}>{optionLine}</Text> : null}
-                    {lineDiscount > 0 && (
-                      <Text style={[s.tdTextGray, { color: "#16A34A" }]}>
-                        Remise {lineDiscount}% : -{formatAmount(lineDiscountAmount)}
-                      </Text>
+                <>
+                  <View style={s.tableHeader}>
+                    <Text style={[s.thText, s.colProduct]}>Produit / Description</Text>
+                    <Text style={[s.thText, s.colQty]}>Qte</Text>
+                    <Text style={[s.thText, s.colUnit]}>P.U.</Text>
+                    {hasAnyLineDiscount && (
+                      <Text style={[s.thText, { flex: 1.4, textAlign: "right" as const, paddingLeft: 4 }]}>Remise</Text>
                     )}
+                    <Text style={[s.thText, s.colTotal]}>{hasAnyLineDiscount ? "Net" : "Total HT"}</Text>
                   </View>
-                  <Text style={[s.tdText, s.colQty]}>{formatNumber(item.quantity)}</Text>
-                  <Text style={[s.tdText, s.colUnit]}>{formatAmount(item.unitPrice)}</Text>
-                  <Text style={[s.tdTextBold, s.colTotal]}>{formatAmount(item.totalPrice)}</Text>
-                </View>
+
+                  {items.map((item, i) => {
+                    const options = item.configSnapshot as Record<string, string>;
+                    const optionLine = [options.options, options.delai].filter(Boolean).join(" — ");
+                    const lineDiscount = item.discountPercent ?? 0;
+                    const lineDiscountAmount = lineDiscount > 0
+                      ? Math.round(item.quantity * item.unitPrice * lineDiscount / 100)
+                      : 0;
+                    return (
+                      <View key={item.id} style={i % 2 === 0 ? s.tableRow : s.tableRowAlt}>
+                        <View style={s.colProduct}>
+                          <Text style={s.tdTextBold}>{item.productName}</Text>
+                          {optionLine ? <Text style={s.tdTextGray}>{optionLine}</Text> : null}
+                        </View>
+                        <Text style={[s.tdText, s.colQty]}>{formatNumber(item.quantity)}</Text>
+                        <Text style={[s.tdText, s.colUnit]}>{formatAmount(item.unitPrice)}</Text>
+                        {hasAnyLineDiscount && (
+                          <Text style={[s.tdText, { flex: 1.4, textAlign: "right" as const, paddingLeft: 4, color: lineDiscount > 0 ? "#16A34A" : "#64748B" }]}>
+                            {lineDiscount > 0 ? `-${lineDiscount}% (-${formatNumber(lineDiscountAmount)})` : "—"}
+                          </Text>
+                        )}
+                        <Text style={[s.tdTextBold, s.colTotal]}>{formatAmount(item.totalPrice)}</Text>
+                      </View>
+                    );
+                  })}
+                </>
               );
-            })}
+            })()}
 
             {/* Totals with discount */}
             <View style={s.totalsBlock}>
               {(hasDiscount || hasGlobalDiscount) && quote ? (
                 <>
                   <View style={s.totalRow}>
-                    <Text style={s.totalLabel}>Sous-total</Text>
+                    <Text style={s.totalLabel}>Sous-total HT</Text>
                     <Text style={s.totalValue}>{formatAmount(quote.subtotal)}</Text>
                   </View>
                   {hasDiscount && (
@@ -429,7 +439,7 @@ export function FacturePDF({ order, invoice, quote, logoUrl, company }: FactureP
                   {hasGlobalDiscount && (
                     <View style={s.totalRow}>
                       <Text style={s.totalLabel}>
-                        Remise globale{globalDiscountType === "percentage" ? ` (${globalDiscountValue}%)` : ""}
+                        Remise commerciale{globalDiscountType === "percentage" ? ` (${globalDiscountValue}%)` : ""}
                       </Text>
                       <Text style={[s.totalValue, { color: "#16A34A" }]}>
                         -{" "}{formatAmount(globalDiscountAmount)}

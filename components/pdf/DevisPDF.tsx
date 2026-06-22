@@ -358,6 +358,7 @@ export function DevisPDF({
 
   const hasDiscount = quote.discountPercent > 0;
   const hasGlobalDiscount = quote.globalDiscountAmount > 0;
+  const hasAnyLineDiscount = quote.items.some((item) => (item.discountPercent ?? 0) > 0);
   const validUntil = quote.validUntil
     ? formatDate(quote.validUntil)
     : addDays(quote.createdAt, 30);
@@ -439,7 +440,10 @@ export function DevisPDF({
           <Text style={[s.thText, s.colProduct]}>Produit / Description</Text>
           <Text style={[s.thText, s.colQty]}>Qté</Text>
           <Text style={[s.thText, s.colUnit]}>P.U.</Text>
-          <Text style={[s.thText, s.colTotal]}>Total HT</Text>
+          {hasAnyLineDiscount && (
+            <Text style={[s.thText, { flex: 1.4, textAlign: "right" as const, paddingLeft: 4 }]}>Remise</Text>
+          )}
+          <Text style={[s.thText, s.colTotal]}>{hasAnyLineDiscount ? "Net" : "Total HT"}</Text>
         </View>
 
         {quote.items.map((item, i) => {
@@ -467,11 +471,6 @@ export function DevisPDF({
                 {optionLine ? (
                   <Text style={s.tdTextGray}>{optionLine}</Text>
                 ) : null}
-                {lineDiscount > 0 && (
-                  <Text style={[s.tdTextGray, { color: "#16A34A" }]}>
-                    Remise {lineDiscount}% : -{formatAmount(lineDiscountAmount)}
-                  </Text>
-                )}
               </View>
               <Text style={[s.tdText, s.colQty]}>
                 {formatNumber(item.quantity)}
@@ -479,6 +478,11 @@ export function DevisPDF({
               <Text style={[s.tdText, s.colUnit]}>
                 {formatAmount(item.unitPrice)}
               </Text>
+              {hasAnyLineDiscount && (
+                <Text style={[s.tdText, { flex: 1.4, textAlign: "right" as const, paddingLeft: 4, color: lineDiscount > 0 ? "#16A34A" : GRAY_TEXT }]}>
+                  {lineDiscount > 0 ? `-${lineDiscount}% (-${formatNumber(lineDiscountAmount)})` : "—"}
+                </Text>
+              )}
               <Text style={[s.tdTextBold, s.colTotal]}>
                 {formatAmount(item.totalPrice)}
               </Text>
@@ -489,7 +493,7 @@ export function DevisPDF({
         {/* Totals */}
         <View style={s.totalsBlock}>
           <View style={s.totalRow}>
-            <Text style={s.totalLabel}>Sous-total</Text>
+            <Text style={s.totalLabel}>Sous-total HT</Text>
             <Text style={s.totalValue}>{formatAmount(quote.subtotal)}</Text>
           </View>
           {hasDiscount && (
@@ -503,7 +507,7 @@ export function DevisPDF({
           {hasGlobalDiscount && (
             <View style={s.totalRow}>
               <Text style={s.totalLabel}>
-                Remise globale{quote.globalDiscountType === "percentage" ? ` (${quote.globalDiscountValue}%)` : ""}
+                Remise commerciale{quote.globalDiscountType === "percentage" ? ` (${quote.globalDiscountValue}%)` : ""}
               </Text>
               <Text style={[s.totalValue, { color: "#16A34A" }]}>
                 -{" "}{formatAmount(quote.globalDiscountAmount)}

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { X, Loader2, Save, Plus, Trash2, Sparkles, Pencil } from "lucide-react";
+import { X, Loader2, Save, Plus, Trash2, Sparkles, Pencil, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateCustomerAction } from "@/lib/actions/customers";
 import { updateQuoteAction, getQuoteItemsAction } from "@/lib/actions/quotes";
 import { resolveProductPrice, getProductMinQty } from "@/lib/utils/product-price-resolver";
+import { computeQuoteDiscounts } from "@/lib/utils/discount";
 import { useProductPricing } from "@/hooks/use-product-pricing";
 import type { QuoteEnriched } from "@/lib/types/domain";
 
@@ -182,14 +183,19 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
     return Math.round(qty * unit * (1 - disc / 100));
   }
 
-  const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
   const globalDiscVal = parseFloat(globalDiscountValue) || 0;
-  const globalDiscountAmount = globalDiscVal > 0
-    ? globalDiscountType === "percentage"
-      ? Math.round(subtotal * (globalDiscVal / 100))
-      : Math.round(globalDiscVal)
-    : 0;
-  const grandTotal = subtotal - globalDiscountAmount;
+  const calc = computeQuoteDiscounts(
+    lines.map((l) => ({
+      quantity: parseInt(l.quantity, 10) || 0,
+      unitPrice: parseInt(l.unitPrice, 10) || 0,
+      discountPercent: parseFloat(l.discountPercent) || 0,
+    })),
+    globalDiscVal > 0 ? globalDiscountType : null,
+    globalDiscVal
+  );
+  const subtotal = calc.subtotal;
+  const globalDiscountAmount = calc.globalDiscountAmount;
+  const grandTotal = calc.total;
   const autoCount = lines.filter((l) => l.priceSource === "auto").length;
   const emptyCount = lines.filter((l) => l.priceSource === "empty").length;
 
@@ -446,7 +452,7 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
                   {globalDiscountAmount > 0 && (
                     <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 flex justify-between items-center">
                       <span className="text-xs font-bold text-green-700">
-                        Remise globale {globalDiscountType === "percentage" ? `(${globalDiscVal}%)` : ""}
+                        Remise commerciale {globalDiscountType === "percentage" ? `(${globalDiscVal}%)` : `(fixe)`}
                       </span>
                       <span className="text-sm font-black text-green-700">-{globalDiscountAmount.toLocaleString("fr-SN")} FCFA</span>
                     </div>
@@ -461,9 +467,9 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
               )}
             </div>
 
-            {/* Remise globale */}
+            {/* Remise commerciale */}
             <div>
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Remise globale</h3>
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Remise commerciale</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Type de remise</label>
@@ -489,6 +495,21 @@ export function DevisEditForm({ quote, onClose }: DevisEditFormProps) {
                   />
                 </div>
               </div>
+              {lines.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const disc = globalDiscountType === "percentage" ? globalDiscountValue : "0";
+                    if (parseFloat(disc) > 0) {
+                      setLines((prev) => prev.map((l) => ({ ...l, discountPercent: disc })));
+                      setGlobalDiscountValue("");
+                    }
+                  }}
+                  className="mt-3 flex items-center gap-1.5 text-xs font-bold text-brand-primary hover:text-brand-primary-dark transition-colors"
+                >
+                  <Copy className="w-3.5 h-3.5" /> Appliquer ce % à toutes les lignes
+                </button>
+              )}
             </div>
 
             {/* Statut & options */}

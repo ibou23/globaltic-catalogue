@@ -63,8 +63,11 @@ function buildWhatsAppReply(quote: QuoteEnriched): string {
 
   if (quote.globalDiscountAmount > 0) {
     lines.push(`*Sous-total* : ${quote.subtotal.toLocaleString("fr-SN")} FCFA`);
-    lines.push(`*Remise commerciale* : -${quote.globalDiscountAmount.toLocaleString("fr-SN")} FCFA`);
-    lines.push(`*Total* : ${quote.total.toLocaleString("fr-SN")} FCFA`);
+    const discLabel = quote.globalDiscountType === "percentage"
+      ? `*Remise commerciale* : -${quote.globalDiscountValue}% (-${quote.globalDiscountAmount.toLocaleString("fr-SN")} FCFA)`
+      : `*Remise commerciale* : -${quote.globalDiscountAmount.toLocaleString("fr-SN")} FCFA`;
+    lines.push(discLabel);
+    lines.push(`*Total final* : ${quote.total.toLocaleString("fr-SN")} FCFA`);
   } else {
     lines.push(`*Total estimatif* : ${quote.total.toLocaleString("fr-SN")} FCFA`);
   }
