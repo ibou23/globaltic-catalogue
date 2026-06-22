@@ -22,7 +22,7 @@ export async function getQuotesEnriched(): Promise<Result<QuoteEnriched[]>> {
 
   const { data, error } = await supabase
     .from("quotes")
-    .select("*, customers(contact_name, whatsapp, company_name), quote_items(id, product_name, quantity, unit_price, total_price, discount_percent, config_snapshot)")
+    .select("*, customers(contact_name, whatsapp, company_name), quote_items(*)")
     .order("created_at", { ascending: false });
 
   if (error) return err(error.message);
@@ -67,7 +67,7 @@ export async function getQuotesEnrichedByCustomer(
 
   const { data, error } = await supabase
     .from("quotes")
-    .select("*, customers(contact_name, whatsapp, company_name), quote_items(id, product_name, quantity, unit_price, total_price, discount_percent, config_snapshot)")
+    .select("*, customers(contact_name, whatsapp, company_name), quote_items(*)")
     .eq("customer_id", customerId)
     .order("created_at", { ascending: false });
 
